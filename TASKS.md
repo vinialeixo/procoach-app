@@ -22,7 +22,7 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [ ] | **T-002** | E0 | Fundação | Configurar CI/CD e ambientes (dev/staging) | DevOps | Must | 2 | T-001 |
 | [ ] | **T-003** | E0 | Fundação | Provisionar PostgreSQL + pgvector, Object Storage (S3), Message Broker | DevOps | Must | 2 | T-001 |
 | [ ] | **T-004** | E0 | Fundação | Modelar bounded contexts e definir agregados | Dev | Must | 3 | T-001 |
-| [ ] | **T-005** | E0 | Fundação | Implementar event store base (Event Sourcing seletivo) | Dev | Must | 4 | T-004 |
+| [x] | **T-005** | E0 | Fundação | Implementar event store base (Event Sourcing seletivo) | Dev | Must | 4 | T-004 |
 | [ ] | **T-006** | E0 | Fundação | Setup projeto Front Web (SPA), design system base | Dev | Must | 2 | — |
 | [ ] | **T-007** | E0 | Fundação | Definir plano de testes e estratégia de QA (DoD/CA) | QA | Must | 2 | — |
 | [ ] | **T-008** | E9 | US-20 | Implementar autenticação + MFA | Dev | Must | 3 | T-004 |
