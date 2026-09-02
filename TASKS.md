@@ -86,7 +86,7 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [ ] | **T-039** | E4 | US-12 | Sugestão de exercícios semelhantes | Dev | Could | 2 | T-036 |
 | [ ] | **T-040** | E4/E8 | US-10/11/19 | Front: biblioteca + montagem de treino/periodização | Dev | Must | 4 | T-037 |
 | [ ] | **T-041** | E4/E8 | US-10/11/12/19 | Testes de treino e biblioteca | QA | Must | 3 | T-040 |
-| [ ] | **T-051** | E4 | US-12 | Criar módulo de domínio training + agregado TrainingPlan (com.procoach.core.training) | Dev | Must | 3 | T-004 |
+| [x] | **T-051** | E4 | US-12 | Criar módulo de domínio training + agregado TrainingPlan (com.procoach.core.training) | Dev | Must | 3 | T-004 |
 
 ## S6
 
