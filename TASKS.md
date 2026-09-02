@@ -62,8 +62,8 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [ ] | **T-028** | E2 | US-04/05/06 | Testes dos cálculos e comparação de avaliações | QA | Must | 2 | T-027 |
 | [ ] | **T-029** | E3 | US-07 | Modelo de dieta + macros + objetivo obrigatório | Dev | Must | 2 | T-017 |
 | [ ] | **T-030** | E3 | US-07 | Cálculos de TMB/GET/déficit/superávit | Dev | Must | 2 | T-029 |
+| [x] | **T-050** | E3 | US-08 | Criar módulo de domínio nutrition + agregado Diet (versionada) (com.procoach.core.nutrition) | Dev | Must | 3 | T-004 |
 | [x] | **T-049** | E2 | US-05 | Criar módulo de domínio assessment + agregado Assessment (com.procoach.core.assessment) | Dev | Must | 3 | T-004 |
-| [ ] | **T-050** | E3 | US-08 | Criar módulo de domínio nutrition + agregado Diet (versionada) (com.procoach.core.nutrition) | Dev | Must | 3 | T-004 |
 
 ## S4
 
