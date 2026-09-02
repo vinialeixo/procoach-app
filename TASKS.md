@@ -33,7 +33,7 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [ ] | **T-013** | E10 | US-21 | Implementar audit log imutável (append-only) | Dev | Must | 3 | T-005 |
 | [ ] | **T-014** | E10 | US-21 | Versionamento de agregados (versão/data/autor/histórico) | Dev | Must | 4 | T-005 |
 | [ ] | **T-015** | E10 | US-21 | Registrar eventos: cadastro, alteração, exclusão lógica, login, aprovação | Dev | Must | 3 | T-014 |
-| [ ] | **T-046** | E0 | Fundação | Criar módulo de domínio security + agregado User/Role (com.procoach.core.security) | Dev | Must | 2 | T-004 |
+| [x] | **T-046** | E0 | Fundação | Criar módulo de domínio security + agregado User/Role (com.procoach.core.security) | Dev | Must | 2 | T-004 |
 | [ ] | **T-047** | E0 | Fundação | Criar módulo cross-cutting audit + agregado AuditLog/Version (com.procoach.core.audit) | Dev | Must | 2 | T-004 |
 | [ ] | **T-053** | E0 | Fundação | Configurar Spring Modulith + verificação de boundaries entre módulos | Dev | Must | 2 | T-004 |
 
