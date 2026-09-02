@@ -49,7 +49,7 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [ ] | **T-021** | E1 | US-03 | Gestão de status (Ativo/Pausado/Finalizado) + soft-delete | Dev | Must | 2 | T-017 |
 | [ ] | **T-022** | E1 | US-03 | Front: listagem/detalhe do atleta + troca de status | Dev | Must | 2 | T-021 |
 | [ ] | **T-023** | E1 | US-01/02/03 | Testes E2E gestão de atletas | QA | Must | 2 | T-022 |
-| [ ] | **T-048** | E1 | US-01 | Criar módulo de domínio athlete + agregado Athlete (com.procoach.core.athlete) | Dev | Must | 3 | T-004 |
+| [x] | **T-048** | E1 | US-01 | Criar módulo de domínio athlete + agregado Athlete (com.procoach.core.athlete) | Dev | Must | 3 | T-004 |
 
 ## S3
 
