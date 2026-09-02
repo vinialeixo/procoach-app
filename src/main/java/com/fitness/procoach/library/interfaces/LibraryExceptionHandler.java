@@ -1,0 +1,30 @@
+package com.fitness.procoach.library.interfaces;
+
+import java.time.Instant;
+import java.util.Map;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import com.fitness.procoach.library.application.ExerciseNotFoundException;
+
+/** Tratamento de exceções do módulo library. */
+@RestControllerAdvice(assignableTypes = ExerciseController.class)
+public class LibraryExceptionHandler {
+
+	@ExceptionHandler(ExerciseNotFoundException.class)
+	public ResponseEntity<Map<String, Object>> handleNotFound(ExerciseNotFoundException ex) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND)
+				.body(Map.of("timestamp", Instant.now(), "status", 404, "error", ex.getMessage()));
+	}
+
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+				.body(Map.of("timestamp", Instant.now(), "status", 400,
+						"error", "Requisição inválida", "details", ex.getBindingResult().getAllErrors()));
+	}
+}
