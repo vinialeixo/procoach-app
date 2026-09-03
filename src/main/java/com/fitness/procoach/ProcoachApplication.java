@@ -5,9 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-@SpringBootApplication(scanBasePackages = { "com.fitness.procoach", "com.procoach.core" })
-@EntityScan(basePackages = { "com.fitness.procoach", "com.procoach.core" })
-@EnableJpaRepositories(basePackages = { "com.fitness.procoach", "com.procoach.core" })
+@SpringBootApplication
+@EntityScan(basePackages = "com.fitness.procoach")
+@EnableJpaRepositories(basePackages = "com.fitness.procoach")
 public class ProcoachApplication {
 
 	public static void main(String[] args) {

@@ -24,7 +24,7 @@ Spring Modulith), RAG em Python + LlamaIndex, Postgres + pgvector, Flyway, Rabbi
 
 ## Convenção de camadas por módulo
 
-Cada bounded context em `com.procoach.core.<modulo>` segue:
+Cada bounded context em `com.fitness.procoach.<modulo>` segue:
 
 ```
 <modulo>/
