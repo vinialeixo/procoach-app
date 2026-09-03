@@ -64,6 +64,21 @@ public class Diet {
     }
 
     /**
+     * Reconstitui o agregado a partir do estado persistido (uso exclusivo da
+     * camada de infraestrutura).
+     */
+    public static Diet reconstitute(DietId id, CoachId coachId, AthleteId athleteId,
+                                    DietObjective objective, Macronutrients macros,
+                                    DietStatus status, int version, DietId previousVersionId,
+                                    String changeReason, UUID createdBy, UUID updatedBy,
+                                    Instant createdAt, Instant updatedAt, boolean readOnly,
+                                    boolean deleted) {
+        return new Diet(id, coachId, athleteId, objective, macros, status, version,
+                previousVersionId, changeReason, createdBy, updatedBy, createdAt, updatedAt,
+                readOnly, deleted);
+    }
+
+    /**
      * Cria a primeira versão (v1) de uma dieta, em estado Rascunho.
      */
     public static Diet create(CoachId coachId, AthleteId athleteId, DietObjective objective,

@@ -50,6 +50,16 @@ public final class Assessment {
 		return new Assessment(AssessmentId.generate(), athleteId, coachId, assessmentDate, measurements, now, now, 1L);
 	}
 
+	/**
+	 * Reconstitui o agregado a partir do estado persistido (uso exclusivo da
+	 * camada de infraestrutura).
+	 */
+	public static Assessment reconstitute(AssessmentId id, UUID athleteId, UUID coachId,
+			LocalDate assessmentDate, BodyMeasurements measurements, Instant createdAt,
+			Instant updatedAt, long version) {
+		return new Assessment(id, athleteId, coachId, assessmentDate, measurements, createdAt, updatedAt, version);
+	}
+
 	public AssessmentId id() {
 		return id;
 	}

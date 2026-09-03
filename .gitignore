@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Test logs ###
+*.test.log
+baseline_test.log
+nutrition_test.log

@@ -44,7 +44,7 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 |---|---|---|---|---|---|---|---|---|
 | [ ] | **T-016** | E10 | US-21 | Testes de auditoria e versionamento (não-sobrescrita) | QA | Must | 3 | T-015 |
 | [x] | **T-017** | E1 | US-01 | Modelo + repositório de Atleta (ID único imutável) | Dev | Must | 2 | T-004 |
-| [ ] | **T-018** | E1 | US-01 | Endpoint cadastro de atleta + validação de campos obrigatórios | Dev | Must | 2 | T-017 |
+| [x] | **T-018** | E1 | US-01 | Endpoint cadastro de atleta + validação de campos obrigatórios | Dev | Must | 2 | T-017 |
 | [x] | **T-019** | E1 | US-01 | Front: formulário de cadastro de atleta | Dev | Must | 2 | T-018 |
 | [ ] | **T-020** | E1 | US-02 | Suporte a múltiplos protocolos por atleta | Dev | Must | 2 | T-017 |
 | [ ] | **T-021** | E1 | US-03 | Gestão de status (Ativo/Pausado/Finalizado) + soft-delete | Dev | Must | 2 | T-017 |
@@ -59,7 +59,7 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [ ] | **T-024** | E2 | US-04 | Modelo + endpoint de avaliação física (data obrigatória, sem sobrescrever) | Dev | Must | 2 | T-017 |
 | [ ] | **T-025** | E2 | US-05 | Motor de cálculos automáticos (IMC, TMB, GET, evolução) | Dev | Must | 3 | T-024 |
 | [ ] | **T-026** | E2 | US-06 | Comparação de avaliações lado a lado | Dev | Should | 2 | T-024 |
-| [ ] | **T-027** | E2 | US-04/05/06 | Front: avaliação física + gráficos de evolução + comparação | Dev | Must | 3 | T-025 |
+| [x] | **T-027** | E2 | US-04/05/06 | Front: avaliação física + gráficos de evolução + comparação | Dev | Must | 3 | T-025 |
 | [ ] | **T-028** | E2 | US-04/05/06 | Testes dos cálculos e comparação de avaliações | QA | Must | 2 | T-027 |
 | [ ] | **T-029** | E3 | US-07 | Modelo de dieta + macros + objetivo obrigatório | Dev | Must | 2 | T-017 |
 | [ ] | **T-030** | E3 | US-07 | Cálculos de TMB/GET/déficit/superávit | Dev | Must | 2 | T-029 |
@@ -73,7 +73,7 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [ ] | **T-031** | E3 | US-08 | Versionamento de dieta (v1->v2->v3) com histórico encadeado | Dev | Must | 3 | T-014 |
 | [ ] | **T-032** | E3 | US-08 | Registrar quem/quando/motivo de cada alteração | Dev | Must | 2 | T-031 |
 | [ ] | **T-033** | E3 | US-09 | Fluxo de status (Rascunho/Em Revisão/Aprovada/Arquivada) | Dev | Must | 3 | T-031 |
-| [ ] | **T-034** | E3 | US-07/08/09 | Front: editor de dieta + versões + aprovação | Dev | Must | 4 | T-033 |
+| [x] | **T-034** | E3 | US-07/08/09 | Front: editor de dieta + versões + aprovação | Dev | Must | 4 | T-033 |
 | [ ] | **T-035** | E3 | US-07/08/09 | Testes de versionamento e fluxo de aprovação da dieta | QA | Must | 3 | T-034 |
 | [x] | **T-036** | E8 | US-19 | Modelo + CRUD Biblioteca de Exercícios (campos científicos completos) | Dev | Must | 3 | T-004 |
 | [x] | **T-052** | E8 | US-19 | Criar módulo de domínio library + agregado Exercise (com.fitness.procoach.library) | Dev | Must | 2 | T-004 |
