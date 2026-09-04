@@ -94,11 +94,14 @@ public class TrainingPlanController {
 			@ApiResponse(responseCode = "404", description = "Plano não encontrado") })
 	// T-009/T-010: acesso direto por id é restrito ao coach — o atleta usa os
 	// endpoints /athlete/{athleteId} (ancorados no claim do JWT).
+	// T-058 (anti-IDOR): o coach só acessa plano de atleta da própria carteira —
+	// o id de um recurso de outro coach resulta em 404 (a guarda da camada de
+	// aplicação lança AthleteNotFoundException).
 	@PreAuthorize("hasRole('COACH')")
 	@GetMapping("/{id}")
-	public ResponseEntity<TrainingPlanResponse> findById(
+	public ResponseEntity<TrainingPlanResponse> findById(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do plano") @PathVariable UUID id) {
-		return this.queryService.findTrainingPlanById(id)
+		return this.queryService.findTrainingPlanById(id, UUID.fromString(jwt.getSubject()))
 			.map(tp -> ResponseEntity.ok(TrainingPlanResponse.from(tp)))
 			.orElse(ResponseEntity.notFound().build());
 	}
@@ -149,12 +152,15 @@ public class TrainingPlanController {
 			@ApiResponse(responseCode = "404", description = "Plano não encontrado"),
 			@ApiResponse(responseCode = "409", description = "Versão de origem não permite edição (ex.: arquivada)") })
 	// T-009/US-037: somente o coach gerencia protocolos.
+	// T-058 (anti-IDOR): o coach só cria versões de planos de atleta da própria
+	// carteira — o id de um plano de outro coach resulta em 404.
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping("/{id}/versions")
-	public ResponseEntity<TrainingPlanResponse> createNewVersion(
+	public ResponseEntity<TrainingPlanResponse> createNewVersion(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador da versão de origem do plano") @PathVariable UUID id,
 			@RequestBody CreateTrainingPlanVersionRequest request) {
-		TrainingPlan newVersion = this.createVersionUseCase.execute(id, request.newName(), request.newDescription());
+		TrainingPlan newVersion = this.createVersionUseCase.execute(id, UUID.fromString(jwt.getSubject()),
+				request.newName(), request.newDescription());
 		return ResponseEntity.status(HttpStatus.CREATED).body(TrainingPlanResponse.from(newVersion));
 	}
 
@@ -166,12 +172,15 @@ public class TrainingPlanController {
 			@ApiResponse(responseCode = "404", description = "Plano não encontrado"),
 			@ApiResponse(responseCode = "409", description = "Transição de status não permitida") })
 	// T-009/US-037: somente o coach gerencia protocolos.
+	// T-058 (anti-IDOR): o coach só transiciona planos de atleta da própria
+	// carteira — o id de um plano de outro coach resulta em 404.
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping("/{id}/transition")
-	public ResponseEntity<TrainingPlanResponse> transitionStatus(
+	public ResponseEntity<TrainingPlanResponse> transitionStatus(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do plano") @PathVariable UUID id,
 			@RequestBody TransitionStatusRequest request) {
-		TrainingPlan plan = this.transitionStatusUseCase.execute(id, request.targetStatus());
+		TrainingPlan plan = this.transitionStatusUseCase.execute(id, UUID.fromString(jwt.getSubject()),
+				request.targetStatus());
 		return ResponseEntity.ok(TrainingPlanResponse.from(plan));
 	}
 
@@ -182,10 +191,13 @@ public class TrainingPlanController {
 			@ApiResponse(responseCode = "204", description = "Plano removido (soft-delete)"),
 			@ApiResponse(responseCode = "404", description = "Plano não encontrado") })
 	// T-009/US-037: somente o coach gerencia protocolos.
+	// T-058 (anti-IDOR): o coach só remove planos de atleta da própria carteira —
+	// o id de um plano de outro coach resulta em 404.
 	@PreAuthorize("hasRole('COACH')")
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> softDelete(@Parameter(description = "Identificador do plano") @PathVariable UUID id) {
-		this.softDeleteUseCase.execute(id);
+	public ResponseEntity<Void> softDelete(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador do plano") @PathVariable UUID id) {
+		this.softDeleteUseCase.execute(id, UUID.fromString(jwt.getSubject()));
 		return ResponseEntity.noContent().build();
 	}
 

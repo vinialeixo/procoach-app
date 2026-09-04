@@ -88,10 +88,14 @@ public class AssessmentController {
 			@ApiResponse(responseCode = "404", description = "Avaliação não encontrada") })
 	// T-009/T-010: acesso direto por id é restrito ao coach — o atleta consulta o
 	// próprio histórico por GET /api/v1/assessments?athleteId= (ancorado no JWT).
+	// T-058 (anti-IDOR): o coach só acessa avaliação de atleta da própria carteira —
+	// o id de um recurso de outro coach resulta em 404 (não vaza a existência).
 	@PreAuthorize("hasRole('COACH')")
 	@GetMapping("/{id}")
-	public AssessmentResponse findById(@Parameter(description = "Identificador da avaliação") @PathVariable UUID id) {
-		return AssessmentResponse.from(service.findById(new AssessmentId(id)));
+	public AssessmentResponse findById(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador da avaliação") @PathVariable UUID id) {
+		return AssessmentResponse.from(
+				service.findOwnedById(new AssessmentId(id), UUID.fromString(jwt.getSubject())));
 	}
 
 	/**

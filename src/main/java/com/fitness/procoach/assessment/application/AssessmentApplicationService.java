@@ -61,6 +61,20 @@ public class AssessmentApplicationService {
 				.orElseThrow(() -> new AssessmentNotFoundException(id.value()));
 	}
 
+	/**
+	 * Busca uma avaliação pelo id garantindo que pertence a um atleta da
+	 * carteira do coach autenticado (T-058). Avaliação inexistente OU de
+	 * atleta de outro coach resulta em 404 — não vaza a existência do recurso
+	 * (anti-IDOR: o id do recurso nunca é suficiente para acessá-lo).
+	 */
+	public Assessment findOwnedById(AssessmentId id, UUID userId) {
+		Assessment assessment = repository.findById(id)
+				.orElseThrow(() -> new AssessmentNotFoundException(id.value()));
+		UUID coachId = coachService.requireCoachIdByUserId(userId).value();
+		athleteAccessService.requireOwnedByCoach(assessment.athleteId(), coachId);
+		return assessment;
+	}
+
 	public record RegisterAssessmentCommand(UUID userId, UUID athleteId, LocalDate assessmentDate,
 			BigDecimal weightKg, BigDecimal heightCm, BigDecimal bodyFatPercentage,
 			BigDecimal muscleMassKg, BigDecimal waistCm, BigDecimal hipCm) {

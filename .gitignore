@@ -36,3 +36,5 @@ build/
 *.test.log
 baseline_test.log
 nutrition_test.log
+full_test*.log
+*.err.log

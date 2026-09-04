@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fitness.procoach.ProcoachApplication;
 import com.fitness.procoach.athlete.infrastructure.PostgresTestcontainersConfiguration;
+import com.jayway.jsonpath.JsonPath;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * Testes de integração dos endpoints de dieta (US-007, T-058): POST de criação
@@ -46,8 +48,7 @@ class DietControllerTest {
 				  "calories": 2500,
 				  "protein": 180,
 				  "carbohydrates": 250,
-				  "fat": 80,
-				  "createdBy": "33333333-3333-3333-3333-333333333333"
+				  "fat": 80
 				}
 				""".formatted(athleteId);
 	}
@@ -88,8 +89,7 @@ class DietControllerTest {
 				  "calories": 2500,
 				  "protein": 180,
 				  "carbohydrates": 250,
-				  "fat": 80,
-				  "createdBy": "33333333-3333-3333-3333-333333333333"
+				  "fat": 80
 				}
 				""".formatted(athleteId);
 
@@ -112,8 +112,7 @@ class DietControllerTest {
 				  "calories": -100,
 				  "protein": 0,
 				  "carbohydrates": 250,
-				  "fat": 80,
-				  "createdBy": "33333333-3333-3333-3333-333333333333"
+				  "fat": 80
 				}
 				""".formatted(athleteId);
 
@@ -210,6 +209,30 @@ class DietControllerTest {
 						.header("Authorization", bearer(coachB))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(forged))
+				.andExpect(status().isNotFound());
+	}
+
+	// ---- T-058 item 3 (revisão): anti-IDOR em endpoints por {id} ----
+
+	@Test
+	void coachNaoLeDietaDeOutroCoachPorId() throws Exception {
+		String coachA = registerCoach(mockMvc, uniqueEmail("coach-a"));
+		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
+		String athleteOfA = registerAthlete(mockMvc, coachA);
+
+		// Coach A cria uma dieta para o próprio atleta e captura o id.
+		MvcResult created = mockMvc.perform(post("/api/v1/diets")
+						.header("Authorization", bearer(coachA))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(validRequestJson(athleteOfA)))
+				.andExpect(status().isCreated())
+				.andReturn();
+		String dietId = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+
+		// Coach B tenta ler a dieta do atleta do coach A pelo id -> 404
+		// (mesmo status de "não existe": não vaza a existência do recurso).
+		mockMvc.perform(get("/api/v1/diets/{id}", dietId)
+						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
 	}
 }

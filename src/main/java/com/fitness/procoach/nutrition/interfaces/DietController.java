@@ -68,13 +68,13 @@ public class DietController {
 	@PostMapping
 	public ResponseEntity<DietResponse> create(@AuthenticationPrincipal Jwt jwt,
 			@Valid @RequestBody CreateDietRequest request) {
-		// T-058: o coachId nunca vem do request — é resolvido server-side a
-		// partir do usuário autenticado (subject do JWT) na camada de aplicação.
+		// T-058: o coachId e o createdBy (auditoria) nunca vêm do request — são
+		// resolvidos server-side a partir do usuário autenticado (subject do JWT).
 		Diet diet = service.createDiet(
 				new DietApplicationService.CreateDietCommand(
 						UUID.fromString(jwt.getSubject()), request.athleteId(), request.objective(),
 						request.calories(), request.protein(), request.carbohydrates(),
-						request.fat(), request.createdBy()));
+						request.fat()));
 		URI location = ServletUriComponentsBuilder.fromCurrentRequest()
 				.path("/{id}")
 				.buildAndExpand(diet.id().value())
@@ -93,10 +93,13 @@ public class DietController {
 			@ApiResponse(responseCode = "404", description = "Dieta não encontrada") })
 	// T-009/T-010: acesso direto por id é restrito ao coach — o atleta consulta
 	// a própria dieta pelos endpoints com ?athleteId= (ancorados no claim do JWT).
+	// T-058 (anti-IDOR): o coach só acessa dieta de atleta da própria carteira —
+	// o id de um recurso de outro coach resulta em 404 (não vaza a existência).
 	@PreAuthorize("hasRole('COACH')")
 	@GetMapping("/{id}")
-	public DietResponse findById(@Parameter(description = "Identificador da dieta") @PathVariable UUID id) {
-		return DietResponse.from(service.findById(new DietId(id)));
+	public DietResponse findById(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador da dieta") @PathVariable UUID id) {
+		return DietResponse.from(service.findOwnedById(new DietId(id), UUID.fromString(jwt.getSubject())));
 	}
 
 	/**

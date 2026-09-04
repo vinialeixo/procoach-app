@@ -77,11 +77,14 @@ public class PeriodizationController {
 			@ApiResponse(responseCode = "404", description = "Periodização não encontrada") })
 	// T-009/T-010: acesso direto por id é restrito ao coach — o atleta usa
 	// GET /athlete/{athleteId} (ancorado no claim do JWT).
+	// T-058 (anti-IDOR): o coach só acessa periodização de atleta da própria
+	// carteira — o id de um recurso de outro coach resulta em 404 (a guarda da
+	// camada de aplicação lança AthleteNotFoundException).
 	@PreAuthorize("hasRole('COACH')")
 	@GetMapping("/{id}")
-	public ResponseEntity<PeriodizationResponse> findById(
+	public ResponseEntity<PeriodizationResponse> findById(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador da periodização") @PathVariable UUID id) {
-		return this.queryService.findPeriodizationById(id)
+		return this.queryService.findPeriodizationById(id, UUID.fromString(jwt.getSubject()))
 			.map(p -> ResponseEntity.ok(PeriodizationResponse.from(p)))
 			.orElse(ResponseEntity.notFound().build());
 	}

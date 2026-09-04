@@ -1,6 +1,7 @@
 package com.fitness.procoach.training.interfaces.rest;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.fitness.procoach.athlete.application.AthleteAccessService;
@@ -11,6 +12,7 @@ import com.fitness.procoach.training.application.ReorderExercisesUseCase;
 import com.fitness.procoach.training.application.SoftDeleteTrainingUseCase;
 import com.fitness.procoach.training.application.TrainingQueryService;
 import com.fitness.procoach.training.application.TransitionTrainingStatusUseCase;
+import com.fitness.procoach.training.domain.model.Periodization;
 import com.fitness.procoach.training.domain.model.Training;
 import com.fitness.procoach.training.domain.model.TrainingStatus;
 
@@ -99,11 +101,14 @@ public class TrainingController {
 			@ApiResponse(responseCode = "404", description = "Treino não encontrado") })
 	// T-009/T-010: acesso direto por id é restrito ao coach — o atleta usa
 	// GET /athlete/{athleteId} (ancorado no claim do JWT).
+	// T-058 (anti-IDOR): o coach só acessa treino de atleta da própria carteira —
+	// o id de um recurso de outro coach resulta em 404 (a guarda da camada de
+	// aplicação lança AthleteNotFoundException).
 	@PreAuthorize("hasRole('COACH')")
 	@GetMapping("/{id}")
-	public ResponseEntity<TrainingResponse> findById(
+	public ResponseEntity<TrainingResponse> findById(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do treino") @PathVariable UUID id) {
-		return this.queryService.findTrainingById(id)
+		return this.queryService.findTrainingById(id, UUID.fromString(jwt.getSubject()))
 			.map(t -> ResponseEntity.ok(TrainingResponse.from(t)))
 			.orElse(ResponseEntity.notFound().build());
 	}
@@ -112,10 +117,17 @@ public class TrainingController {
 			description = "Lista os treinos (sessões) de uma periodização — visão de montagem do coach.")
 	@ApiResponse(responseCode = "200", description = "Lista retornada com sucesso")
 	// T-009: listagem por periodização é uma visão de montagem do coach.
+	// T-058 (anti-IDOR): a periodização precisa existir E pertencer a um atleta
+	// da carteira do coach autenticado — caso contrário, 404.
 	@PreAuthorize("hasRole('COACH')")
 	@GetMapping("/periodization/{periodizationId}")
-	public ResponseEntity<List<TrainingResponse>> findByPeriodization(
+	public ResponseEntity<List<TrainingResponse>> findByPeriodization(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador da periodização") @PathVariable UUID periodizationId) {
+		Optional<Periodization> periodization = this.queryService
+				.findPeriodizationById(periodizationId, UUID.fromString(jwt.getSubject()));
+		if (periodization.isEmpty()) {
+			return ResponseEntity.notFound().build();
+		}
 		List<TrainingResponse> result = this.queryService.findTrainingsByPeriodization(periodizationId)
 			.stream()
 			.map(TrainingResponse::from)
@@ -152,12 +164,15 @@ public class TrainingController {
 			@ApiResponse(responseCode = "400", description = "Dados da prescrição inválidos"),
 			@ApiResponse(responseCode = "404", description = "Treino não encontrado") })
 	// T-009/US-037: somente o coach gerencia protocolos.
+	// T-058 (anti-IDOR): o coach só prescreve em treinos de atleta da própria
+	// carteira — o id de um treino de outro coach resulta em 404.
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping("/{id}/exercises")
-	public ResponseEntity<TrainingResponse> addExercise(
+	public ResponseEntity<TrainingResponse> addExercise(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do treino") @PathVariable UUID id,
 			@RequestBody AddExerciseRequest request) {
-		Training training = this.addExerciseUseCase.execute(id, request.exerciseId(), request.exerciseName(),
+		Training training = this.addExerciseUseCase.execute(id, UUID.fromString(jwt.getSubject()),
+				request.exerciseId(), request.exerciseName(),
 				request.customExercise(), request.orderIndex(), request.sets(), request.repetitions(), request.load(),
 				request.intensityType(), request.intensityValue(), request.restSeconds(), request.notes());
 		return ResponseEntity.ok(TrainingResponse.from(training));
@@ -171,12 +186,15 @@ public class TrainingController {
 			@ApiResponse(responseCode = "400", description = "Lista de prescrições inválida ou incompleta"),
 			@ApiResponse(responseCode = "404", description = "Treino não encontrado") })
 	// T-009/US-037: somente o coach gerencia protocolos.
+	// T-058 (anti-IDOR): o coach só reordena treinos de atleta da própria
+	// carteira — o id de um treino de outro coach resulta em 404.
 	@PreAuthorize("hasRole('COACH')")
 	@PutMapping("/{id}/exercises/reorder")
-	public ResponseEntity<TrainingResponse> reorderExercises(
+	public ResponseEntity<TrainingResponse> reorderExercises(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do treino") @PathVariable UUID id,
 			@RequestBody ReorderExercisesRequest request) {
-		Training training = this.reorderExercisesUseCase.execute(id, request.orderedPrescriptionIds());
+		Training training = this.reorderExercisesUseCase.execute(id, UUID.fromString(jwt.getSubject()),
+				request.orderedPrescriptionIds());
 		return ResponseEntity.ok(TrainingResponse.from(training));
 	}
 
@@ -188,12 +206,15 @@ public class TrainingController {
 			@ApiResponse(responseCode = "404", description = "Treino não encontrado"),
 			@ApiResponse(responseCode = "409", description = "Transição de status não permitida") })
 	// T-009/US-037: somente o coach gerencia protocolos.
+	// T-058 (anti-IDOR): o coach só transiciona treinos de atleta da própria
+	// carteira — o id de um treino de outro coach resulta em 404.
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping("/{id}/transition")
-	public ResponseEntity<TrainingResponse> transitionStatus(
+	public ResponseEntity<TrainingResponse> transitionStatus(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do treino") @PathVariable UUID id,
 			@RequestBody TransitionStatusRequest request) {
-		Training training = this.transitionStatusUseCase.execute(id, request.targetStatus());
+		Training training = this.transitionStatusUseCase.execute(id, UUID.fromString(jwt.getSubject()),
+				request.targetStatus());
 		return ResponseEntity.ok(TrainingResponse.from(training));
 	}
 
@@ -204,10 +225,13 @@ public class TrainingController {
 			@ApiResponse(responseCode = "204", description = "Treino removido (soft-delete)"),
 			@ApiResponse(responseCode = "404", description = "Treino não encontrado") })
 	// T-009/US-037: somente o coach gerencia protocolos.
+	// T-058 (anti-IDOR): o coach só remove treinos de atleta da própria carteira —
+	// o id de um treino de outro coach resulta em 404.
 	@PreAuthorize("hasRole('COACH')")
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> softDelete(@Parameter(description = "Identificador do treino") @PathVariable UUID id) {
-		this.softDeleteUseCase.execute(id);
+	public ResponseEntity<Void> softDelete(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador do treino") @PathVariable UUID id) {
+		this.softDeleteUseCase.execute(id, UUID.fromString(jwt.getSubject()));
 		return ResponseEntity.noContent().build();
 	}
 

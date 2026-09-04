@@ -25,15 +25,27 @@ public class TrainingQueryService {
 
 	private final PeriodizationRepository periodizationRepository;
 
+	private final TrainingOwnershipGuard ownershipGuard;
+
 	public TrainingQueryService(TrainingRepository trainingRepository, TrainingPlanRepository trainingPlanRepository,
-			PeriodizationRepository periodizationRepository) {
+			PeriodizationRepository periodizationRepository, TrainingOwnershipGuard ownershipGuard) {
 		this.trainingRepository = trainingRepository;
 		this.trainingPlanRepository = trainingPlanRepository;
 		this.periodizationRepository = periodizationRepository;
+		this.ownershipGuard = ownershipGuard;
 	}
 
-	public Optional<Training> findTrainingById(UUID id) {
-		return this.trainingRepository.findById(id);
+	/**
+	 * Busca um treino pelo id garantindo que pertence a um atleta da carteira
+	 * do coach autenticado (T-058). Treino de outro coach resulta em 404 (a
+	 * guarda lança) — não vaza a existência do recurso.
+	 */
+	public Optional<Training> findTrainingById(UUID id, UUID userId) {
+		Optional<Training> training = this.trainingRepository.findById(id);
+		if (training.isPresent()) {
+			this.ownershipGuard.requireResourceOwnedByCoach(training.get().getAthleteId(), userId);
+		}
+		return training;
 	}
 
 	public List<Training> findTrainingsByPeriodization(UUID periodizationId) {
@@ -48,8 +60,17 @@ public class TrainingQueryService {
 		return this.trainingRepository.findByAthleteIdAndStatus(athleteId, status);
 	}
 
-	public Optional<TrainingPlan> findTrainingPlanById(UUID id) {
-		return this.trainingPlanRepository.findById(id);
+	/**
+	 * Busca um plano pelo id garantindo que pertence a um atleta da carteira
+	 * do coach autenticado (T-058). Plano de outro coach resulta em 404 (a
+	 * guarda lança) — não vaza a existência do recurso.
+	 */
+	public Optional<TrainingPlan> findTrainingPlanById(UUID id, UUID userId) {
+		Optional<TrainingPlan> plan = this.trainingPlanRepository.findById(id);
+		if (plan.isPresent()) {
+			this.ownershipGuard.requireResourceOwnedByCoach(plan.get().getAthleteId(), userId);
+		}
+		return plan;
 	}
 
 	public List<TrainingPlan> findTrainingPlansByAthlete(UUID athleteId) {
@@ -60,8 +81,17 @@ public class TrainingQueryService {
 		return this.trainingPlanRepository.findLatestVersionByAthleteId(athleteId);
 	}
 
-	public Optional<Periodization> findPeriodizationById(UUID id) {
-		return this.periodizationRepository.findById(id);
+	/**
+	 * Busca uma periodização pelo id garantindo que pertence a um atleta da
+	 * carteira do coach autenticado (T-058). Periodização de outro coach
+	 * resulta em 404 (a guarda lança) — não vaza a existência do recurso.
+	 */
+	public Optional<Periodization> findPeriodizationById(UUID id, UUID userId) {
+		Optional<Periodization> periodization = this.periodizationRepository.findById(id);
+		if (periodization.isPresent()) {
+			this.ownershipGuard.requireResourceOwnedByCoach(periodization.get().getAthleteId(), userId);
+		}
+		return periodization;
 	}
 
 	public List<Periodization> findPeriodizationsByAthlete(UUID athleteId) {

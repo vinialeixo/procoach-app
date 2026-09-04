@@ -26,8 +26,5 @@ public record CreateDietRequest(
 		@Schema(description = "Carboidratos diários em gramas", example = "350.0")
 		@NotNull(message = "carbohydrates é obrigatório") @Positive(message = "carbohydrates deve ser positivo") Double carbohydrates,
 		@Schema(description = "Gorduras diárias em gramas", example = "90.0")
-		@NotNull(message = "fat é obrigatório") @Positive(message = "fat deve ser positivo") Double fat,
-		@Schema(description = "Identificador de quem criou a dieta (auditoria)",
-				example = "2f6b1c3d-7a0e-4b5d-9c8a-1e2f3a4b5c6d")
-		@NotNull(message = "createdBy é obrigatório") UUID createdBy) {
+		@NotNull(message = "fat é obrigatório") @Positive(message = "fat deve ser positivo") Double fat) {
 }
