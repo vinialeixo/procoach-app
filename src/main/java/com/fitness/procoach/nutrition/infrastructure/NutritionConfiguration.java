@@ -1,5 +1,7 @@
 package com.fitness.procoach.nutrition.infrastructure;
 
+import com.fitness.procoach.athlete.application.AthleteAccessService;
+import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.nutrition.application.DietApplicationService;
 import com.fitness.procoach.nutrition.domain.DietRepository;
 import org.springframework.context.annotation.Bean;
@@ -12,7 +14,8 @@ import org.springframework.context.annotation.Configuration;
 public class NutritionConfiguration {
 
 	@Bean
-	public DietApplicationService dietApplicationService(DietRepository repository) {
-		return new DietApplicationService(repository);
+	public DietApplicationService dietApplicationService(DietRepository repository,
+			CoachApplicationService coachService, AthleteAccessService athleteAccessService) {
+		return new DietApplicationService(repository, coachService, athleteAccessService);
 	}
 }

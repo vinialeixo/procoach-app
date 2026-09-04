@@ -58,6 +58,12 @@ public class AthleteJpaEntity {
 	@Column(name = "updated_at", nullable = false)
 	private Instant updatedAt;
 
+	@Column(nullable = false)
+	private boolean deleted;
+
+	@Column(name = "deleted_at")
+	private Instant deletedAt;
+
 	protected AthleteJpaEntity() {
 	}
 
@@ -147,5 +153,21 @@ public class AthleteJpaEntity {
 
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+
+	public boolean isDeleted() {
+		return deleted;
+	}
+
+	public void setDeleted(boolean deleted) {
+		this.deleted = deleted;
+	}
+
+	public Instant getDeletedAt() {
+		return deletedAt;
+	}
+
+	public void setDeletedAt(Instant deletedAt) {
+		this.deletedAt = deletedAt;
 	}
 }

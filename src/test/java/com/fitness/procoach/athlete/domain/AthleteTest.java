@@ -119,7 +119,8 @@ class AthleteTest {
 				new Height(new BigDecimal("165.00")), new Weight(new BigDecimal("60.00")),
 				Goal.MAINTENANCE, AthleteStatus.PAUSED,
 				java.time.Instant.parse("2026-01-01T10:00:00Z"),
-				java.time.Instant.parse("2026-01-02T10:00:00Z"));
+				java.time.Instant.parse("2026-01-02T10:00:00Z"),
+				false, null);
 
 		assertThat(athlete.id()).isEqualTo(id);
 		assertThat(athlete.coachId()).isEqualTo(COACH_ID);
@@ -130,5 +131,7 @@ class AthleteTest {
 		assertThat(athlete.weight().value()).isEqualByComparingTo("60.00");
 		assertThat(athlete.goal()).isEqualTo(Goal.MAINTENANCE);
 		assertThat(athlete.status()).isEqualTo(AthleteStatus.PAUSED);
+		assertThat(athlete.isDeleted()).isFalse();
+		assertThat(athlete.deletedAt()).isNull();
 	}
 }

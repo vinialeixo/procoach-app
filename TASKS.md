@@ -29,10 +29,10 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [ ] | **T-008** | E9 | US-20 | Implementar autenticação + MFA | Dev | Must | 3 | T-004 |
 | [ ] | **T-009** | E9 | US-20 | Implementar RBAC (papéis Coach x Atleta) | Dev | Must | 3 | T-008 |
 | [ ] | **T-010** | E9 | US-20 | Restringir acesso do atleta apenas aos próprios dados | Dev | Must | 2 | T-009 |
-| [ ] | **T-011** | E9 | US-20 | Front: telas de login/registro/MFA | Dev | Must | 2 | T-008 |
+| [x] | **T-011** | E9 | US-20 | Front: telas de login/registro/MFA | Dev | Must | 2 | T-008 |
 | [ ] | **T-012** | E9 | US-20 | Testes de segurança e autorização (RBAC) | QA | Must | 2 | T-010 |
-| [x] | **T-013** | E10 | US-21 | Implementar audit log imutável (append-only) | Dev | Must | 3 | T-005 |
-| [x] | **T-014** | E10 | US-21 | Versionamento de agregados (versão/data/autor/histórico) | Dev | Must | 4 | T-005 |
+| [ ] | **T-013** | E10 | US-21 | Implementar audit log imutável (append-only) | Dev | Must | 3 | T-005 |
+| [ ] | **T-014** | E10 | US-21 | Versionamento de agregados (versão/data/autor/histórico) | Dev | Must | 4 | T-005 |
 | [ ] | **T-015** | E10 | US-21 | Registrar eventos: cadastro, alteração, exclusão lógica, login, aprovação | Dev | Must | 3 | T-014 |
 | [x] | **T-046** | E0 | Fundação | Criar módulo de domínio security + agregado User/Role (com.fitness.procoach.security) | Dev | Must | 2 | T-004 |
 | [x] | **T-047** | E0 | Fundação | Criar módulo cross-cutting audit + agregado AuditLog/Version (com.fitness.procoach.audit) | Dev | Must | 2 | T-004 |
@@ -44,11 +44,11 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 |---|---|---|---|---|---|---|---|---|
 | [ ] | **T-016** | E10 | US-21 | Testes de auditoria e versionamento (não-sobrescrita) | QA | Must | 3 | T-015 |
 | [x] | **T-017** | E1 | US-01 | Modelo + repositório de Atleta (ID único imutável) | Dev | Must | 2 | T-004 |
-| [x] | **T-018** | E1 | US-01 | Endpoint cadastro de atleta + validação de campos obrigatórios | Dev | Must | 2 | T-017 |
-| [x] | **T-019** | E1 | US-01 | Front: formulário de cadastro de atleta | Dev | Must | 2 | T-018 |
+| [ ] | **T-018** | E1 | US-01 | Endpoint cadastro de atleta + validação de campos obrigatórios | Dev | Must | 2 | T-017 |
+| [ ] | **T-019** | E1 | US-01 | Front: formulário de cadastro de atleta | Dev | Must | 2 | T-018 |
 | [ ] | **T-020** | E1 | US-02 | Suporte a múltiplos protocolos por atleta | Dev | Must | 2 | T-017 |
 | [ ] | **T-021** | E1 | US-03 | Gestão de status (Ativo/Pausado/Finalizado) + soft-delete | Dev | Must | 2 | T-017 |
-| [x] | **T-022** | E1 | US-03 | Front: listagem/detalhe do atleta + troca de status | Dev | Must | 2 | T-021 |
+| [ ] | **T-022** | E1 | US-03 | Front: listagem/detalhe do atleta + troca de status | Dev | Must | 2 | T-021 |
 | [ ] | **T-023** | E1 | US-01/02/03 | Testes E2E gestão de atletas | QA | Must | 2 | T-022 |
 | [x] | **T-048** | E1 | US-01 | Criar módulo de domínio athlete + agregado Athlete (com.fitness.procoach.athlete) | Dev | Must | 3 | T-004 |
 
@@ -59,12 +59,12 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [ ] | **T-024** | E2 | US-04 | Modelo + endpoint de avaliação física (data obrigatória, sem sobrescrever) | Dev | Must | 2 | T-017 |
 | [ ] | **T-025** | E2 | US-05 | Motor de cálculos automáticos (IMC, TMB, GET, evolução) | Dev | Must | 3 | T-024 |
 | [ ] | **T-026** | E2 | US-06 | Comparação de avaliações lado a lado | Dev | Should | 2 | T-024 |
-| [x] | **T-027** | E2 | US-04/05/06 | Front: avaliação física + gráficos de evolução + comparação | Dev | Must | 3 | T-025 |
+| [ ] | **T-027** | E2 | US-04/05/06 | Front: avaliação física + gráficos de evolução + comparação | Dev | Must | 3 | T-025 |
 | [ ] | **T-028** | E2 | US-04/05/06 | Testes dos cálculos e comparação de avaliações | QA | Must | 2 | T-027 |
 | [ ] | **T-029** | E3 | US-07 | Modelo de dieta + macros + objetivo obrigatório | Dev | Must | 2 | T-017 |
 | [ ] | **T-030** | E3 | US-07 | Cálculos de TMB/GET/déficit/superávit | Dev | Must | 2 | T-029 |
-| [x] | **T-050** | E3 | US-08 | Criar módulo de domínio nutrition + agregado Diet (versionada) (com.fitness.procoach.nutrition) | Dev | Must | 3 | T-004 |
-| [x] | **T-049** | E2 | US-05 | Criar módulo de domínio assessment + agregado Assessment (com.fitness.procoach.assessment) | Dev | Must | 3 | T-004 |
+| [x] | **T-050** | E3 | US-08 | Criar módulo de domínio nutrition + agregado Diet (versionada) (com.procoach.core.nutrition) | Dev | Must | 3 | T-004 |
+| [x] | **T-049** | E2 | US-05 | Criar módulo de domínio assessment + agregado Assessment (com.procoach.core.assessment) | Dev | Must | 3 | T-004 |
 
 ## S4
 
@@ -73,10 +73,10 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [ ] | **T-031** | E3 | US-08 | Versionamento de dieta (v1->v2->v3) com histórico encadeado | Dev | Must | 3 | T-014 |
 | [ ] | **T-032** | E3 | US-08 | Registrar quem/quando/motivo de cada alteração | Dev | Must | 2 | T-031 |
 | [ ] | **T-033** | E3 | US-09 | Fluxo de status (Rascunho/Em Revisão/Aprovada/Arquivada) | Dev | Must | 3 | T-031 |
-| [x] | **T-034** | E3 | US-07/08/09 | Front: editor de dieta + versões + aprovação | Dev | Must | 4 | T-033 |
+| [ ] | **T-034** | E3 | US-07/08/09 | Front: editor de dieta + versões + aprovação | Dev | Must | 4 | T-033 |
 | [ ] | **T-035** | E3 | US-07/08/09 | Testes de versionamento e fluxo de aprovação da dieta | QA | Must | 3 | T-034 |
 | [x] | **T-036** | E8 | US-19 | Modelo + CRUD Biblioteca de Exercícios (campos científicos completos) | Dev | Must | 3 | T-004 |
-| [x] | **T-052** | E8 | US-19 | Criar módulo de domínio library + agregado Exercise (com.fitness.procoach.library) | Dev | Must | 2 | T-004 |
+| [x] | **T-052** | E8 | US-19 | Criar módulo de domínio library + agregado Exercise (com.procoach.core.library) | Dev | Must | 2 | T-004 |
 
 ## S5
 
@@ -87,7 +87,7 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [ ] | **T-039** | E4 | US-12 | Sugestão de exercícios semelhantes | Dev | Could | 2 | T-036 |
 | [ ] | **T-040** | E4/E8 | US-10/11/19 | Front: biblioteca + montagem de treino/periodização | Dev | Must | 4 | T-037 |
 | [ ] | **T-041** | E4/E8 | US-10/11/12/19 | Testes de treino e biblioteca | QA | Must | 3 | T-040 |
-| [x] | **T-051** | E4 | US-12 | Criar módulo de domínio training + agregado TrainingPlan (com.fitness.procoach.training) | Dev | Must | 3 | T-004 |
+| [x] | **T-051** | E4 | US-12 | Criar módulo de domínio training + agregado TrainingPlan (com.procoach.core.training) | Dev | Must | 3 | T-004 |
 
 ## S6
 
@@ -125,7 +125,29 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 |---|---|---|---|---|---|---|---|---|
 | [ ] | **T-054** | E1/E3/E4 | US-38 | Front: área do atleta — visualizar dieta e treino atuais (somente leitura) | Dev | Must (sugerido) | 3 | T-033, T-037 |
 | [ ] | **T-055** | E2 | US-38 | Front: área do atleta — histórico de avaliações (somente leitura) | Dev | Should (sugerido) | 2 | T-025 |
-| [x] | **T-056** | E0 | Fundação | Front: config ESLint (flat config, ESLint 8.57) na raiz do procoach-front | Dev | Should (sugerido) | 1 | — |
+| [ ] | **T-056** | E0 | Fundação | Front: configurar ESLint (config ausente desde T-006) | Dev | Must (sugerido) | 0.5 | T-006 |
+| [x] | **T-057** | E0 | Fundação | Backend: auditoria de conformidade dos agregados vs UML (ProCoach_System_Design_UML.md seção 4/12.1) — sem escrever fix ainda, só relatório | Dev | Must (sugerido) | 1 | T-046, T-048, T-049, T-050, T-051, T-052 |
+| [x] | **T-058** | E0/E1 | Fundação | Backend: criar agregado Coach (com.procoach.core.coach) — id, userId, name, status, addAthlete()/removeAthlete(); migrar coachId em Athlete/Assessment/Diet/TrainingPlan de User.id para Coach.id | Dev | Must (confirmado) | 3 | T-057
+
+> `T-056` identificada em 2026-09-02 durante a implementação da `T-011`: `npm run lint`
+> quebrado por falta de `.eslintrc`/`eslint.config.*` na raiz do frontend — lacuna da
+> `T-006` original, não de quem implementou `T-011`. Resolver antes da Etapa 2 para não
+> acumular divergência de estilo entre as próximas 8 telas.
+
+> `T-057`/`T-058` identificadas em 2026-09-02: nenhuma task original cria o agregado
+> `Coach` (`com.procoach.core.coach`), apesar do UML exigir `User "1" --> "1" Coach` e
+> o `Coach` (não o `User`) ser o dono de `addAthlete()`/`removeAthlete()` e autor de
+> Diet/TrainingPlan/Assessment. **Confirmado com o PO em 2026-09-02**: o agregado deve
+> existir — não é ambiguidade de escopo, é lacuna de planejamento. `T-057` mapeia o
+> estado atual (relatório); `T-058` cria o agregado e migra as referências. Ainda sem
+> dado de produção — é troca de modelo, não migração de dado real.
+>
+> **Achado de segurança (relatório T-057, 2026-09-02)**: hoje `coachId` em
+> Athlete/Assessment/Diet/TrainingPlan vem cru do corpo da requisição, sem validação
+> contra o usuário autenticado — qualquer coach logado pode gravar dados em nome de
+> qualquer UUID (falha de autorização tipo IDOR, não só divergência de modelo).
+> `T-058` corrige isso junto (`coachId` passa a ser resolvido server-side a partir do
+> JWT, não mais aceito do cliente) — tratar como prioridade alta mesmo em dev.
 
 ---
 

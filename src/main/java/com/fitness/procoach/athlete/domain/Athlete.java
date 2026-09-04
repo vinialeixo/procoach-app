@@ -26,11 +26,13 @@ public final class Athlete {
 	private final Goal goal;
 	private final AthleteStatus status;
 	private final Instant createdAt;
-	private final Instant updatedAt;
+	private Instant updatedAt;
+	private boolean deleted;
+	private Instant deletedAt;
 
 	private Athlete(AthleteId id, UUID coachId, Name name, Sex sex, LocalDate birthDate,
 			Height height, Weight weight, Goal goal, AthleteStatus status,
-			Instant createdAt, Instant updatedAt) {
+			Instant createdAt, Instant updatedAt, boolean deleted, Instant deletedAt) {
 		this.id = Objects.requireNonNull(id, "id must not be null");
 		this.coachId = Objects.requireNonNull(coachId, "coachId must not be null");
 		this.name = Objects.requireNonNull(name, "name must not be null");
@@ -45,6 +47,8 @@ public final class Athlete {
 		this.status = Objects.requireNonNull(status, "status must not be null");
 		this.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
 		this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt must not be null");
+		this.deleted = deleted;
+		this.deletedAt = deletedAt;
 	}
 
 	/**
@@ -55,7 +59,7 @@ public final class Athlete {
 			Height height, Weight weight, Goal goal) {
 		Instant now = Instant.now();
 		return new Athlete(id, coachId, name, sex, birthDate, height, weight, goal,
-				AthleteStatus.ACTIVE, now, now);
+				AthleteStatus.ACTIVE, now, now, false, null);
 	}
 
 	/**
@@ -64,9 +68,22 @@ public final class Athlete {
 	 */
 	public static Athlete reconstitute(AthleteId id, UUID coachId, Name name, Sex sex, LocalDate birthDate,
 			Height height, Weight weight, Goal goal, AthleteStatus status,
-			Instant createdAt, Instant updatedAt) {
+			Instant createdAt, Instant updatedAt, boolean deleted, Instant deletedAt) {
 		return new Athlete(id, coachId, name, sex, birthDate, height, weight, goal,
-				status, createdAt, updatedAt);
+				status, createdAt, updatedAt, deleted, deletedAt);
+	}
+
+	/**
+	 * Exclusão lógica do atleta (US-002/UML 4.1.2): o registro nunca é removido
+	 * fisicamente — é apenas marcado como excluído, preservando o histórico.
+	 */
+	public void softDelete() {
+		if (this.deleted) {
+			throw new IllegalStateException("Athlete has been soft-deleted: " + this.id);
+		}
+		this.deleted = true;
+		this.deletedAt = Instant.now();
+		this.updatedAt = Instant.now();
 	}
 
 	public AthleteId id() {
@@ -111,5 +128,13 @@ public final class Athlete {
 
 	public Instant updatedAt() {
 		return updatedAt;
+	}
+
+	public boolean isDeleted() {
+		return deleted;
+	}
+
+	public Instant deletedAt() {
+		return deletedAt;
 	}
 }

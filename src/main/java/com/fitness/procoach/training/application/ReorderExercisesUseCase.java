@@ -15,13 +15,20 @@ public class ReorderExercisesUseCase {
 
 	private final TrainingRepository trainingRepository;
 
-	public ReorderExercisesUseCase(TrainingRepository trainingRepository) {
+	private final TrainingOwnershipGuard ownershipGuard;
+
+	public ReorderExercisesUseCase(TrainingRepository trainingRepository, TrainingOwnershipGuard ownershipGuard) {
 		this.trainingRepository = trainingRepository;
+		this.ownershipGuard = ownershipGuard;
 	}
 
-	public Training execute(UUID trainingId, List<UUID> orderedPrescriptionIds) {
+	public Training execute(UUID trainingId, UUID userId, List<UUID> orderedPrescriptionIds) {
 		Training training = this.trainingRepository.findById(trainingId)
 			.orElseThrow(() -> new IllegalArgumentException("Training not found: " + trainingId));
+
+		// T-058 (anti-IDOR): o treino precisa pertencer a um atleta da carteira
+		// do coach autenticado — treino de outro coach resulta em 404.
+		this.ownershipGuard.requireResourceOwnedByCoach(training.getAthleteId(), userId);
 
 		training.reorderExercises(orderedPrescriptionIds);
 		return this.trainingRepository.save(training);

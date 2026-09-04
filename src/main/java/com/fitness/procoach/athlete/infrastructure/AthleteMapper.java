@@ -27,6 +27,8 @@ final class AthleteMapper {
 		entity.setStatus(athlete.status());
 		entity.setCreatedAt(athlete.createdAt());
 		entity.setUpdatedAt(athlete.updatedAt());
+		entity.setDeleted(athlete.isDeleted());
+		entity.setDeletedAt(athlete.deletedAt());
 		return entity;
 	}
 
@@ -42,6 +44,8 @@ final class AthleteMapper {
 				entity.getGoal(),
 				entity.getStatus(),
 				entity.getCreatedAt(),
-				entity.getUpdatedAt());
+				entity.getUpdatedAt(),
+				entity.isDeleted(),
+				entity.getDeletedAt());
 	}
 }

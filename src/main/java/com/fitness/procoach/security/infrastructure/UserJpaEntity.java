@@ -38,6 +38,15 @@ public class UserJpaEntity {
 	@Column(name = "role_id")
 	private Set<UUID> roleIds = new HashSet<>();
 
+	@Column(name = "athlete_id")
+	private UUID athleteId;
+
+	@Column(name = "mfa_enabled", nullable = false)
+	private boolean mfaEnabled;
+
+	@Column(name = "mfa_secret", length = 64)
+	private String mfaSecret;
+
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
@@ -96,6 +105,30 @@ public class UserJpaEntity {
 
 	public void setRoleIds(Set<UUID> roleIds) {
 		this.roleIds = roleIds;
+	}
+
+	public UUID getAthleteId() {
+		return athleteId;
+	}
+
+	public void setAthleteId(UUID athleteId) {
+		this.athleteId = athleteId;
+	}
+
+	public boolean isMfaEnabled() {
+		return mfaEnabled;
+	}
+
+	public void setMfaEnabled(boolean mfaEnabled) {
+		this.mfaEnabled = mfaEnabled;
+	}
+
+	public String getMfaSecret() {
+		return mfaSecret;
+	}
+
+	public void setMfaSecret(String mfaSecret) {
+		this.mfaSecret = mfaSecret;
 	}
 
 	public Instant getCreatedAt() {

@@ -19,15 +19,22 @@ public class TransitionTrainingPlanStatusUseCase {
 
 	private final ApplicationEventPublisher eventPublisher;
 
+	private final TrainingOwnershipGuard ownershipGuard;
+
 	public TransitionTrainingPlanStatusUseCase(TrainingPlanRepository trainingPlanRepository,
-			ApplicationEventPublisher eventPublisher) {
+			ApplicationEventPublisher eventPublisher, TrainingOwnershipGuard ownershipGuard) {
 		this.trainingPlanRepository = trainingPlanRepository;
 		this.eventPublisher = eventPublisher;
+		this.ownershipGuard = ownershipGuard;
 	}
 
-	public TrainingPlan execute(UUID planId, TrainingStatus targetStatus) {
+	public TrainingPlan execute(UUID planId, UUID userId, TrainingStatus targetStatus) {
 		TrainingPlan plan = this.trainingPlanRepository.findById(planId)
 			.orElseThrow(() -> new IllegalArgumentException("TrainingPlan not found: " + planId));
+
+		// T-058 (anti-IDOR): o plano precisa pertencer a um atleta da carteira
+		// do coach autenticado — plano de outro coach resulta em 404.
+		this.ownershipGuard.requireResourceOwnedByCoach(plan.getAthleteId(), userId);
 
 		TrainingStatus previousStatus = plan.getStatus();
 		plan.transitionTo(targetStatus);

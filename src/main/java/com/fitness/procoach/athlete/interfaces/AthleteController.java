@@ -2,9 +2,19 @@ package com.fitness.procoach.athlete.interfaces;
 
 import com.fitness.procoach.athlete.application.AthleteApplicationService;
 import com.fitness.procoach.athlete.domain.Athlete;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +24,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 /**
  * Controller REST do cadastro de atletas (T-018/US-001).
  */
+@Tag(name = "Athlete", description = "Cadastro e ficha de atletas. O id do atleta é único e imutável (US-002).")
 @RestController
 @RequestMapping("/api/v1/athletes")
 public class AthleteController {
@@ -30,15 +41,46 @@ public class AthleteController {
 	 * Campos inválidos/ausentes resultam em {@code 400 Bad Request} (ver
 	 * {@link AthleteExceptionHandler}).
 	 */
+	@Operation(summary = "Cadastrar atleta",
+			description = "Cria um novo atleta vinculado ao coach. Retorna 201 Created com o DTO do atleta no corpo "
+					+ "e o header Location apontando para o recurso criado.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "Atleta criado com sucesso"),
+			@ApiResponse(responseCode = "400", description = "Campos inválidos ou ausentes") })
+	// T-009/US-037: somente o coach gerencia atletas.
+	@PreAuthorize("hasRole('COACH')")
 	@PostMapping
-	public ResponseEntity<AthleteResponse> register(@Valid @RequestBody RegisterAthleteRequest request) {
+	public ResponseEntity<AthleteResponse> register(@AuthenticationPrincipal Jwt jwt,
+			@Valid @RequestBody RegisterAthleteRequest request) {
+		// T-058: o coachId nunca vem do request — é resolvido server-side a
+		// partir do usuário autenticado (subject do JWT) na camada de aplicação.
 		Athlete athlete = service.register(new AthleteApplicationService.RegisterAthleteCommand(
-				request.coachId(), request.name(), request.sex(), request.birthDate(),
+				UUID.fromString(jwt.getSubject()), request.name(), request.sex(), request.birthDate(),
 				request.height(), request.weight(), request.goal()));
 		URI location = ServletUriComponentsBuilder.fromCurrentRequest()
 				.path("/{id}")
 				.buildAndExpand(athlete.id().value())
 				.toUri();
 		return ResponseEntity.created(location).body(AthleteResponse.from(athlete));
+	}
+
+	/**
+	 * Remove um atleta da carteira do coach (soft-delete). O registro nunca é
+	 * removido fisicamente — apenas marcado como excluído (US-002/UML 4.1.2).
+	 */
+	@Operation(summary = "Remover atleta (soft-delete)",
+			description = "Exclusão lógica do atleta da carteira do coach autenticado: o registro é apenas marcado "
+					+ "como excluído e nunca removido fisicamente do banco.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "204", description = "Atleta removido (soft-delete)"),
+			@ApiResponse(responseCode = "404", description = "Atleta não encontrado, removido ou de outro coach") })
+	// T-009/US-037: somente o coach gerencia atletas.
+	@PreAuthorize("hasRole('COACH')")
+	@DeleteMapping("/{id}")
+	public ResponseEntity<Void> remove(@AuthenticationPrincipal Jwt jwt,
+			@PathVariable UUID id) {
+		service.remove(new AthleteApplicationService.RemoveAthleteCommand(
+				UUID.fromString(jwt.getSubject()), id));
+		return ResponseEntity.noContent().build();
 	}
 }

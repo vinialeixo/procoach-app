@@ -6,9 +6,28 @@ import java.util.UUID;
 import com.fitness.procoach.training.domain.model.ExercisePrescription;
 import com.fitness.procoach.training.domain.model.IntensityType;
 
-public record ExercisePrescriptionResponse(UUID id, UUID exerciseId, String exerciseName, boolean customExercise,
-		int orderIndex, int sets, int repetitions, BigDecimal load, IntensityType intensityType,
-		BigDecimal intensityValue, int restSeconds, String notes) {
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Prescrição de um exercício dentro de um treino (séries, repetições, carga, intensidade e descanso).")
+public record ExercisePrescriptionResponse(
+		@Schema(description = "Identificador da prescrição",
+				example = "9f8e7d6c-5b4a-4c3d-2e1f-0a9b8c7d6e5f") UUID id,
+		@Schema(description = "Identificador do exercício da biblioteca (null quando customExercise=true)",
+				example = "3a4b5c6d-7e8f-4a9b-0c1d-2e3f4a5b6c7d") UUID exerciseId,
+		@Schema(description = "Nome do exercício", example = "Supino reto com barra") String exerciseName,
+		@Schema(description = "true quando é um exercício personalizado do coach, fora da biblioteca",
+				example = "false") boolean customExercise,
+		@Schema(description = "Posição do exercício na ordem de execução do treino", example = "1") int orderIndex,
+		@Schema(description = "Número de séries", example = "4") int sets,
+		@Schema(description = "Repetições por série", example = "10") int repetitions,
+		@Schema(description = "Carga utilizada (kg)", example = "60.0") BigDecimal load,
+		@Schema(description = "Tipo de intensidade: PERCENT_1RM, RPE, RIR ou ABSOLUTE_LOAD",
+				example = "RPE") IntensityType intensityType,
+		@Schema(description = "Valor da intensidade (conforme o tipo: %1RM, RPE, RIR ou carga absoluta)",
+				example = "8.0") BigDecimal intensityValue,
+		@Schema(description = "Descanso entre séries, em segundos", example = "90") int restSeconds,
+		@Schema(description = "Observações do coach sobre a prescrição",
+				example = "Cadência controlada na fase excêntrica.") String notes) {
 
 	public static ExercisePrescriptionResponse from(ExercisePrescription e) {
 		return new ExercisePrescriptionResponse(e.getId(), e.getExerciseId(), e.getExerciseName(), e.isCustomExercise(),

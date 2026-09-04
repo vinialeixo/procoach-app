@@ -21,17 +21,24 @@ public class AddExerciseToTrainingUseCase {
 
 	private final ApplicationEventPublisher eventPublisher;
 
+	private final TrainingOwnershipGuard ownershipGuard;
+
 	public AddExerciseToTrainingUseCase(TrainingRepository trainingRepository,
-			ApplicationEventPublisher eventPublisher) {
+			ApplicationEventPublisher eventPublisher, TrainingOwnershipGuard ownershipGuard) {
 		this.trainingRepository = trainingRepository;
 		this.eventPublisher = eventPublisher;
+		this.ownershipGuard = ownershipGuard;
 	}
 
-	public Training execute(UUID trainingId, UUID exerciseId, String exerciseName, boolean customExercise,
-			int orderIndex, int sets, int repetitions, BigDecimal load, IntensityType intensityType,
-			BigDecimal intensityValue, int restSeconds, String notes) {
+	public Training execute(UUID trainingId, UUID userId, UUID exerciseId, String exerciseName,
+			boolean customExercise, int orderIndex, int sets, int repetitions, BigDecimal load,
+			IntensityType intensityType, BigDecimal intensityValue, int restSeconds, String notes) {
 		Training training = this.trainingRepository.findById(trainingId)
 			.orElseThrow(() -> new IllegalArgumentException("Training not found: " + trainingId));
+
+		// T-058 (anti-IDOR): o treino precisa pertencer a um atleta da carteira
+		// do coach autenticado — treino de outro coach resulta em 404.
+		this.ownershipGuard.requireResourceOwnedByCoach(training.getAthleteId(), userId);
 
 		ExercisePrescription prescription = ExercisePrescription.create(exerciseId, exerciseName, customExercise,
 				orderIndex, sets, repetitions, load, intensityType, intensityValue, restSeconds, notes);

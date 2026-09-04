@@ -1,7 +1,9 @@
 package com.fitness.procoach.nutrition.application;
 
+import com.fitness.procoach.athlete.application.AthleteAccessService;
+import com.fitness.procoach.coach.application.CoachApplicationService;
+import com.fitness.procoach.coach.domain.CoachId;
 import com.fitness.procoach.nutrition.domain.AthleteId;
-import com.fitness.procoach.nutrition.domain.CoachId;
 import com.fitness.procoach.nutrition.domain.Diet;
 import com.fitness.procoach.nutrition.domain.DietId;
 import com.fitness.procoach.nutrition.domain.DietObjective;
@@ -18,23 +20,33 @@ import java.util.UUID;
 public class DietApplicationService {
 
 	private final DietRepository repository;
+	private final CoachApplicationService coachService;
+	private final AthleteAccessService athleteAccessService;
 
-	public DietApplicationService(DietRepository repository) {
+	public DietApplicationService(DietRepository repository, CoachApplicationService coachService,
+			AthleteAccessService athleteAccessService) {
 		this.repository = repository;
+		this.coachService = coachService;
+		this.athleteAccessService = athleteAccessService;
 	}
 
 	/**
 	 * Cria a primeira versão (v1) de uma dieta, em estado Rascunho (US-007).
-	 * Objetivo e macronutrientes são obrigatórios.
+	 * Objetivo e macronutrientes são obrigatórios. O coachId NUNCA vem do
+	 * request (T-058): é resolvido server-side a partir do usuário autenticado,
+	 * e o atleta-alvo precisa pertencer a esse coach (senão 404). O createdBy
+	 * (auditoria) também nunca vem do request: é o próprio subject do JWT.
 	 */
 	public Diet createDiet(CreateDietCommand command) {
+		CoachId coachId = coachService.requireCoachIdByUserId(command.userId());
+		athleteAccessService.requireOwnedByCoach(command.athleteId(), coachId.value());
 		Diet diet = Diet.create(
-				CoachId.of(command.coachId()),
+				coachId,
 				AthleteId.of(command.athleteId()),
 				command.objective(),
 				Macronutrients.of(command.calories(), command.protein(),
 						command.carbohydrates(), command.fat()),
-				command.createdBy());
+				command.userId());
 		return repository.save(diet);
 	}
 
@@ -58,7 +70,21 @@ public class DietApplicationService {
 				.orElseThrow(() -> new DietNotFoundException(id.value()));
 	}
 
-	public record CreateDietCommand(UUID coachId, UUID athleteId, DietObjective objective,
-			double calories, double protein, double carbohydrates, double fat, UUID createdBy) {
+	/**
+	 * Busca uma dieta pelo id garantindo que pertence a um atleta da carteira
+	 * do coach autenticado (T-058). Dieta inexistente OU de atleta de outro
+	 * coach resulta em 404 — não vaza a existência do recurso (anti-IDOR: o id
+	 * do recurso nunca é suficiente para acessá-lo).
+	 */
+	public Diet findOwnedById(DietId id, UUID userId) {
+		Diet diet = repository.findById(id)
+				.orElseThrow(() -> new DietNotFoundException(id.value()));
+		CoachId coachId = coachService.requireCoachIdByUserId(userId);
+		athleteAccessService.requireOwnedByCoach(diet.athleteId().value(), coachId.value());
+		return diet;
+	}
+
+	public record CreateDietCommand(UUID userId, UUID athleteId, DietObjective objective,
+			double calories, double protein, double carbohydrates, double fat) {
 	}
 }
