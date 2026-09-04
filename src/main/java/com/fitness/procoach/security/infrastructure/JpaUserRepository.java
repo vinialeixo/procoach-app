@@ -39,6 +39,12 @@ public class JpaUserRepository implements UserRepository {
 
 	@Override
 	@Transactional(readOnly = true)
+	public Optional<User> findByEmail(String email) {
+		return jpaRepository.findByEmail(email).map(UserMapper::toDomain);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
 	public List<User> findAll() {
 		return jpaRepository.findAll().stream().map(UserMapper::toDomain).toList();
 	}

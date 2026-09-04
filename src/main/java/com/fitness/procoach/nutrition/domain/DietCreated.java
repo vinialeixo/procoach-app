@@ -1,5 +1,6 @@
 package com.fitness.procoach.nutrition.domain;
 
+import com.fitness.procoach.coach.domain.CoachId;
 import java.time.Instant;
 import java.util.UUID;
 

@@ -15,6 +15,9 @@ final class UserMapper {
 		entity.setPasswordHash(user.getPasswordHash());
 		entity.setEnabled(user.isEnabled());
 		entity.setRoleIds(new java.util.HashSet<>(user.getRoleIds()));
+		entity.setAthleteId(user.getAthleteId());
+		entity.setMfaEnabled(user.isMfaEnabled());
+		entity.setMfaSecret(user.getMfaSecret());
 		entity.setCreatedAt(user.getCreatedAt());
 		entity.setUpdatedAt(user.getUpdatedAt());
 		entity.setVersion(user.getVersion());
@@ -23,7 +26,7 @@ final class UserMapper {
 
 	static User toDomain(UserJpaEntity entity) {
 		return User.reconstruct(entity.getId(), entity.getUsername(), entity.getEmail(), entity.getPasswordHash(),
-				entity.isEnabled(), entity.getRoleIds(), entity.getCreatedAt(), entity.getUpdatedAt(),
-				entity.getVersion());
+				entity.isEnabled(), entity.getRoleIds(), entity.getAthleteId(), entity.isMfaEnabled(),
+				entity.getMfaSecret(), entity.getCreatedAt(), entity.getUpdatedAt(), entity.getVersion());
 	}
 }

@@ -1,6 +1,7 @@
 package com.fitness.procoach.assessment.interfaces;
 
 import com.fitness.procoach.assessment.application.AssessmentNotFoundException;
+import com.fitness.procoach.athlete.application.AthleteNotFoundException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -44,6 +45,16 @@ public class AssessmentExceptionHandler {
 
 	@ExceptionHandler(AssessmentNotFoundException.class)
 	public ResponseEntity<Map<String, Object>> handleNotFound(AssessmentNotFoundException ex) {
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("timestamp", Instant.now());
+		body.put("status", 404);
+		body.put("error", ex.getMessage());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+	}
+
+	/** Atleta inexistente, removido ou de outro coach (T-058) — 404, não vaza existência. */
+	@ExceptionHandler(AthleteNotFoundException.class)
+	public ResponseEntity<Map<String, Object>> handleAthleteNotFound(AthleteNotFoundException ex) {
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("timestamp", Instant.now());
 		body.put("status", 404);

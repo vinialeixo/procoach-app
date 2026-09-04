@@ -1,5 +1,6 @@
 package com.fitness.procoach.nutrition.interfaces;
 
+import com.fitness.procoach.athlete.application.AthleteNotFoundException;
 import com.fitness.procoach.nutrition.application.DietNotFoundException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -44,6 +45,16 @@ public class NutritionExceptionHandler {
 
 	@ExceptionHandler(DietNotFoundException.class)
 	public ResponseEntity<Map<String, Object>> handleNotFound(DietNotFoundException ex) {
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("timestamp", Instant.now());
+		body.put("status", 404);
+		body.put("error", ex.getMessage());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+	}
+
+	/** Atleta inexistente, removido ou de outro coach (T-058) — 404, não vaza existência. */
+	@ExceptionHandler(AthleteNotFoundException.class)
+	public ResponseEntity<Map<String, Object>> handleAthleteNotFound(AthleteNotFoundException ex) {
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("timestamp", Instant.now());
 		body.put("status", 404);

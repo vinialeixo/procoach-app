@@ -1,7 +1,7 @@
 package com.fitness.procoach.nutrition.infrastructure;
 
+import com.fitness.procoach.coach.domain.CoachId;
 import com.fitness.procoach.nutrition.domain.AthleteId;
-import com.fitness.procoach.nutrition.domain.CoachId;
 import com.fitness.procoach.nutrition.domain.Diet;
 import com.fitness.procoach.nutrition.domain.DietId;
 import com.fitness.procoach.nutrition.domain.DietObjective;

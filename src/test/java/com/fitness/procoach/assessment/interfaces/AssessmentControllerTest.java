@@ -1,6 +1,9 @@
 package com.fitness.procoach.assessment.interfaces;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static com.fitness.procoach.CoachAthleteTestSupport.bearer;
+import static com.fitness.procoach.CoachAthleteTestSupport.registerAthlete;
+import static com.fitness.procoach.CoachAthleteTestSupport.registerCoach;
+import static com.fitness.procoach.CoachAthleteTestSupport.uniqueEmail;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -16,18 +19,19 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Testes de integração dos endpoints de avaliação física (US-004):
- * POST de registro (201 + Location + DTO), validação (400) e GET de histórico
- * do atleta em ordem cronológica, sem sobrescrever avaliações anteriores.
+ * Testes de integração dos endpoints de avaliação física (US-004, T-058):
+ * POST de registro (201 + Location + DTO), validação (400), GET de histórico e
+ * autorização — um coach não grava/lê avaliação de atleta de outro coach.
+ *
+ * <p>Usa token JWT real (nunca {@code @WithMockUser}) para exercitar a
+ * resolução server-side do coachId a partir do subject do JWT.</p>
  */
 @SpringBootTest(classes = ProcoachApplication.class)
 @AutoConfigureMockMvc
 @Import(PostgresTestcontainersConfiguration.class)
-@WithMockUser
 class AssessmentControllerTest {
 
 	@Autowired
@@ -37,7 +41,6 @@ class AssessmentControllerTest {
 		return """
 				{
 				  "athleteId": "%s",
-				  "coachId": "22222222-2222-2222-2222-222222222222",
 				  "assessmentDate": "%s",
 				  "weightKg": 82.50,
 				  "heightCm": 178.00,
@@ -51,10 +54,11 @@ class AssessmentControllerTest {
 
 	@Test
 	void registraAvaliacaoComSucesso() throws Exception {
-		String athleteId = UUID.randomUUID().toString();
+		String coachToken = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coachToken);
 
 		mockMvc.perform(post("/api/v1/assessments")
-						.with(csrf())
+						.header("Authorization", bearer(coachToken))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(validRequestJson(athleteId, "2026-09-01")))
 				.andExpect(status().isCreated())
@@ -62,7 +66,7 @@ class AssessmentControllerTest {
 						org.hamcrest.Matchers.matchesRegex(".*/api/v1/assessments/[0-9a-f-]{36}")))
 				.andExpect(jsonPath("$.id").isNotEmpty())
 				.andExpect(jsonPath("$.athleteId").value(athleteId))
-				.andExpect(jsonPath("$.coachId").value("22222222-2222-2222-2222-222222222222"))
+				.andExpect(jsonPath("$.coachId").isNotEmpty())
 				.andExpect(jsonPath("$.assessmentDate").value("2026-09-01"))
 				.andExpect(jsonPath("$.weightKg").value(82.50))
 				.andExpect(jsonPath("$.heightCm").value(178.00))
@@ -71,17 +75,18 @@ class AssessmentControllerTest {
 
 	@Test
 	void rejeitaRequisicaoSemDataObrigatoria() throws Exception {
+		String coachToken = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coachToken);
 		String invalid = """
 				{
 				  "athleteId": "%s",
-				  "coachId": "22222222-2222-2222-2222-222222222222",
 				  "weightKg": 82.50,
 				  "heightCm": 178.00
 				}
-				""".formatted(UUID.randomUUID().toString());
+				""".formatted(athleteId);
 
 		mockMvc.perform(post("/api/v1/assessments")
-						.with(csrf())
+						.header("Authorization", bearer(coachToken))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(invalid))
 				.andExpect(status().isBadRequest())
@@ -90,18 +95,19 @@ class AssessmentControllerTest {
 
 	@Test
 	void rejeitaMedidasInvalidas() throws Exception {
+		String coachToken = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coachToken);
 		String invalid = """
 				{
 				  "athleteId": "%s",
-				  "coachId": "22222222-2222-2222-2222-222222222222",
 				  "assessmentDate": "2026-09-01",
 				  "weightKg": -5,
 				  "heightCm": 0
 				}
-				""".formatted(UUID.randomUUID().toString());
+				""".formatted(athleteId);
 
 		mockMvc.perform(post("/api/v1/assessments")
-						.with(csrf())
+						.header("Authorization", bearer(coachToken))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(invalid))
 				.andExpect(status().isBadRequest())
@@ -111,22 +117,24 @@ class AssessmentControllerTest {
 
 	@Test
 	void retornaHistoricoEmOrdemCronologicaSemSobrescrever() throws Exception {
-		String athleteId = UUID.randomUUID().toString();
+		String coachToken = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coachToken);
 
-		mockMvc.perform(post("/api/v1/assessments").with(csrf())
+		mockMvc.perform(post("/api/v1/assessments").header("Authorization", bearer(coachToken))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(validRequestJson(athleteId, "2026-09-01")))
 				.andExpect(status().isCreated());
-		mockMvc.perform(post("/api/v1/assessments").with(csrf())
+		mockMvc.perform(post("/api/v1/assessments").header("Authorization", bearer(coachToken))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(validRequestJson(athleteId, "2026-08-01")))
 				.andExpect(status().isCreated());
-		mockMvc.perform(post("/api/v1/assessments").with(csrf())
+		mockMvc.perform(post("/api/v1/assessments").header("Authorization", bearer(coachToken))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(validRequestJson(athleteId, "2026-07-01")))
 				.andExpect(status().isCreated());
 
-		mockMvc.perform(get("/api/v1/assessments").param("athleteId", athleteId))
+		mockMvc.perform(get("/api/v1/assessments").param("athleteId", athleteId)
+						.header("Authorization", bearer(coachToken)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.length()").value(3))
 				.andExpect(jsonPath("$[0].assessmentDate").value("2026-07-01"))
@@ -136,7 +144,54 @@ class AssessmentControllerTest {
 
 	@Test
 	void retorna404ParaAvaliacaoInexistente() throws Exception {
-		mockMvc.perform(get("/api/v1/assessments/{id}", UUID.randomUUID()))
+		String coachToken = registerCoach(mockMvc, uniqueEmail("coach"));
+		mockMvc.perform(get("/api/v1/assessments/{id}", UUID.randomUUID())
+						.header("Authorization", bearer(coachToken)))
+				.andExpect(status().isNotFound());
+	}
+
+	// ---- T-058 item 2: autorização ----
+
+	@Test
+	void coachNaoGravaAvaliacaoParaAtletaDeOutroCoach() throws Exception {
+		String coachA = registerCoach(mockMvc, uniqueEmail("coach-a"));
+		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
+		String athleteOfA = registerAthlete(mockMvc, coachA);
+
+		// Coach B tenta registrar avaliação para um atleta do coach A -> 404.
+		mockMvc.perform(post("/api/v1/assessments")
+						.header("Authorization", bearer(coachB))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(validRequestJson(athleteOfA, "2026-09-01")))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void coachNaoLeHistoricoDeAtletaDeOutroCoach() throws Exception {
+		String coachA = registerCoach(mockMvc, uniqueEmail("coach-a"));
+		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
+		String athleteOfA = registerAthlete(mockMvc, coachA);
+
+		// Coach B tenta ler o histórico de um atleta do coach A -> 404.
+		mockMvc.perform(get("/api/v1/assessments").param("athleteId", athleteOfA)
+						.header("Authorization", bearer(coachB)))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void coachIdForjadoNoPayloadNaoConcedeAcessoAAtletaDeOutroCoach() throws Exception {
+		String coachA = registerCoach(mockMvc, uniqueEmail("coach-a"));
+		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
+		String athleteOfA = registerAthlete(mockMvc, coachA);
+
+		// Coach B forja o coachId do coach A no body, mas o coachId é ignorado
+		// (resolvido do JWT = coach B) e o atleta não pertence a B -> 404.
+		String forged = validRequestJson(athleteOfA, "2026-09-01")
+				.replace("{", "{\"coachId\": \"%s\",".formatted(UUID.randomUUID().toString()));
+		mockMvc.perform(post("/api/v1/assessments")
+						.header("Authorization", bearer(coachB))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(forged))
 				.andExpect(status().isNotFound());
 	}
 }

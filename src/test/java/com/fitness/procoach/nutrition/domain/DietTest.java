@@ -1,5 +1,6 @@
 package com.fitness.procoach.nutrition.domain;
 
+import com.fitness.procoach.coach.domain.CoachId;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;

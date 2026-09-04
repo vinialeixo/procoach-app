@@ -1,0 +1,58 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.fitness:procoach >------------------------
+[INFO] Building  0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ procoach ---
+[INFO] Deleting C:\Users\vi_al\Documents\workspace\procoach\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ procoach ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 9 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ procoach ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 188 source files with javac [debug parameters release 17] to target\classes
+[INFO] /C:/Users/vi_al/Documents/workspace/procoach/src/main/java/com/fitness/procoach/training/domain/package-info.java: C:\Users\vi_al\Documents\workspace\procoach\src\main\java\com\fitness\procoach\training\domain\package-info.java uses or overrides a deprecated API.
+[INFO] /C:/Users/vi_al/Documents/workspace/procoach/src/main/java/com/fitness/procoach/training/domain/package-info.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ procoach ---
+[INFO] skip non existing resourceDirectory C:\Users\vi_al\Documents\workspace\procoach\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ procoach ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 25 source files with javac [debug parameters release 17] to target\test-classes
+[INFO] /C:/Users/vi_al/Documents/workspace/procoach/src/test/java/com/fitness/procoach/TestcontainersConfiguration.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/vi_al/Documents/workspace/procoach/src/test/java/com/fitness/procoach/TestcontainersConfiguration.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ procoach ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.fitness.procoach.assessment.domain.AssessmentTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.012 s -- in com.fitness.procoach.assessment.domain.AssessmentTest
+[INFO] Running com.fitness.procoach.assessment.domain.BodyMeasurementsTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.118 s -- in com.fitness.procoach.assessment.domain.BodyMeasurementsTest
+[INFO] Running com.fitness.procoach.assessment.interfaces.AssessmentControllerTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.7)
+
+2026-09-03T10:59:42.715-03:00  INFO 8760 --- [procoach] [           main] c.f.p.a.i.AssessmentControllerTest       : Starting AssessmentControllerTest using Java 17.0.10 with PID 8760 (started by vi_al in C:\Users\vi_al\Documents\workspace\procoach)
+2026-09-03T10:59:42.735-03:00  INFO 8760 --- [procoach] [           main] c.f.p.a.i.AssessmentControllerTest       : No active profile set, falling back to 1 default profile: "default"
+2026-09-03T10:59:52.885-03:00  INFO 8760 --- [procoach] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-03T10:59:53.176-03:00  INFO 8760 --- [procoach] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 255 ms. Found 12 JPA repository interfaces.
+2026-09-03T11:00:02.154-03:00  INFO 8760 --- [procoach] [           main] org.testcontainers.images.PullPolicy     : Image pull policy will be performed by: DefaultPullPolicy()
+2026-09-03T11:00:02.195-03:00  INFO 8760 --- [procoach] [           main] o.t.utility.ImageNameSubstitutor         : Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+2026-09-03T11:00:02.302-03:00  INFO 8760 --- [procoach] [           main] org.testcontainers.DockerClientFactory   : Testcontainers version: 2.0.5
+2026-09-03T11:00:03.017-03:00  INFO 8760 --- [procoach] [           main] o.t.d.DockerClientProviderStrategy       : Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first

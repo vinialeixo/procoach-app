@@ -1,5 +1,6 @@
 package com.fitness.procoach.athlete.interfaces;
 
+import com.fitness.procoach.athlete.application.AthleteNotFoundException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -39,6 +40,16 @@ public class AthleteExceptionHandler {
 		body.put("status", 400);
 		body.put("error", ex.getMessage());
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+	}
+
+	/** Atleta não encontrado, removido (soft-delete) ou de outro coach. */
+	@ExceptionHandler(AthleteNotFoundException.class)
+	public ResponseEntity<Map<String, Object>> handleNotFound(AthleteNotFoundException ex) {
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("timestamp", Instant.now());
+		body.put("status", 404);
+		body.put("error", ex.getMessage());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
 	}
 
 	/** Corpo da requisição malformado ou valores fora do domínio (ex.: enum inexistente). */

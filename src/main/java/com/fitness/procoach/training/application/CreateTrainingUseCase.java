@@ -2,6 +2,8 @@ package com.fitness.procoach.training.application;
 
 import java.util.UUID;
 
+import com.fitness.procoach.athlete.application.AthleteAccessService;
+import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.training.domain.event.TrainingCreatedEvent;
 import com.fitness.procoach.training.domain.model.Periodization;
 import com.fitness.procoach.training.domain.model.Training;
@@ -22,15 +24,26 @@ public class CreateTrainingUseCase {
 
 	private final ApplicationEventPublisher eventPublisher;
 
+	private final CoachApplicationService coachService;
+
+	private final AthleteAccessService athleteAccessService;
+
 	public CreateTrainingUseCase(TrainingRepository trainingRepository, PeriodizationRepository periodizationRepository,
-			ApplicationEventPublisher eventPublisher) {
+			ApplicationEventPublisher eventPublisher, CoachApplicationService coachService,
+			AthleteAccessService athleteAccessService) {
 		this.trainingRepository = trainingRepository;
 		this.periodizationRepository = periodizationRepository;
 		this.eventPublisher = eventPublisher;
+		this.coachService = coachService;
+		this.athleteAccessService = athleteAccessService;
 	}
 
-	public Training execute(UUID periodizationId, UUID athleteId, UUID coachId, String name, String description,
+	public Training execute(UUID periodizationId, UUID athleteId, UUID userId, String name, String description,
 			int weekNumber, int dayOfWeek) {
+		// T-058: o coachId nunca vem do request — é resolvido server-side a partir
+		// do usuário autenticado, e o atleta-alvo precisa pertencer a esse coach.
+		UUID coachId = coachService.requireCoachIdByUserId(userId).value();
+		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
 		Periodization periodization = this.periodizationRepository.findById(periodizationId)
 			.orElseThrow(() -> new IllegalArgumentException("Periodization not found: " + periodizationId));
 
