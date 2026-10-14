@@ -3,10 +3,14 @@ package com.fitness.procoach.security.application;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.security.domain.Permission;
@@ -29,21 +33,30 @@ public class AuthService {
 
 	private static final String TOTP_ISSUER = "ProCoach";
 
+	/**
+	 * Máximo de tentativas para gravações na conta do usuário que perderam uma
+	 * corrida de concorrência (guarda de versão do {@code @Version} do JPA).
+	 */
+	private static final int OPTIMISTIC_LOCK_MAX_ATTEMPTS = 3;
+
 	private final UserRepository userRepository;
 	private final RoleRepository roleRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtTokenService tokenService;
 	private final TotpService totpService;
 	private final CoachApplicationService coachService;
+	private final TransactionTemplate transactionTemplate;
 
 	public AuthService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder,
-			JwtTokenService tokenService, TotpService totpService, CoachApplicationService coachService) {
+			JwtTokenService tokenService, TotpService totpService, CoachApplicationService coachService,
+			PlatformTransactionManager transactionManager) {
 		this.userRepository = userRepository;
 		this.roleRepository = roleRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.tokenService = tokenService;
 		this.totpService = totpService;
 		this.coachService = coachService;
+		this.transactionTemplate = new TransactionTemplate(transactionManager);
 	}
 
 	/** Resultado do login: ou o usuário já está autenticado, ou falta o segundo fator. */
@@ -118,9 +131,18 @@ public class AuthService {
 		return issueTokens(user);
 	}
 
-	/** Primeiro passo da ativação do MFA (usuário autenticado): gera o segredo TOTP. */
-	@Transactional
+	/**
+	 * Primeiro passo da ativação do MFA (usuário autenticado): gera o segredo TOTP.
+	 * Cada tentativa roda em uma transação própria com o usuário recarregado do
+	 * banco; se uma requisição concorrente gravar a mesma conta entre a leitura e o
+	 * commit, a guarda de versão do {@code @Version} falha e a tentativa é repetida
+	 * com estado fresco (no máximo {@value #OPTIMISTIC_LOCK_MAX_ATTEMPTS} vezes).
+	 */
 	public MfaSetupResult startMfaSetup(UUID userId) {
+		return withOptimisticLockRetry(status -> doStartMfaSetup(userId));
+	}
+
+	private MfaSetupResult doStartMfaSetup(UUID userId) {
 		User user = loadEnabledUser(userId.toString());
 		if (user.isMfaEnabled()) {
 			throw new MfaSetupException("MFA já está ativo para este usuário");
@@ -132,8 +154,14 @@ public class AuthService {
 	}
 
 	/** Confirma a ativação do MFA com o primeiro código gerado pelo autenticador. */
-	@Transactional
 	public void confirmMfaSetup(UUID userId, String code) {
+		withOptimisticLockRetry(status -> {
+			doConfirmMfaSetup(userId, code);
+			return null;
+		});
+	}
+
+	private void doConfirmMfaSetup(UUID userId, String code) {
 		User user = loadEnabledUser(userId.toString());
 		if (user.isMfaEnabled()) {
 			throw new MfaSetupException("MFA já está ativo para este usuário");
@@ -180,6 +208,26 @@ public class AuthService {
 			throw new InvalidTokenException("Usuário desabilitado");
 		}
 		return user;
+	}
+
+	/**
+	 * Executa uma tentativa transacional de gravação na conta e a repete caso outra
+	 * transação tenha commitado concorrentemente (a guarda de versão do
+	 * {@code @Version} do JPA falhou com 0 linhas afetadas). A repetição é segura
+	 * porque cada tentativa recarrega o agregado do banco e reaplica a mutação de
+	 * domínio sobre o estado mais novo. Exceções de negócio propagam imediatamente
+	 * (a transação da tentativa é revertida); só o conflito de versão é retentado.
+	 */
+	private <T> T withOptimisticLockRetry(TransactionCallback<T> attempt) {
+		for (int attemptNumber = 1;; attemptNumber++) {
+			try {
+				return transactionTemplate.execute(attempt);
+			} catch (ObjectOptimisticLockingFailureException ex) {
+				if (attemptNumber >= OPTIMISTIC_LOCK_MAX_ATTEMPTS) {
+					throw ex;
+				}
+			}
+		}
 	}
 
 	private Role findOrCreateRole(String name, Set<Permission> permissions) {

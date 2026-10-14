@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -42,6 +43,16 @@ public class SecurityExceptionHandler {
 	@ExceptionHandler({ EmailAlreadyRegisteredException.class, MfaSetupException.class })
 	public ResponseEntity<Map<String, Object>> conflict(RuntimeException ex) {
 		return error(HttpStatus.CONFLICT, ex.getMessage());
+	}
+
+	/**
+	 * Duas requisições gravaram a mesma conta ao mesmo tempo e o retry automático do
+	 * serviço se esgotou (guard de versionamento do JPA). A conta permanece íntegra;
+	 * 409 orienta o cliente a repetir a operação.
+	 */
+	@ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+	public ResponseEntity<Map<String, Object>> optimisticLock(ObjectOptimisticLockingFailureException ex) {
+		return error(HttpStatus.CONFLICT, "A conta foi atualizada por outra requisição simultânea; tente novamente");
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

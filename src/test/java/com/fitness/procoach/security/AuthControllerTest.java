@@ -1,17 +1,28 @@
 package com.fitness.procoach.security;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -181,6 +192,41 @@ class AuthControllerTest {
 				.andExpect(jsonPath("$.accessToken").isString())
 				.andExpect(jsonPath("$.refreshToken").isString())
 				.andExpect(jsonPath("$.role").value("COACH"));
+	}
+
+	/**
+	 * Disparo simultâneo de /mfa/setup (duplo clique, retry de rede, efeito duplo do
+	 * front) é uma corrida real de Optimistic Locking na linha do usuário: o perdedor
+	 * recarrega a conta e repete dentro do AuthService. Sem o retry, uma das
+	 * chamadas responderia 500 com ObjectOptimisticLockingFailureException.
+	 */
+	@Test
+	void concurrentMfaSetupCallsNeverFailWithServerError() throws Exception {
+		String coachToken = registerCoachViaHttp(uniqueEmail("mfa-concorrente"));
+		int clients = 4;
+		ExecutorService executor = Executors.newFixedThreadPool(clients);
+		CountDownLatch start = new CountDownLatch(1);
+		List<Future<Integer>> statuses = new ArrayList<>();
+		try {
+			for (int i = 0; i < clients; i++) {
+				statuses.add(executor.submit(() -> {
+					start.await();
+					return mockMvc.perform(post("/api/v1/auth/mfa/setup")
+							.header("Authorization", bearer(coachToken)))
+							.andReturn().getResponse().getStatus();
+				}));
+			}
+			start.countDown();
+			for (Future<Integer> future : statuses) {
+				int status = future.get(30, TimeUnit.SECONDS);
+				assertTrue(status == HttpStatus.OK.value() || status == HttpStatus.CONFLICT.value(),
+						"status inesperado: " + status);
+			}
+		} catch (ExecutionException ex) {
+			fail("requisição concorrente falhou: " + ex.getCause());
+		} finally {
+			executor.shutdownNow();
+		}
 	}
 
 	@Test

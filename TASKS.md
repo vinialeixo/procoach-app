@@ -26,9 +26,9 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 | [x] | **T-005** | E0 | Fundação | Implementar event store base (Event Sourcing seletivo) | Dev | Must | 4 | T-004 |
 | [ ] | **T-006** | E0 | Fundação | Setup projeto Front Web (SPA), design system base | Dev | Must | 2 | — |
 | [ ] | **T-007** | E0 | Fundação | Definir plano de testes e estratégia de QA (DoD/CA) | QA | Must | 2 | — |
-| [ ] | **T-008** | E9 | US-20 | Implementar autenticação + MFA | Dev | Must | 3 | T-004 |
-| [ ] | **T-009** | E9 | US-20 | Implementar RBAC (papéis Coach x Atleta) | Dev | Must | 3 | T-008 |
-| [ ] | **T-010** | E9 | US-20 | Restringir acesso do atleta apenas aos próprios dados | Dev | Must | 2 | T-009 |
+| [x] | **T-008** | E9 | US-20 | Implementar autenticação + MFA | Dev | Must | 3 | T-004 |
+| [x] | **T-009** | E9 | US-20 | Implementar RBAC (papéis Coach x Atleta) | Dev | Must | 3 | T-008 |
+| [x] | **T-010** | E9 | US-20 | Restringir acesso do atleta apenas aos próprios dados | Dev | Must | 2 | T-009 |
 | [x] | **T-011** | E9 | US-20 | Front: telas de login/registro/MFA | Dev | Must | 2 | T-008 |
 | [ ] | **T-012** | E9 | US-20 | Testes de segurança e autorização (RBAC) | QA | Must | 2 | T-010 |
 | [ ] | **T-013** | E10 | US-21 | Implementar audit log imutável (append-only) | Dev | Must | 3 | T-005 |
@@ -148,6 +148,16 @@ Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 esta
 > qualquer UUID (falha de autorização tipo IDOR, não só divergência de modelo).
 > `T-058` corrige isso junto (`coachId` passa a ser resolvido server-side a partir do
 > JWT, não mais aceito do cliente) — tratar como prioridade alta mesmo em dev.
+
+> **Épico E9 / US-20 concluído em 2026-09-04** (T-008 a T-011): autenticação JWT
+> (AccessToken + RefreshToken), MFA/TOTP (setup/verify/confirm), RBAC
+> (`ROLE_COACH`/`ROLE_ATHLETE` via `@PreAuthorize`) e isolamento de dados por perfil
+> (`@athleteGuard.canAccess` — atleta só acessa o próprio `athleteId`; coach acessa a
+> carteira) — tudo encapsulado em `com.fitness.procoach.security`. Front (`procoach-front`)
+> integrado aos endpoints reais: login em 2 etapas, ativação de MFA com QR Code,
+> `Authorization: Bearer` no `api-client` e redirecionamento por papel
+> (COACH → `/coach`, ATHLETE → `/athlete`). Gate `.\mvnw.cmd clean test` verde
+> (178 testes, 0 falhas) e `npm run build`/`npm run lint` limpos no front.
 
 ---
 
