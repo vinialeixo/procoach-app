@@ -1,6 +1,7 @@
 package com.fitness.procoach.athlete.interfaces;
 
 import com.fitness.procoach.athlete.application.AthleteApplicationService;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.athlete.domain.Athlete;
 import com.fitness.procoach.athlete.domain.AthleteStatus;
 import io.swagger.v3.oas.annotations.Operation;
@@ -85,6 +86,15 @@ public class AthleteController {
 	@GetMapping("/{id}")
 	public AthleteResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
 		return AthleteResponse.from(service.get(UUID.fromString(jwt.getSubject()), id));
+	}
+
+	@Operation(summary = "Histórico de auditoria do atleta",
+			description = "Quem mudou o quê e quando, do mais recente para o mais antigo: cadastro, mudança de "
+					+ "status (com motivo), avaliações, dietas, treinos e acesso. Só o coach dono do atleta (T-013/T-015).")
+	@PreAuthorize("hasRole('COACH')")
+	@GetMapping("/{id}/history")
+	public List<AuditService.AuditEntry> history(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+		return service.history(UUID.fromString(jwt.getSubject()), id);
 	}
 
 	@Operation(summary = "Alterar status do atleta",

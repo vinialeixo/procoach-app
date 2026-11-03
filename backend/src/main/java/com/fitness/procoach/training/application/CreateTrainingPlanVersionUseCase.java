@@ -3,6 +3,8 @@ package com.fitness.procoach.training.application;
 import java.util.UUID;
 
 import com.fitness.procoach.training.domain.event.TrainingPlanCreatedEvent;
+import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.training.domain.model.TrainingPlan;
 import com.fitness.procoach.training.domain.repository.TrainingPlanRepository;
 
@@ -20,11 +22,15 @@ public class CreateTrainingPlanVersionUseCase {
 
 	private final TrainingOwnershipGuard ownershipGuard;
 
+	private final AuditService auditService;
+
 	public CreateTrainingPlanVersionUseCase(TrainingPlanRepository trainingPlanRepository,
-			ApplicationEventPublisher eventPublisher, TrainingOwnershipGuard ownershipGuard) {
+			ApplicationEventPublisher eventPublisher, TrainingOwnershipGuard ownershipGuard,
+			AuditService auditService) {
 		this.trainingPlanRepository = trainingPlanRepository;
 		this.eventPublisher = eventPublisher;
 		this.ownershipGuard = ownershipGuard;
+		this.auditService = auditService;
 	}
 
 	public TrainingPlan execute(UUID currentPlanId, UUID userId, String newName, String newDescription) {
@@ -38,6 +44,8 @@ public class CreateTrainingPlanVersionUseCase {
 		TrainingPlan newVersion = current.createNewVersion(newName, newDescription);
 		TrainingPlan saved = this.trainingPlanRepository.save(newVersion);
 
+		this.auditService.record("TrainingPlan", saved.getId(), saved.getAthleteId(), "TRAINING_PLAN_VERSIONED", userId,
+				AuditData.of("version", saved.getVersion(), "previousVersionId", saved.getPreviousVersionId()));
 		this.eventPublisher.publishEvent(new TrainingPlanCreatedEvent(saved.getId(), saved.getPeriodizationId(),
 				saved.getAthleteId(), saved.getCoachId(), saved.getName(), saved.getVersion(),
 				saved.getPreviousVersionId()));

@@ -3,6 +3,8 @@ package com.fitness.procoach.training.application;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.training.domain.model.Periodization;
@@ -21,11 +23,15 @@ public class CreatePeriodizationUseCase {
 
 	private final AthleteAccessService athleteAccessService;
 
+	private final AuditService auditService;
+
 	public CreatePeriodizationUseCase(PeriodizationRepository periodizationRepository,
-			CoachApplicationService coachService, AthleteAccessService athleteAccessService) {
+			CoachApplicationService coachService, AthleteAccessService athleteAccessService,
+			AuditService auditService) {
 		this.periodizationRepository = periodizationRepository;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
+		this.auditService = auditService;
 	}
 
 	public Periodization execute(UUID athleteId, UUID userId, String name, String description, LocalDate startDate,
@@ -35,7 +41,10 @@ public class CreatePeriodizationUseCase {
 		UUID coachId = coachService.requireCoachIdByUserId(userId).value();
 		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
 		Periodization periodization = Periodization.create(athleteId, coachId, name, description, startDate, endDate);
-		return this.periodizationRepository.save(periodization);
+		Periodization saved = this.periodizationRepository.save(periodization);
+		this.auditService.record("Periodization", saved.getId(), saved.getAthleteId(), "PERIODIZATION_CREATED",
+				userId, AuditData.of("name", saved.getName()));
+		return saved;
 	}
 
 }

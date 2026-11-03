@@ -34,6 +34,14 @@ public class JpaAuditLogRepository implements AuditLogRepository {
 
 	@Override
 	@Transactional(readOnly = true)
+	public List<AuditLog> findByAthlete(UUID athleteId) {
+		return jpaRepository.findByAthleteIdOrderByOccurredAtDesc(athleteId).stream()
+				.map(AuditLogMapper::toDomain)
+				.toList();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
 	public List<AuditLog> findAll() {
 		return jpaRepository.findAllByOrderByOccurredAtAsc().stream()
 				.map(AuditLogMapper::toDomain)

@@ -10,4 +10,6 @@ public interface AuditLogJpaRepository extends JpaRepository<AuditLogJpaEntity, 
 	List<AuditLogJpaEntity> findByAggregateIdOrderByOccurredAtAsc(UUID aggregateId);
 
 	List<AuditLogJpaEntity> findAllByOrderByOccurredAtAsc();
+
+	List<AuditLogJpaEntity> findByAthleteIdOrderByOccurredAtDesc(UUID athleteId);
 }

@@ -4,6 +4,8 @@ import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.coach.domain.CoachId;
 import com.fitness.procoach.assessment.application.AssessmentApplicationService;
+import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.nutrition.domain.AthleteId;
 import com.fitness.procoach.nutrition.domain.Diet;
 import com.fitness.procoach.nutrition.domain.DietId;
@@ -29,9 +31,12 @@ public class DietApplicationService {
 	private final CoachApplicationService coachService;
 	private final AthleteAccessService athleteAccessService;
 	private final AssessmentApplicationService assessmentService;
+	private final AuditService auditService;
 
 	public DietApplicationService(DietRepository repository, CoachApplicationService coachService,
-			AthleteAccessService athleteAccessService, AssessmentApplicationService assessmentService) {
+			AthleteAccessService athleteAccessService, AssessmentApplicationService assessmentService,
+			AuditService auditService) {
+		this.auditService = auditService;
 		this.assessmentService = assessmentService;
 		this.repository = repository;
 		this.coachService = coachService;
@@ -45,6 +50,7 @@ public class DietApplicationService {
 	 * e o atleta-alvo precisa pertencer a esse coach (senão 404). O createdBy
 	 * (auditoria) também nunca vem do request: é o próprio subject do JWT.
 	 */
+	@Transactional
 	public Diet createDiet(CreateDietCommand command) {
 		CoachId coachId = coachService.requireCoachIdByUserId(command.userId());
 		athleteAccessService.requireOwnedByCoach(command.athleteId(), coachId.value());
@@ -60,7 +66,10 @@ public class DietApplicationService {
 				Macronutrients.of(command.calories(), command.protein(),
 						command.carbohydrates(), command.fat()),
 				command.userId());
-		return repository.save(diet);
+		Diet saved = repository.save(diet);
+		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "DIET_CREATED", command.userId(),
+				AuditData.of("objective", saved.objective().name(), "version", saved.version()));
+		return saved;
 	}
 
 	/**
@@ -141,14 +150,23 @@ public class DietApplicationService {
 				command.changeReason(),
 				command.userId());
 		repository.save(current);
-		return repository.save(next);
+		Diet saved = repository.save(next);
+		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "DIET_VERSIONED", command.userId(),
+				AuditData.of("version", saved.version(), "previousVersionId", current.id().value(), "reason",
+						command.changeReason()));
+		return saved;
 	}
 
 	/** Transiciona o status da dieta (US-017); transição inválida lança IllegalStateException. */
+	@Transactional
 	public Diet changeStatus(UUID userId, UUID dietId, DietStatus status) {
 		Diet diet = findOwnedById(new DietId(dietId), userId);
+		DietStatus previous = diet.status();
 		diet.changeStatus(status);
-		return repository.save(diet);
+		Diet saved = repository.save(diet);
+		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "DIET_STATUS_CHANGED", userId,
+				AuditData.of("from", previous.name(), "to", saved.status().name(), "version", saved.version()));
+		return saved;
 	}
 
 	/** Dieta com o balanço energético calculado e a avaliação que o embasou. */

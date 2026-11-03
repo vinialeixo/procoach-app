@@ -3,6 +3,8 @@ package com.fitness.procoach.training.application;
 import java.util.UUID;
 
 import com.fitness.procoach.training.domain.event.TrainingStatusChangedEvent;
+import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.training.domain.model.Training;
 import com.fitness.procoach.training.domain.model.TrainingStatus;
 import com.fitness.procoach.training.domain.repository.TrainingRepository;
@@ -21,11 +23,15 @@ public class TransitionTrainingStatusUseCase {
 
 	private final TrainingOwnershipGuard ownershipGuard;
 
+	private final AuditService auditService;
+
 	public TransitionTrainingStatusUseCase(TrainingRepository trainingRepository,
-			ApplicationEventPublisher eventPublisher, TrainingOwnershipGuard ownershipGuard) {
+			ApplicationEventPublisher eventPublisher, TrainingOwnershipGuard ownershipGuard,
+			AuditService auditService) {
 		this.trainingRepository = trainingRepository;
 		this.eventPublisher = eventPublisher;
 		this.ownershipGuard = ownershipGuard;
+		this.auditService = auditService;
 	}
 
 	public Training execute(UUID trainingId, UUID userId, TrainingStatus targetStatus) {
@@ -40,6 +46,8 @@ public class TransitionTrainingStatusUseCase {
 		training.transitionTo(targetStatus);
 		Training saved = this.trainingRepository.save(training);
 
+		this.auditService.record("Training", saved.getId(), saved.getAthleteId(), "TRAINING_STATUS_CHANGED", userId,
+				AuditData.of("from", previousStatus.name(), "to", saved.getStatus().name()));
 		this.eventPublisher.publishEvent(new TrainingStatusChangedEvent(saved.getId(), saved.getAthleteId(),
 				saved.getCoachId(), previousStatus, saved.getStatus()));
 

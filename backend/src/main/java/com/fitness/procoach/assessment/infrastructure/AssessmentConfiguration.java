@@ -3,6 +3,7 @@ package com.fitness.procoach.assessment.infrastructure;
 import com.fitness.procoach.assessment.application.AssessmentApplicationService;
 import com.fitness.procoach.assessment.domain.AssessmentRepository;
 import com.fitness.procoach.athlete.application.AthleteAccessService;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,7 +16,8 @@ public class AssessmentConfiguration {
 
 	@Bean
 	public AssessmentApplicationService assessmentApplicationService(AssessmentRepository repository,
-			CoachApplicationService coachService, AthleteAccessService athleteAccessService) {
-		return new AssessmentApplicationService(repository, coachService, athleteAccessService);
+			CoachApplicationService coachService, AthleteAccessService athleteAccessService,
+			AuditService auditService) {
+		return new AssessmentApplicationService(repository, coachService, athleteAccessService, auditService);
 	}
 }

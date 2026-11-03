@@ -23,9 +23,9 @@
 | [x] | **T-009** | E9 | US-20 | Implementar RBAC (papéis Coach x Atleta) | Dev | Must | 3 | T-008 |
 | [x] | **T-010** | E9 | US-20 | Restringir acesso do atleta apenas aos próprios dados | Dev | Must | 2 | T-009 |
 | [ ] | **T-012** | E9 | US-20 | Testes de segurança e autorização (RBAC) | QA | Must | 2 | T-010 |
-| [ ] | **T-013** | E10 | US-21 | Implementar audit log imutável (append-only) | Dev | Must | 3 | T-005 |
+| [x] | **T-013** | E10 | US-21 | Implementar audit log imutável (append-only) | Dev | Must | 3 | T-005 |
 | [ ] | **T-014** | E10 | US-21 | Versionamento de agregados (versão/data/autor/histórico) | Dev | Must | 4 | T-005 |
-| [ ] | **T-015** | E10 | US-21 | Registrar eventos: cadastro, alteração, exclusão lógica, login, aprovação | Dev | Must | 3 | T-014 |
+| [x] | **T-015** | E10 | US-21 | Registrar eventos: cadastro, alteração, exclusão lógica, login, aprovação | Dev | Must | 3 | T-014 |
 | [x] | **T-046** | E0 | Fundação | Criar módulo de domínio security + agregado User/Role (com.fitness.procoach.security) | Dev | Must | 2 | T-004 |
 | [x] | **T-047** | E0 | Fundação | Criar módulo cross-cutting audit + agregado AuditLog/Version (com.fitness.procoach.audit) | Dev | Must | 2 | T-004 |
 | [x] | **T-053** | E0 | Fundação | Configurar Spring Modulith + verificação de boundaries entre módulos | Dev | Must | 2 | T-004 |
@@ -38,7 +38,7 @@
 | [x] | **T-017** | E1 | US-01 | Modelo + repositório de Atleta (ID único imutável) | Dev | Must | 2 | T-004 |
 | [x] | **T-018** | E1 | US-01 | Endpoint cadastro de atleta + validação de campos obrigatórios | Dev | Must | 2 | T-017 |
 | [ ] | **T-020** | E1 | US-02 | Suporte a múltiplos protocolos por atleta | Dev | Must | 2 | T-017 |
-| [ ] | **T-021** | E1 | US-03 | Gestão de status (Ativo/Pausado/Finalizado) + soft-delete | Dev | Must | 2 | T-017 |
+| [x] | **T-021** | E1 | US-03 | Gestão de status (Ativo/Pausado/Finalizado) + soft-delete | Dev | Must | 2 | T-017 |
 | [x] | **T-048** | E1 | US-01 | Criar módulo de domínio athlete + agregado Athlete (com.fitness.procoach.athlete) | Dev | Must | 3 | T-004 |
 
 ## S3
@@ -58,9 +58,9 @@
 
 | Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
 |---|---|---|---|---|---|---|---|---|
-| [ ] | **T-031** | E3 | US-08 | Versionamento de dieta (v1->v2->v3) com histórico encadeado | Dev | Must | 3 | T-014 |
-| [ ] | **T-032** | E3 | US-08 | Registrar quem/quando/motivo de cada alteração | Dev | Must | 2 | T-031 |
-| [ ] | **T-033** | E3 | US-09 | Fluxo de status (Rascunho/Em Revisão/Aprovada/Arquivada) | Dev | Must | 3 | T-031 |
+| [x] | **T-031** | E3 | US-08 | Versionamento de dieta (v1->v2->v3) com histórico encadeado | Dev | Must | 3 | T-014 |
+| [x] | **T-032** | E3 | US-08 | Registrar quem/quando/motivo de cada alteração | Dev | Must | 2 | T-031 |
+| [x] | **T-033** | E3 | US-09 | Fluxo de status (Rascunho/Em Revisão/Aprovada/Arquivada) | Dev | Must | 3 | T-031 |
 | [ ] | **T-035** | E3 | US-07/08/09 | Testes de versionamento e fluxo de aprovação da dieta | QA | Must | 3 | T-034 |
 | [x] | **T-036** | E8 | US-19 | Modelo + CRUD Biblioteca de Exercícios (campos científicos completos) | Dev | Must | 3 | T-004 |
 | [x] | **T-052** | E8 | US-19 | Criar módulo de domínio library + agregado Exercise (com.procoach.core.library) | Dev | Must | 2 | T-004 |
@@ -139,6 +139,16 @@
 > desafio e rate limit em `/login` e `/mfa/verify`; proteção contra reuso do mesmo código TOTP
 > (guardar o último passo aceito); segredo TOTP cifrado no banco (AES-GCM, chave via ambiente);
 > códigos de recuperação.
+
+> **Auditoria ligada em 2026-11-03** (T-013/T-015): cadastro e exclusão lógica do atleta, mudança de status
+> (com motivo), avaliação, dieta (criação, nova versão, mudança de status/aprovação), periodização, plano e
+> treino (criação, versão, status, exclusão), convite do atleta, primeiro acesso e login passam pelo
+> `AuditService`, na mesma transação da mudança. O coach dono consulta o histórico do atleta em
+> `GET /api/v1/athletes/{id}/history` (mais recente primeiro). O banco rejeita UPDATE, DELETE e TRUNCATE em
+> `audit_log` (trigger da migração `V802`, específica do Postgres — não exercitada pelos testes em H2).
+> `T-014` (versionamento genérico de agregados) segue em aberto: dieta e plano já versionam por cadeia
+> própria (`previousVersionId`), então o módulo `version` genérico ainda não tem uso — decidir se a task é
+> dada como coberta ou redefinida. `T-043` (LGPD) pode partir deste histórico.
 
 > **Épico E9 / US-20 concluído em 2026-09-04** (T-008 a T-011): autenticação JWT
 > (AccessToken + RefreshToken), MFA/TOTP (setup/verify/confirm), RBAC

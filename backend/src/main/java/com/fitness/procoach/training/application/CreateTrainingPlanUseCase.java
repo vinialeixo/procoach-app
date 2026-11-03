@@ -2,6 +2,8 @@ package com.fitness.procoach.training.application;
 
 import java.util.UUID;
 
+import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.training.domain.event.TrainingPlanCreatedEvent;
@@ -28,14 +30,18 @@ public class CreateTrainingPlanUseCase {
 
 	private final AthleteAccessService athleteAccessService;
 
+	private final AuditService auditService;
+
 	public CreateTrainingPlanUseCase(TrainingPlanRepository trainingPlanRepository,
 			PeriodizationRepository periodizationRepository, ApplicationEventPublisher eventPublisher,
-			CoachApplicationService coachService, AthleteAccessService athleteAccessService) {
+			CoachApplicationService coachService, AthleteAccessService athleteAccessService,
+			AuditService auditService) {
 		this.trainingPlanRepository = trainingPlanRepository;
 		this.periodizationRepository = periodizationRepository;
 		this.eventPublisher = eventPublisher;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
+		this.auditService = auditService;
 	}
 
 	public TrainingPlan execute(UUID athleteId, UUID userId, UUID periodizationId, String name, String description) {
@@ -58,6 +64,8 @@ public class CreateTrainingPlanUseCase {
 				saved.getAthleteId(), saved.getCoachId(), saved.getName(), saved.getVersion(),
 				saved.getPreviousVersionId()));
 
+		this.auditService.record("TrainingPlan", saved.getId(), saved.getAthleteId(), "TRAINING_PLAN_CREATED", userId,
+				AuditData.of("name", saved.getName(), "version", saved.getVersion()));
 		return saved;
 	}
 

@@ -9,5 +9,8 @@ public interface AuditLogRepository {
 
 	List<AuditLog> findByAggregate(UUID aggregateId);
 
+	/** Histórico de um atleta, do mais recente para o mais antigo. */
+	List<AuditLog> findByAthlete(UUID athleteId);
+
 	List<AuditLog> findAll();
 }

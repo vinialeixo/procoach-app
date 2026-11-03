@@ -14,6 +14,7 @@ final class AuditLogMapper {
 		entity.setAggregateId(log.getAggregateId());
 		entity.setEventType(log.getEventType());
 		entity.setActorId(log.getActorId());
+		entity.setAthleteId(log.getAthleteId());
 		entity.setOccurredAt(log.getOccurredAt());
 		entity.setData(log.getData());
 		entity.setVersion(log.getVersion());
@@ -22,7 +23,7 @@ final class AuditLogMapper {
 
 	static AuditLog toDomain(AuditLogJpaEntity entity) {
 		return AuditLog.reconstruct(entity.getId(), entity.getAggregateType(), entity.getAggregateId(),
-				entity.getEventType(), entity.getActorId(), entity.getOccurredAt(), entity.getData(),
-				entity.getVersion());
+				entity.getAthleteId(), entity.getEventType(), entity.getActorId(), entity.getOccurredAt(),
+				entity.getData(), entity.getVersion());
 	}
 }

@@ -1,5 +1,7 @@
 package com.fitness.procoach.assessment.application;
 
+import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.assessment.domain.Assessment;
 import com.fitness.procoach.assessment.domain.AssessmentId;
 import com.fitness.procoach.assessment.domain.AssessmentMetrics;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Application service do módulo assessment. Orquestra o domínio e a porta de
@@ -25,9 +28,11 @@ public class AssessmentApplicationService {
 	private final AssessmentRepository repository;
 	private final CoachApplicationService coachService;
 	private final AthleteAccessService athleteAccessService;
+	private final AuditService auditService;
 
 	public AssessmentApplicationService(AssessmentRepository repository, CoachApplicationService coachService,
-			AthleteAccessService athleteAccessService) {
+			AthleteAccessService athleteAccessService, AuditService auditService) {
+		this.auditService = auditService;
 		this.repository = repository;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
@@ -40,6 +45,7 @@ public class AssessmentApplicationService {
 	 * server-side a partir do usuário autenticado, e o atleta-alvo precisa
 	 * pertencer a esse coach (senão 404).
 	 */
+	@Transactional
 	public Assessment registerAssessment(RegisterAssessmentCommand command) {
 		UUID coachId = coachService.requireCoachIdByUserId(command.userId()).value();
 		athleteAccessService.requireOwnedByCoach(command.athleteId(), coachId);
@@ -50,7 +56,10 @@ public class AssessmentApplicationService {
 				new BodyMeasurements(command.weightKg(), command.heightCm(),
 						command.bodyFatPercentage(), command.muscleMassKg(),
 						command.waistCm(), command.hipCm()));
-		return repository.save(assessment);
+		Assessment saved = repository.save(assessment);
+		auditService.record("Assessment", saved.id().value(), saved.athleteId(), "ASSESSMENT_REGISTERED",
+				command.userId(), AuditData.of("assessmentDate", saved.assessmentDate()));
+		return saved;
 	}
 
 	/**

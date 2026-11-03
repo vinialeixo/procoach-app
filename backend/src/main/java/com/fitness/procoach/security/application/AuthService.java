@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.security.domain.Permission;
 import com.fitness.procoach.security.domain.Role;
@@ -54,10 +56,14 @@ public class AuthService {
 	 */
 	private final boolean mfaEnabled;
 
+	private final AuditService auditService;
+
 	public AuthService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder,
 			JwtTokenService tokenService, TotpService totpService, CoachApplicationService coachService,
 			PlatformTransactionManager transactionManager,
-			@Value("${procoach.security.mfa.enabled:false}") boolean mfaEnabled) {
+			@Value("${procoach.security.mfa.enabled:false}") boolean mfaEnabled,
+			AuditService auditService) {
+		this.auditService = auditService;
 		this.mfaEnabled = mfaEnabled;
 		this.userRepository = userRepository;
 		this.roleRepository = roleRepository;
@@ -95,6 +101,7 @@ public class AuthService {
 		// T-058: o cadastro do coach também cria o agregado Coach vinculado ao
 		// User.id (subject do JWT) — âncora da resolução server-side do coachId.
 		coachService.registerCoach(saved.getId(), name);
+		auditService.record("User", saved.getId(), null, "COACH_REGISTERED", saved.getId(), AuditData.of());
 		return new CoachRegistration(saved.getId(), issueTokens(user));
 	}
 
@@ -111,10 +118,13 @@ public class AuthService {
 		Role athlete = findOrCreateRole(ATHLETE_ROLE, Set.of(Permission.VIEW_OWN_DATA));
 		User user = User.create(email, email, passwordEncoder.encode(rawPassword), Set.of(athlete.getId()));
 		user.linkAthlete(athleteId);
-		return new CoachRegistration(userRepository.save(user).getId(), issueTokens(user));
+		User saved = userRepository.save(user);
+		auditService.record("User", saved.getId(), athleteId, "ATHLETE_CREDENTIAL_CREATED", saved.getId(),
+				AuditData.of());
+		return new CoachRegistration(saved.getId(), issueTokens(user));
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public LoginResult login(String email, String rawPassword) {
 		User user = userRepository.findByEmail(email)
 				.filter(User::isEnabled)
@@ -125,11 +135,12 @@ public class AuthService {
 		if (mfaEnabled && user.isMfaEnabled()) {
 			return LoginResult.mfaRequired(tokenService.issueMfaChallenge(user));
 		}
+		recordLogin(user);
 		return LoginResult.authenticated(issueTokens(user));
 	}
 
 	/** Segunda etapa do login: valida o desafio de MFA e o código TOTP. */
-	@Transactional(readOnly = true)
+	@Transactional
 	public AuthTokens verifyMfaLogin(String challengeId, String code) {
 		Jwt challenge = tokenService.parse(challengeId);
 		tokenService.requireType(challenge, JwtTokenService.TYPE_MFA_CHALLENGE);
@@ -137,6 +148,7 @@ public class AuthService {
 		if (!user.isMfaEnabled() || !totpService.verify(user.getMfaSecret(), code)) {
 			throw new InvalidMfaCodeException();
 		}
+		recordLogin(user);
 		return issueTokens(user);
 	}
 
@@ -187,6 +199,12 @@ public class AuthService {
 		Jwt jwt = tokenService.parse(refreshToken);
 		tokenService.requireType(jwt, JwtTokenService.TYPE_REFRESH);
 		return issueTokens(loadEnabledUser(jwt.getSubject()));
+	}
+
+	/** Login concluído (senha e, se ativo, segundo fator). O atleta aparece no histórico dele. */
+	private void recordLogin(User user) {
+		auditService.record("User", user.getId(), user.getAthleteId(), "USER_LOGGED_IN", user.getId(),
+				AuditData.of("role", primaryRole(user)));
 	}
 
 	private AuthTokens issueTokens(User user) {

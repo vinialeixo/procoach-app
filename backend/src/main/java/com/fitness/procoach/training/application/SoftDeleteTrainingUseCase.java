@@ -2,6 +2,8 @@ package com.fitness.procoach.training.application;
 
 import java.util.UUID;
 
+import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.training.domain.model.Training;
 import com.fitness.procoach.training.domain.repository.TrainingRepository;
 
@@ -16,9 +18,13 @@ public class SoftDeleteTrainingUseCase {
 
 	private final TrainingOwnershipGuard ownershipGuard;
 
-	public SoftDeleteTrainingUseCase(TrainingRepository trainingRepository, TrainingOwnershipGuard ownershipGuard) {
+	private final AuditService auditService;
+
+	public SoftDeleteTrainingUseCase(TrainingRepository trainingRepository, TrainingOwnershipGuard ownershipGuard,
+			AuditService auditService) {
 		this.trainingRepository = trainingRepository;
 		this.ownershipGuard = ownershipGuard;
+		this.auditService = auditService;
 	}
 
 	public Training execute(UUID trainingId, UUID userId) {
@@ -30,7 +36,10 @@ public class SoftDeleteTrainingUseCase {
 		this.ownershipGuard.requireResourceOwnedByCoach(training.getAthleteId(), userId);
 
 		training.softDelete();
-		return this.trainingRepository.save(training);
+		Training saved = this.trainingRepository.save(training);
+		this.auditService.record("Training", saved.getId(), saved.getAthleteId(), "TRAINING_DELETED", userId,
+				AuditData.of());
+		return saved;
 	}
 
 }

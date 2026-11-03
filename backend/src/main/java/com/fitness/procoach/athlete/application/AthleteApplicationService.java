@@ -1,5 +1,7 @@
 package com.fitness.procoach.athlete.application;
 
+import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.athlete.domain.Athlete;
 import com.fitness.procoach.athlete.domain.AthleteStatus;
 import com.fitness.procoach.athlete.domain.AthleteId;
@@ -14,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Application service do módulo athlete (T-018). Orquestra o domínio e a porta
@@ -24,8 +27,11 @@ public class AthleteApplicationService {
 
 	private final AthleteRepository repository;
 	private final CoachApplicationService coachService;
+	private final AuditService auditService;
 
-	public AthleteApplicationService(AthleteRepository repository, CoachApplicationService coachService) {
+	public AthleteApplicationService(AthleteRepository repository, CoachApplicationService coachService,
+			AuditService auditService) {
+		this.auditService = auditService;
 		this.repository = repository;
 		this.coachService = coachService;
 	}
@@ -36,6 +42,7 @@ public class AthleteApplicationService {
 	 * vem do request (T-058): é resolvido server-side a partir do usuário
 	 * autenticado (subject do JWT) via fachada do módulo coach.
 	 */
+	@Transactional
 	public Athlete register(RegisterAthleteCommand command) {
 		UUID coachId = coachService.requireCoachIdByUserId(command.userId()).value();
 		Athlete athlete = Athlete.register(
@@ -47,7 +54,10 @@ public class AthleteApplicationService {
 				new Height(command.height()),
 				new Weight(command.weight()),
 				command.goal());
-		return repository.save(athlete);
+		Athlete saved = repository.save(athlete);
+		auditService.record("Athlete", saved.id().value(), saved.id().value(), "ATHLETE_REGISTERED",
+				command.userId(), AuditData.of("goal", saved.goal().name()));
+		return saved;
 	}
 
 	/**
@@ -56,6 +66,7 @@ public class AthleteApplicationService {
 	 * removido fisicamente. Lança {@link AthleteNotFoundException} (404) se o
 	 * atleta não existe, foi removido ou pertence a outro coach.
 	 */
+	@Transactional
 	public void remove(RemoveAthleteCommand command) {
 		UUID coachId = coachService.requireCoachIdByUserId(command.userId()).value();
 		Athlete athlete = repository.findById(AthleteId.of(command.athleteId()))
@@ -66,6 +77,8 @@ public class AthleteApplicationService {
 		}
 		athlete.softDelete();
 		repository.save(athlete);
+		auditService.record("Athlete", athlete.id().value(), athlete.id().value(), "ATHLETE_DELETED",
+				command.userId(), AuditData.of());
 	}
 
 	/** Atletas da carteira do coach autenticado, com filtro opcional por status. */
@@ -76,6 +89,14 @@ public class AthleteApplicationService {
 				.toList();
 	}
 
+	/** Histórico de auditoria do atleta (mais recente primeiro); só para o coach dono. */
+	@Transactional(readOnly = true)
+	public List<AuditService.AuditEntry> history(UUID userId, UUID athleteId) {
+		UUID coachId = coachService.requireCoachIdByUserId(userId).value();
+		requireOwned(athleteId, coachId);
+		return auditService.entriesByAthlete(athleteId);
+	}
+
 	/** Ficha de um atleta da carteira; 404 se inexistente, removido ou de outro coach. */
 	public Athlete get(UUID userId, UUID athleteId) {
 		UUID coachId = coachService.requireCoachIdByUserId(userId).value();
@@ -83,11 +104,17 @@ public class AthleteApplicationService {
 	}
 
 	/** Troca o status do atleta (US-005); mesma regra de posse do {@link #remove}. */
+	@Transactional
 	public Athlete changeStatus(ChangeStatusCommand command) {
 		UUID coachId = coachService.requireCoachIdByUserId(command.userId()).value();
 		Athlete athlete = requireOwned(command.athleteId(), coachId);
+		AthleteStatus previous = athlete.status();
 		athlete.changeStatus(command.status());
-		return repository.save(athlete);
+		Athlete saved = repository.save(athlete);
+		auditService.record("Athlete", saved.id().value(), saved.id().value(), "ATHLETE_STATUS_CHANGED",
+				command.userId(), AuditData.of("from", previous.name(), "to", saved.status().name(), "reason",
+						command.reason()));
+		return saved;
 	}
 
 	private Athlete requireOwned(UUID athleteId, UUID coachId) {

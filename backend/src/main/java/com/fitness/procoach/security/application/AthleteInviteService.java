@@ -1,5 +1,7 @@
 package com.fitness.procoach.security.application;
 
+import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.security.domain.AthleteInvite;
@@ -35,10 +37,12 @@ public class AthleteInviteService {
 	private final CoachApplicationService coachService;
 	private final AthleteAccessService athleteAccessService;
 	private final AuthService authService;
+	private final AuditService auditService;
 
 	public AthleteInviteService(AthleteInviteRepository invites, UserRepository users,
 			CoachApplicationService coachService, AthleteAccessService athleteAccessService,
-			AuthService authService) {
+			AuthService authService, AuditService auditService) {
+		this.auditService = auditService;
 		this.invites = invites;
 		this.users = users;
 		this.coachService = coachService;
@@ -77,7 +81,10 @@ public class AthleteInviteService {
 			invites.save(previous);
 		}
 		String token = newToken();
-		invites.save(AthleteInvite.create(athleteId, coachId, cleanEmail, hash(token), now, now.plus(TTL)));
+		AthleteInvite invite = invites.save(
+				AthleteInvite.create(athleteId, coachId, cleanEmail, hash(token), now, now.plus(TTL)));
+		auditService.record("AthleteInvite", invite.getId(), athleteId, "ATHLETE_INVITED", coachUserId,
+				AuditData.of("expiresAt", invite.getExpiresAt()));
 		return new CreatedInvite(athleteId, cleanEmail, token, now.plus(TTL));
 	}
 
@@ -111,6 +118,8 @@ public class AthleteInviteService {
 				password, invite.getAthleteId());
 		invite.markUsed(now);
 		invites.save(invite);
+		auditService.record("AthleteInvite", invite.getId(), invite.getAthleteId(), "ATHLETE_INVITE_ACCEPTED",
+				registration.userId(), AuditData.of());
 		return registration.tokens();
 	}
 

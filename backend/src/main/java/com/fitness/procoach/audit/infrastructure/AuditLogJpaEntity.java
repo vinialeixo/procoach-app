@@ -28,6 +28,9 @@ public class AuditLogJpaEntity {
 	@Column(name = "actor_id")
 	private UUID actorId;
 
+	@Column(name = "athlete_id")
+	private UUID athleteId;
+
 	@Column(name = "occurred_at", nullable = false)
 	private Instant occurredAt;
 
@@ -102,5 +105,13 @@ public class AuditLogJpaEntity {
 
 	public void setVersion(long version) {
 		this.version = version;
+	}
+
+	public UUID getAthleteId() {
+		return athleteId;
+	}
+
+	public void setAthleteId(UUID athleteId) {
+		this.athleteId = athleteId;
 	}
 }
