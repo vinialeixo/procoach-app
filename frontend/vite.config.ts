@@ -11,7 +11,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Núcleo Java roda em 8080 (ver procoach-core/src/main/resources/application.yml)
+      // Núcleo Java roda em 8080 (ver backend/src/main/resources/application.yml)
       "/api": {
         target: "http://localhost:8080",
         changeOrigin: true,
