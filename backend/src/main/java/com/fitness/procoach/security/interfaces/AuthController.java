@@ -3,6 +3,7 @@ package com.fitness.procoach.security.interfaces;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fitness.procoach.security.application.AuthService;
 import com.fitness.procoach.security.application.MfaSetupResult;
@@ -35,13 +37,24 @@ public class AuthController {
 
 	private final AuthService authService;
 
-	public AuthController(AuthService authService) {
+	private final boolean mfaEnabled;
+
+	public AuthController(AuthService authService,
+			@Value("${procoach.security.mfa.enabled:false}") boolean mfaEnabled) {
 		this.authService = authService;
+		this.mfaEnabled = mfaEnabled;
+	}
+
+	/** Endpoints de MFA respondem 404 enquanto o recurso estiver desligado (backlog T-059). */
+	private void requireMfaEnabled() {
+		if (!mfaEnabled) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "MFA desabilitado");
+		}
 	}
 
 	@Operation(summary = "Cadastrar coach",
 			description = "Cria a conta do coach (ROLE_COACH) e já abre a sessão (auto-login): retorna o id do "
-					+ "usuário e o par de tokens. Em seguida o front deve ativar o MFA (POST /mfa/setup).")
+					+ "usuário e o par de tokens. O MFA está desligado por padrão (procoach.security.mfa.enabled; backlog T-059).")
 	@ApiResponses({
 			@ApiResponse(responseCode = "201", description = "Conta criada com sucesso"),
 			@ApiResponse(responseCode = "400", description = "Campos inválidos ou ausentes"),
@@ -73,6 +86,7 @@ public class AuthController {
 			@ApiResponse(responseCode = "409", description = "MFA já está ativo") })
 	@PostMapping("/mfa/setup")
 	public MfaSetupResponse startMfaSetup(@AuthenticationPrincipal Jwt jwt) {
+		requireMfaEnabled();
 		MfaSetupResult result = authService.startMfaSetup(UUID.fromString(jwt.getSubject()));
 		return MfaSetupResponse.from(result);
 	}
@@ -88,6 +102,7 @@ public class AuthController {
 	@PostMapping("/mfa/setup/confirm")
 	public Map<String, Boolean> confirmMfaSetup(@AuthenticationPrincipal Jwt jwt,
 			@Valid @RequestBody MfaConfirmRequest request) {
+		requireMfaEnabled();
 		authService.confirmMfaSetup(UUID.fromString(jwt.getSubject()), request.code());
 		return Map.of("confirmed", Boolean.TRUE);
 	}
@@ -101,6 +116,7 @@ public class AuthController {
 			@ApiResponse(responseCode = "401", description = "Desafio inválido ou expirado") })
 	@PostMapping("/mfa/verify")
 	public TokenResponse verifyMfa(@Valid @RequestBody MfaVerifyRequest request) {
+		requireMfaEnabled();
 		return TokenResponse.from(authService.verifyMfaLogin(request.challengeId(), request.code()));
 	}
 

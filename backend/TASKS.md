@@ -110,6 +110,7 @@
 |---|---|---|---|---|---|---|---|---|
 | [x] | **T-057** | E0 | Fundação | Backend: auditoria de conformidade dos agregados vs UML (ProCoach_System_Design_UML.md seção 4/12.1) — sem escrever fix ainda, só relatório | Dev | Must (sugerido) | 1 | T-046, T-048, T-049, T-050, T-051, T-052 |
 | [x] | **T-058** | E0/E1 | Fundação | Backend: criar agregado Coach (com.procoach.core.coach) — id, userId, name, status, addAthlete()/removeAthlete(); migrar coachId em Athlete/Assessment/Diet/TrainingPlan de User.id para Coach.id | Dev | Must (confirmado) | 3 | T-057
+| [ ] | **T-059** | E9 | US-20 | Backend: reintroduzir MFA/TOTP endurecido — religar `procoach.security.mfa.enabled`; limite de tentativas + rate limit; anti-replay do código TOTP; segredo TOTP cifrado; códigos de recuperação | Dev | Should | 4 | T-008 |
 
 > `T-057`/`T-058` identificadas em 2026-09-02: nenhuma task original cria o agregado
 > `Coach` (`com.procoach.core.coach`), apesar do UML exigir `User "1" --> "1" Coach` e
@@ -125,6 +126,15 @@
 > qualquer UUID (falha de autorização tipo IDOR, não só divergência de modelo).
 > `T-058` corrige isso junto (`coachId` passa a ser resolvido server-side a partir do
 > JWT, não mais aceito do cliente) — tratar como prioridade alta mesmo em dev.
+
+> **MFA/TOTP desligado em 2026-11-03** (decisão do time, backlog `T-059`/`T-060`): o login passa a
+> exigir só e-mail e senha. No backend os endpoints `/api/v1/auth/mfa/*` respondem 404 e o `/login` ignora o MFA da conta.
+> O código do TOTP continua no repositório atrás da flag `procoach.security.mfa.enabled`
+> (padrão `false`; `PROCOACH_MFA_ENABLED`), então reintroduzir não parte do zero. Pendências de
+> segurança a resolver **antes** de religar (achados da revisão de código): limite de tentativas por
+> desafio e rate limit em `/login` e `/mfa/verify`; proteção contra reuso do mesmo código TOTP
+> (guardar o último passo aceito); segredo TOTP cifrado no banco (AES-GCM, chave via ambiente);
+> códigos de recuperação.
 
 > **Épico E9 / US-20 concluído em 2026-09-04** (T-008 a T-011): autenticação JWT
 > (AccessToken + RefreshToken), MFA/TOTP (setup/verify/confirm), RBAC

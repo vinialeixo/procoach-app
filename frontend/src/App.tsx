@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
-import { MfaSetupPage } from "@/pages/MfaSetupPage";
 import { CoachHomePage } from "@/pages/CoachHomePage";
 import { AthleteHomePage } from "@/pages/AthleteHomePage";
 import { AthleteListPage } from "@/pages/AthleteListPage";
@@ -18,7 +17,6 @@ export function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
-        <Route path="/registro/mfa" element={<MfaSetupPage />} />
 
         {/* Área do coach — RF-01..RF-42 em geral, RN-01 (ownership) */}
         <Route element={<ProtectedRoute allow={["COACH"]} />}>

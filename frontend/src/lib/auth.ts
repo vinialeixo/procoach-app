@@ -10,11 +10,12 @@ import { decodeJwtPayload } from "./jwt";
  * Contrato oficial implementado em AuthController (com.fitness.procoach.security):
  *
  *   POST /api/v1/auth/login          -> LoginResult
- *   POST /api/v1/auth/mfa/verify     -> tokens (etapa 2: challengeId + código)
  *   POST /api/v1/auth/register       -> userId + tokens (cadastro de coach)
- *   POST /api/v1/auth/mfa/setup      -> { secret, otpauthUrl }  (Bearer)
- *   POST /api/v1/auth/mfa/setup/confirm -> { confirmed: true }  (Bearer)
  *   POST /api/v1/auth/refresh        -> novo par de tokens
+ *
+ * MFA/TOTP está desligado (backlog T-059/T-060): o backend só o exige com
+ * procoach.security.mfa.enabled=true. O código do front foi removido neste
+ * commit e pode ser recuperado do histórico do git ao reintroduzir.
  *
  * O api-client anexa o header `Authorization: Bearer <token>` a cada chamada.
  * O papel (COACH/ATHLETE) vem no claim `role` do JWT — o front só o usa para
@@ -36,48 +37,13 @@ export type LoginCredentials = {
   password: string;
 };
 
-export type LoginResult =
-  | {
-      status: "authenticated";
-      token: string;
-      refreshToken: string;
-    }
-  | {
-      status: "mfa_required";
-      challengeId: string;
-    };
+export type LoginResult = {
+  token: string;
+  refreshToken: string;
+};
 
 async function login(credentials: LoginCredentials): Promise<LoginResult> {
   const { data } = await apiClient.post("/auth/login", credentials);
-
-  if (data.mfaRequired) {
-    return {
-      status: "mfa_required",
-      challengeId: data.challengeId,
-    };
-  }
-
-  const token: string = data.accessToken;
-  const refreshToken: string = data.refreshToken;
-
-  saveSession(token, refreshToken);
-
-  return { status: "authenticated", token, refreshToken };
-}
-
-// ============================================================================
-// MFA
-// ============================================================================
-
-export type MfaVerification = {
-  challengeId: string;
-  code: string;
-};
-
-async function verifyMfa(
-  payload: MfaVerification
-): Promise<{ token: string; refreshToken: string }> {
-  const { data } = await apiClient.post("/auth/mfa/verify", payload);
 
   const token: string = data.accessToken;
   const refreshToken: string = data.refreshToken;
@@ -109,32 +75,6 @@ async function register(
 }
 
 // ============================================================================
-// Setup de MFA
-// ============================================================================
-
-export type MfaSetupStart = {
-  secret: string;
-  otpauthUrl: string;
-};
-
-async function startMfaSetup(): Promise<MfaSetupStart> {
-  const { data } = await apiClient.post("/auth/mfa/setup");
-
-  return {
-    secret: data.secret,
-    otpauthUrl: data.otpauthUrl,
-  };
-}
-
-async function confirmMfaSetup(payload: {
-  code: string;
-}): Promise<{ confirmed: boolean }> {
-  const { data } = await apiClient.post("/auth/mfa/setup/confirm", payload);
-
-  return { confirmed: data.confirmed };
-}
-
-// ============================================================================
 // React Query Hooks
 // ============================================================================
 
@@ -142,20 +82,8 @@ export function useLogin() {
   return useMutation({ mutationFn: login });
 }
 
-export function useVerifyMfa() {
-  return useMutation({ mutationFn: verifyMfa });
-}
-
 export function useRegister() {
   return useMutation({ mutationFn: register });
-}
-
-export function useStartMfaSetup() {
-  return useMutation({ mutationFn: startMfaSetup });
-}
-
-export function useConfirmMfaSetup() {
-  return useMutation({ mutationFn: confirmMfaSetup });
 }
 
 // ============================================================================

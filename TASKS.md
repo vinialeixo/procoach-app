@@ -15,8 +15,8 @@ O backlog é dividido por ambiente. Os IDs são globais e não foram renumerados
 
 | Arquivo | Escopo | Tasks |
 |---|---|---|
-| [`backend/TASKS.md`](backend/TASKS.md) | Núcleo Java, RAG (Python), infra, segurança, testes de regra de negócio | 65 |
-| [`frontend/TASKS.md`](frontend/TASKS.md) | SPA: telas, design system, tooling | 13 |
+| [`backend/TASKS.md`](backend/TASKS.md) | Núcleo Java, RAG (Python), infra, segurança, testes de regra de negócio | 66 |
+| [`frontend/TASKS.md`](frontend/TASKS.md) | SPA: telas, design system, tooling | 14 |
 | este arquivo | Transversais: estratégia de QA, E2E integrado, UAT | 6 |
 
 Critério: a task entra em `frontend/` se o entregável é código da SPA (tasks "Front: ..." e setup do front). Entra aqui se só faz sentido com front e back juntos (E2E, UAT, plano de QA). O resto fica em `backend/`, inclusive testes de QA de regra de negócio e hardening.

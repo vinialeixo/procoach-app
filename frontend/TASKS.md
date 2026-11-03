@@ -70,6 +70,16 @@
 | [ ] | **T-054** | E1/E3/E4 | US-38 | Front: área do atleta — visualizar dieta e treino atuais (somente leitura) | Dev | Must (sugerido) | 3 | T-033, T-037 |
 | [ ] | **T-055** | E2 | US-38 | Front: área do atleta — histórico de avaliações (somente leitura) | Dev | Should (sugerido) | 2 | T-025 |
 | [x] | **T-056** | E0 | Fundação | Front: configurar ESLint (config ausente desde T-006) | Dev | Must (sugerido) | 0.5 | T-006 |
+| [ ] | **T-060** | E9 | US-20 | Front: reintroduzir MFA — etapa 2 no login e tela de ativação com QR Code (recuperar `MfaSetupPage`, `useVerifyMfa`, `useStartMfaSetup`, `useConfirmMfaSetup` e a etapa de código do `LoginPage` do histórico do git; `qrcode` segue no `package.json`) | Dev | Should | 2 | T-059 |
+
+> **MFA/TOTP desligado em 2026-11-03** (decisão do time, backlog `T-059`/`T-060`): o login passa a
+> exigir só e-mail e senha. No front foram removidos a etapa de código do login, a tela `/registro/mfa` e os hooks de MFA; o cadastro agora vai direto para a área do coach.
+> O código do TOTP continua no repositório atrás da flag `procoach.security.mfa.enabled`
+> (padrão `false`; `PROCOACH_MFA_ENABLED`), então reintroduzir não parte do zero. Pendências de
+> segurança a resolver **antes** de religar (achados da revisão de código): limite de tentativas por
+> desafio e rate limit em `/login` e `/mfa/verify`; proteção contra reuso do mesmo código TOTP
+> (guardar o último passo aceito); segredo TOTP cifrado no banco (AES-GCM, chave via ambiente);
+> códigos de recuperação.
 
 > `T-056` identificada em 2026-09-02 durante a implementação da `T-011`: `npm run lint`
 > quebrado por falta de `.eslintrc`/`eslint.config.*` na raiz do frontend — lacuna da

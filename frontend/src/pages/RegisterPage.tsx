@@ -46,8 +46,9 @@ export function RegisterPage() {
         email: values.email,
         password: values.password,
       });
-      // Conta criada -> segue para ativar o MFA (obrigatório, RF-01).
-      navigate("/registro/mfa", { replace: true });
+      // Conta criada e sessão aberta (auto-login). O MFA está fora do fluxo por
+      // enquanto (backlog T-059/T-060).
+      navigate("/", { replace: true });
     } catch {
       setServerError("Não foi possível criar a conta. Tente novamente.");
     }

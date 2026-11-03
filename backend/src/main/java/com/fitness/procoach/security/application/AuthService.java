@@ -4,6 +4,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -47,9 +48,17 @@ public class AuthService {
 	private final CoachApplicationService coachService;
 	private final TransactionTemplate transactionTemplate;
 
+	/**
+	 * MFA/TOTP desligado por padrão (ver backlog T-059). Com a flag desligada o
+	 * login não exige o segundo fator, mesmo que a conta tenha o MFA ativado.
+	 */
+	private final boolean mfaEnabled;
+
 	public AuthService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder,
 			JwtTokenService tokenService, TotpService totpService, CoachApplicationService coachService,
-			PlatformTransactionManager transactionManager) {
+			PlatformTransactionManager transactionManager,
+			@Value("${procoach.security.mfa.enabled:false}") boolean mfaEnabled) {
+		this.mfaEnabled = mfaEnabled;
 		this.userRepository = userRepository;
 		this.roleRepository = roleRepository;
 		this.passwordEncoder = passwordEncoder;
@@ -113,7 +122,7 @@ public class AuthService {
 		if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
 			throw new InvalidCredentialsException();
 		}
-		if (user.isMfaEnabled()) {
+		if (mfaEnabled && user.isMfaEnabled()) {
 			return LoginResult.mfaRequired(tokenService.issueMfaChallenge(user));
 		}
 		return LoginResult.authenticated(issueTokens(user));
