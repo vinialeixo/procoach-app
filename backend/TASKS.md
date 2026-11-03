@@ -46,7 +46,7 @@
 | Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
 |---|---|---|---|---|---|---|---|---|
 | [x] | **T-024** | E2 | US-04 | Modelo + endpoint de avaliação física (data obrigatória, sem sobrescrever) | Dev | Must | 2 | T-017 |
-| [ ] | **T-025** | E2 | US-05 | Motor de cálculos automáticos (IMC, TMB, GET, evolução) | Dev | Must | 3 | T-024 |
+| [x] | **T-025** | E2 | US-05 | Motor de cálculos automáticos (IMC, TMB, GET, evolução) | Dev | Must | 3 | T-024 |
 | [ ] | **T-026** | E2 | US-06 | Comparação de avaliações lado a lado | Dev | Should | 2 | T-024 |
 | [ ] | **T-028** | E2 | US-04/05/06 | Testes dos cálculos e comparação de avaliações | QA | Must | 2 | T-027 |
 | [x] | **T-029** | E3 | US-07 | Modelo de dieta + macros + objetivo obrigatório | Dev | Must | 2 | T-017 |
@@ -111,6 +111,7 @@
 | [x] | **T-057** | E0 | Fundação | Backend: auditoria de conformidade dos agregados vs UML (ProCoach_System_Design_UML.md seção 4/12.1) — sem escrever fix ainda, só relatório | Dev | Must (sugerido) | 1 | T-046, T-048, T-049, T-050, T-051, T-052 |
 | [x] | **T-058** | E0/E1 | Fundação | Backend: criar agregado Coach (com.procoach.core.coach) — id, userId, name, status, addAthlete()/removeAthlete(); migrar coachId em Athlete/Assessment/Diet/TrainingPlan de User.id para Coach.id | Dev | Must (confirmado) | 3 | T-057
 | [ ] | **T-059** | E9 | US-20 | Backend: reintroduzir MFA/TOTP endurecido — religar `procoach.security.mfa.enabled`; limite de tentativas + rate limit; anti-replay do código TOTP; segredo TOTP cifrado; códigos de recuperação | Dev | Should | 4 | T-008 |
+| [ ] | **T-061** | E2 | US-05 | Backend: nível de atividade do atleta (fator do GET) — hoje a T-025 usa fator sedentário 1,2 fixo; guardar o fator por atleta/avaliação e usá-lo no cálculo do GET (e reaproveitar na T-030) | Dev | Should (sugerido) | 2 | T-025 |
 
 > `T-057`/`T-058` identificadas em 2026-09-02: nenhuma task original cria o agregado
 > `Coach` (`com.procoach.core.coach`), apesar do UML exigir `User "1" --> "1" Coach` e

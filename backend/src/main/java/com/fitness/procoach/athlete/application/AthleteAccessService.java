@@ -3,6 +3,8 @@ package com.fitness.procoach.athlete.application;
 import com.fitness.procoach.athlete.domain.Athlete;
 import com.fitness.procoach.athlete.domain.AthleteId;
 import com.fitness.procoach.athlete.domain.AthleteRepository;
+import com.fitness.procoach.athlete.domain.Sex;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -31,6 +33,22 @@ public class AthleteAccessService {
 				.filter(athlete -> !athlete.isDeleted())
 				.map(athlete -> athlete.coachId().equals(coachId))
 				.orElse(false);
+	}
+
+	/** Dados do atleta de que outros módulos precisam para cálculos (ex.: assessment, T-025). */
+	public record AthleteProfile(boolean male, LocalDate birthDate) {
+	}
+
+	/**
+	 * Perfil (sexo e nascimento) de um atleta não removido. A posse já deve ter
+	 * sido validada pelo chamador ({@link #requireOwnedByCoach} ou o guard do
+	 * atleta); aqui só se resolve o dado, sem expor o agregado.
+	 */
+	public AthleteProfile profileOf(UUID athleteId) {
+		Athlete athlete = repository.findById(AthleteId.of(athleteId))
+				.filter(a -> !a.isDeleted())
+				.orElseThrow(() -> new AthleteNotFoundException(athleteId));
+		return new AthleteProfile(athlete.sex() == Sex.MALE, athlete.birthDate());
 	}
 
 	/**

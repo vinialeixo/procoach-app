@@ -76,7 +76,7 @@ public class AssessmentController {
 				.path("/{id}")
 				.buildAndExpand(assessment.id().value())
 				.toUri();
-		return ResponseEntity.created(location).body(AssessmentResponse.from(assessment));
+		return ResponseEntity.created(location).body(AssessmentResponse.from(service.withMetrics(assessment)));
 	}
 
 	/**
@@ -94,8 +94,8 @@ public class AssessmentController {
 	@GetMapping("/{id}")
 	public AssessmentResponse findById(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador da avaliação") @PathVariable UUID id) {
-		return AssessmentResponse.from(
-				service.findOwnedById(new AssessmentId(id), UUID.fromString(jwt.getSubject())));
+		return AssessmentResponse.from(service.withMetrics(
+				service.findOwnedById(new AssessmentId(id), UUID.fromString(jwt.getSubject()))));
 	}
 
 	/**
@@ -112,7 +112,7 @@ public class AssessmentController {
 	public List<AssessmentResponse> history(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
 		requireCoachOwnsAthlete(jwt, athleteId);
-		return service.history(athleteId).stream().map(AssessmentResponse::from).toList();
+		return service.historyWithMetrics(athleteId).stream().map(AssessmentResponse::from).toList();
 	}
 
 	/**

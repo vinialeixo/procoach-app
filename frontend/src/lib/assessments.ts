@@ -6,8 +6,8 @@ import { apiClient } from "./api-client";
  *
  * Contrato alinhado ao backend (AssessmentController, /api/v1/assessments):
  * a listagem e a criação usam athleteId como query/corpo, e a resposta é
- * plana. O motor de cálculos (T-025) ainda não existe no backend, então
- * `metrics` vem com valores nulos até lá. Os nomes de campos espelham o
+ * plana, com `metrics` (IMC, TMB, GET e evolução de peso) calculado pelo núcleo
+ * (T-025; o GET usa fator de atividade sedentário 1,2 até haver o dado por atleta). Os nomes de campos espelham o
  * agregado de domínio (com.fitness.procoach.assessment: Assessment +
  * BodyMeasurements, T-049).
  *
@@ -72,6 +72,7 @@ type ApiAssessment = {
   waistCm: number | null;
   hipCm: number | null;
   createdAt: string;
+  metrics: AssessmentMetrics; // T-025: calculado pelo núcleo
 };
 
 function toAssessment(a: ApiAssessment): Assessment {
@@ -87,14 +88,7 @@ function toAssessment(a: ApiAssessment): Assessment {
       waistCm: a.waistCm,
       hipCm: a.hipCm,
     },
-    // T-025 (motor de cálculos) ainda não existe no backend.
-    metrics: {
-      imc: null,
-      tmbKcal: null,
-      getKcal: null,
-      weightChangeKg: null,
-      weightChangePercent: null,
-    },
+    metrics: a.metrics,
     createdAt: a.createdAt,
   };
 }

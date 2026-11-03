@@ -72,7 +72,11 @@ class AssessmentControllerTest {
 				.andExpect(jsonPath("$.assessmentDate").value("2026-09-01"))
 				.andExpect(jsonPath("$.weightKg").value(82.50))
 				.andExpect(jsonPath("$.heightCm").value(178.00))
-				.andExpect(jsonPath("$.bodyFatPercentage").value(14.50));
+				.andExpect(jsonPath("$.bodyFatPercentage").value(14.50))
+				// T-025: métricas derivadas calculadas pelo núcleo.
+				.andExpect(jsonPath("$.metrics.imc").isNotEmpty())
+				.andExpect(jsonPath("$.metrics.tmbKcal").isNotEmpty())
+				.andExpect(jsonPath("$.metrics.getKcal").isNotEmpty());
 	}
 
 	@Test

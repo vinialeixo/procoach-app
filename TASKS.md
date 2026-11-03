@@ -15,7 +15,7 @@ O backlog é dividido por ambiente. Os IDs são globais e não foram renumerados
 
 | Arquivo | Escopo | Tasks |
 |---|---|---|
-| [`backend/TASKS.md`](backend/TASKS.md) | Núcleo Java, RAG (Python), infra, segurança, testes de regra de negócio | 66 |
+| [`backend/TASKS.md`](backend/TASKS.md) | Núcleo Java, RAG (Python), infra, segurança, testes de regra de negócio | 67 |
 | [`frontend/TASKS.md`](frontend/TASKS.md) | SPA: telas, design system, tooling | 14 |
 | este arquivo | Transversais: estratégia de QA, E2E integrado, UAT | 6 |
 

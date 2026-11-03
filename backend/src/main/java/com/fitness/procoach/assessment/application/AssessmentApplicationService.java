@@ -2,12 +2,15 @@ package com.fitness.procoach.assessment.application;
 
 import com.fitness.procoach.assessment.domain.Assessment;
 import com.fitness.procoach.assessment.domain.AssessmentId;
+import com.fitness.procoach.assessment.domain.AssessmentMetrics;
+import com.fitness.procoach.assessment.domain.AssessmentMetricsCalculator;
 import com.fitness.procoach.assessment.domain.AssessmentRepository;
 import com.fitness.procoach.assessment.domain.BodyMeasurements;
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -54,6 +57,39 @@ public class AssessmentApplicationService {
 	 */
 	public List<Assessment> history(UUID athleteId) {
 		return repository.findByAthleteIdOrderByAssessmentDateAsc(athleteId);
+	}
+
+	/** Avaliação com as métricas derivadas (T-025). */
+	public record AssessmentView(Assessment assessment, AssessmentMetrics metrics) {
+	}
+
+	/**
+	 * Histórico cronológico com IMC, TMB, GET e evolução de peso (T-025/US-05). A
+	 * variação de peso de cada avaliação é em relação à anterior do atleta.
+	 */
+	public List<AssessmentView> historyWithMetrics(UUID athleteId) {
+		List<Assessment> assessments = history(athleteId);
+		if (assessments.isEmpty()) {
+			return List.of();
+		}
+		AthleteAccessService.AthleteProfile profile = athleteAccessService.profileOf(athleteId);
+		List<AssessmentView> views = new ArrayList<>(assessments.size());
+		BigDecimal previousWeight = null;
+		for (Assessment assessment : assessments) {
+			AssessmentMetrics metrics = AssessmentMetricsCalculator.calculate(assessment.measurements(),
+					assessment.assessmentDate(), profile.male(), profile.birthDate(), previousWeight);
+			views.add(new AssessmentView(assessment, metrics));
+			previousWeight = assessment.measurements().weightKg();
+		}
+		return views;
+	}
+
+	/** Uma avaliação com suas métricas (a anterior vem do histórico do mesmo atleta). */
+	public AssessmentView withMetrics(Assessment assessment) {
+		return historyWithMetrics(assessment.athleteId()).stream()
+				.filter(view -> view.assessment().id().equals(assessment.id()))
+				.findFirst()
+				.orElseThrow(() -> new AssessmentNotFoundException(assessment.id().value()));
 	}
 
 	public Assessment findById(AssessmentId id) {
