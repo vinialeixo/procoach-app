@@ -41,12 +41,12 @@ function formatNumber(value: number, suffix = ""): string {
 }
 
 const macroField = z.coerce
-  .number({ invalid_type_error: "Valor inválido" })
+  .number({ error: "Valor inválido" })
   .positive("Deve ser maior que zero");
 
 const schema = z.object({
   objective: z.enum(DIET_OBJECTIVES, {
-    errorMap: () => ({ message: "Selecione o objetivo da dieta" }),
+    error: "Selecione o objetivo da dieta",
   }),
   calories: macroField,
   protein: macroField,
@@ -55,7 +55,8 @@ const schema = z.object({
   // Só é enviado ao criar nova versão (auditoria US-016); na v1 não existe.
   changeReason: z.string().optional(),
 });
-type FormValues = z.infer<typeof schema>;
+type FormInput = z.input<typeof schema>;
+type FormValues = z.output<typeof schema>;
 
 export function DietEditorPage() {
   const { id: athleteId = "", versionId } = useParams();
@@ -93,7 +94,7 @@ export function DietEditorPage() {
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<FormValues>({
+  } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: previous
       ? {

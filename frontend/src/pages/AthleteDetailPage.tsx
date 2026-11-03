@@ -24,7 +24,7 @@ import "./AthleteDetail.css";
 
 const statusSchema = z.object({
   status: z.enum(["ACTIVE", "PAUSED", "FINISHED"], {
-    required_error: "Selecione o novo status",
+    error: "Selecione o novo status",
   }),
   reason: z.string().min(3, "Informe o motivo da alteração"),
 });

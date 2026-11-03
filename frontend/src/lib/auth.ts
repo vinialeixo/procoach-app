@@ -141,6 +141,21 @@ export function getRole(): Role | null {
   return null;
 }
 
+/**
+ * Retorna o athleteId presente no access token da sessão de atleta.
+ * Este identificador só seleciona quais dados solicitar; autorização e
+ * isolamento continuam sendo verificados pelo backend em cada requisição.
+ */
+export function getAthleteId(): string | null {
+  const token = localStorage.getItem("procoach.token");
+  if (!token) return null;
+
+  const payload = decodeJwtPayload(token);
+  return payload?.role === "ATHLETE" && typeof payload.athleteId === "string"
+    ? payload.athleteId
+    : null;
+}
+
 // ============================================================================
 // Rota inicial por persona
 // ============================================================================
