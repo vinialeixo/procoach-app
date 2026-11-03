@@ -28,7 +28,7 @@
 
 | Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
 |---|---|---|---|---|---|---|---|---|
-| [ ] | **T-027** | E2 | US-04/05/06 | Front: avaliação física + gráficos de evolução + comparação | Dev | Must | 3 | T-025, T-026 (comparação lado a lado; sem ela a tela só mostra evolução histórica) |
+| [ ] | **T-027** | E2 | US-04/05/06 | Front: avaliação física + gráficos de evolução + comparação | Dev | Must | 3 | T-025, T-026 (comparação lado a lado — **pronta no backend**: `GET /api/v1/assessments/compare?athleteId=&from=&to=`) |
 
 ## S4
 
@@ -89,7 +89,7 @@
 > `T-054`/`T-055` — o backend já está pronto (backlog `T-065`): o atleta autenticado consulta `GET /api/v1/diets` e `/diets/history`, `GET /api/v1/diets/energy-balance?athleteId=`, `GET /api/training/plans/athlete/{id}[/latest]`, `GET /api/training/trainings/athlete/{id}`, `GET /api/v1/assessments?athleteId=` (com `metrics`). O atleta só recebe conteúdo liberado pelo coach (dieta aprovada, plano e treino ativos); sem dieta aprovada o `GET /diets` responde 404.
 
 > **Alinhamento front × back (proposta do backend, aguardando confirmação do time de front)**
-> - `T-027`: a comparação lado a lado depende da `T-026` (backend, aberta). `T-061` (fator de atividade) **não** altera o aceite: hoje o GET usa 1,2 e o front só exibe o valor devolvido; planejar à parte.
+> - `T-027`: a comparação lado a lado depende da `T-026` (backend, **concluída**: `GET /api/v1/assessments/compare?athleteId=&from=&to=` devolve `from`, `to`, `daysBetween` e, por medida, `from/to/change/changePercent`; 400 se as duas forem a mesma, 404 se não forem do atleta). `T-061` (fator de atividade) **não** altera o aceite: hoje o GET usa 1,2 e o front só exibe o valor devolvido; planejar à parte.
 > - `T-040`: escopo mínimo = só o que o backend já oferece (biblioteca de exercícios, planos, sessões com `planId`, periodização, prescrição). `T-038` (exercício personalizado) e `T-039` (semelhantes) ficam **fora**. Biblioteca como consulta dentro do editor de treino. Módulo `src/lib/training.ts` concentra URLs, DTOs e versionamento. `T-073`/`T-074` vêm depois.
 > - Treino: toda alteração de plano cria nova versão (`previousVersionId`); versões antigas seguem consultáveis; sessão pertence a uma versão (`planId`, `?planId=`); prescrição pode ser editada/removida até com o treino ACTIVE (o atleta é avisado); transição inválida responde 409.
 > - Estados do atleta (`T-054`/`T-055`): conteúdo disponível; sem conteúdo (listas vazias); dieta não aprovada (`GET /diets` → 404, tratar como vazio); 401 sessão expirada; 403 acesso negado. 404 nunca é autorização.

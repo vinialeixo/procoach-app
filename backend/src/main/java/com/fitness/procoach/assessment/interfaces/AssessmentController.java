@@ -116,6 +116,28 @@ public class AssessmentController {
 	}
 
 	/**
+	 * Comparação lado a lado de duas avaliações do atleta (T-026/US-06).
+	 */
+	@Operation(summary = "Comparar duas avaliações",
+			description = "Compara duas avaliações do mesmo atleta lado a lado, com a variação (to - from) de "
+					+ "peso, gordura, massa muscular, cintura, quadril, IMC, TMB e GET (US-06).")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Comparação calculada"),
+			@ApiResponse(responseCode = "400", description = "As duas avaliações são a mesma"),
+			@ApiResponse(responseCode = "404", description = "Avaliação ou atleta não encontrado") })
+	// Mesma regra do histórico: atleta só compara as próprias avaliações; coach só da carteira.
+	@PreAuthorize("@athleteGuard.canAccess(authentication, #athleteId)")
+	@GetMapping("/compare")
+	public AssessmentComparisonResponse compare(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId,
+			@Parameter(description = "Avaliação de partida") @RequestParam UUID from,
+			@Parameter(description = "Avaliação de chegada") @RequestParam UUID to) {
+		requireCoachOwnsAthlete(jwt, athleteId);
+		return AssessmentComparisonResponse.from(
+				service.compare(athleteId, new AssessmentId(from), new AssessmentId(to)));
+	}
+
+	/**
 	 * Para chamadas de coach, garante que o atleta pertence à carteira do coach
 	 * autenticado. Chamadas de atleta (self-access) já foram validadas pelo
 	 * {@code @athleteGuard} e não passam por aqui.

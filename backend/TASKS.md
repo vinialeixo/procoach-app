@@ -47,7 +47,7 @@
 |---|---|---|---|---|---|---|---|---|
 | [x] | **T-024** | E2 | US-04 | Modelo + endpoint de avaliação física (data obrigatória, sem sobrescrever) | Dev | Must | 2 | T-017 |
 | [x] | **T-025** | E2 | US-05 | Motor de cálculos automáticos (IMC, TMB, GET, evolução) | Dev | Must | 3 | T-024 |
-| [ ] | **T-026** | E2 | US-06 | Comparação de avaliações lado a lado | Dev | Should | 2 | T-024 |
+| [x] | **T-026** | E2 | US-06 | Comparação de avaliações lado a lado (`GET /api/v1/assessments/compare?athleteId=&from=&to=`: variação `to - from`, absoluta e %, de peso, gordura, massa muscular, cintura, quadril, IMC, TMB e GET) | Dev | Should | 2 | T-024 |
 | [ ] | **T-028** | E2 | US-04/05/06 | Testes dos cálculos e comparação de avaliações | QA | Must | 2 | T-027 |
 | [x] | **T-029** | E3 | US-07 | Modelo de dieta + macros + objetivo obrigatório | Dev | Must | 2 | T-017 |
 | [x] | **T-030** | E3 | US-07 | Cálculos de TMB/GET/déficit/superávit | Dev | Must | 2 | T-029 |

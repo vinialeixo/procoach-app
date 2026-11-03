@@ -3,6 +3,7 @@ package com.fitness.procoach.assessment.application;
 import com.fitness.procoach.audit.application.AuditData;
 import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.assessment.domain.Assessment;
+import com.fitness.procoach.assessment.domain.AssessmentComparison;
 import com.fitness.procoach.assessment.domain.AssessmentId;
 import com.fitness.procoach.assessment.domain.AssessmentMetrics;
 import com.fitness.procoach.assessment.domain.AssessmentMetricsCalculator;
@@ -92,6 +93,29 @@ public class AssessmentApplicationService {
 			previousWeight = assessment.measurements().weightKg();
 		}
 		return views;
+	}
+
+	/** Duas avaliações com métricas e a comparação entre elas (T-026). */
+	public record ComparisonView(AssessmentView from, AssessmentView to, AssessmentComparison comparison) {
+	}
+
+	/**
+	 * Compara duas avaliações do mesmo atleta (T-026/US-06). As duas precisam ser
+	 * distintas e pertencer ao atleta; senão 400 (iguais) ou 404 (não encontradas —
+	 * inclusive de outro atleta, para não vazar existência). A posse do atleta deve
+	 * ter sido validada pelo chamador.
+	 */
+	public ComparisonView compare(UUID athleteId, AssessmentId fromId, AssessmentId toId) {
+		if (fromId.equals(toId)) {
+			throw new IllegalArgumentException("Escolha duas avaliações diferentes para comparar");
+		}
+		List<AssessmentView> views = historyWithMetrics(athleteId);
+		AssessmentView from = views.stream().filter(v -> v.assessment().id().equals(fromId)).findFirst()
+				.orElseThrow(() -> new AssessmentNotFoundException(fromId.value()));
+		AssessmentView to = views.stream().filter(v -> v.assessment().id().equals(toId)).findFirst()
+				.orElseThrow(() -> new AssessmentNotFoundException(toId.value()));
+		return new ComparisonView(from, to,
+				AssessmentComparison.of(from.assessment(), from.metrics(), to.assessment(), to.metrics()));
 	}
 
 	/** Gasto energético do atleta na avaliação mais recente (T-030). */
