@@ -79,6 +79,33 @@ public class Training {
 		touch();
 	}
 
+	/**
+	 * Edita uma prescrição existente (séries, repetições, carga, intensidade, descanso, nome e
+	 * observações), preservando id e posição. Em exercício da biblioteca, {@code exerciseId} pode
+	 * apontar para outra versão do exercício ({@code null} mantém o atual); em exercício
+	 * personalizado o id é sempre mantido.
+	 */
+	public void updateExercise(UUID exercisePrescriptionId, UUID exerciseId, String exerciseName, int sets,
+			int repetitions, java.math.BigDecimal load, IntensityType intensityType,
+			java.math.BigDecimal intensityValue, int restSeconds, String notes) {
+		ensureEditable();
+		for (int i = 0; i < this.exercises.size(); i++) {
+			ExercisePrescription current = this.exercises.get(i);
+			if (!current.getId().equals(exercisePrescriptionId)) {
+				continue;
+			}
+			UUID newExerciseId = current.isCustomExercise() || exerciseId == null ? current.getExerciseId()
+					: exerciseId;
+			this.exercises.set(i,
+					new ExercisePrescription(current.getId(), newExerciseId, exerciseName, current.isCustomExercise(),
+							current.getOrderIndex(), sets, repetitions, load, intensityType, intensityValue,
+							restSeconds, notes));
+			touch();
+			return;
+		}
+		throw new IllegalArgumentException("Exercise prescription not found: " + exercisePrescriptionId);
+	}
+
 	public void removeExercise(UUID exercisePrescriptionId) {
 		ensureEditable();
 		boolean removed = this.exercises.removeIf(e -> e.getId().equals(exercisePrescriptionId));
@@ -138,9 +165,11 @@ public class Training {
 
 	private void ensureEditable() {
 		ensureNotDeleted();
-		if (this.status != TrainingStatus.DRAFT && this.status != TrainingStatus.IN_REVIEW) {
-			throw new IllegalStateException("Training can only be edited in DRAFT or IN_REVIEW status, current: "
-					+ this.status);
+		// ACTIVE também é editável: o coach ajusta o treino em andamento e o atleta é avisado.
+		if (this.status != TrainingStatus.DRAFT && this.status != TrainingStatus.IN_REVIEW
+				&& this.status != TrainingStatus.ACTIVE) {
+			throw new IllegalStateException(
+					"Training can only be edited in DRAFT, IN_REVIEW or ACTIVE status, current: " + this.status);
 		}
 	}
 

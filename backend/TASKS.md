@@ -116,7 +116,9 @@
 | [ ] | **T-064** | E9 | US-20 | Backend: envio do convite do atleta por e-mail (hoje o coach copia o link e repassa) e reenvio | Dev | Should (sugerido) | 2 | T-062 |
 | [x] | **T-066** | E8 | US-19 | Backend: exercício da biblioteca versionado — editar cria nova versão (v2, v3…) em vez de sobrescrever, para que treinos já prescritos não mudem retroativamente; listagens mostram só a versão corrente | Dev | Should (sugerido) | 3 | T-014, T-036 |
 | [ ] | **T-067** | E4 | US-10/US-12 | Backend: sessões de treino ligadas à versão do plano — cada sessão passa a pertencer a uma versão do plano (hoje plano e sessões só se ligam pela periodização); criar a v2 do plano gera as sessões da v2 e deixa a v1 intacta, para responder "o que o atleta tinha prescrito na semana N do ciclo" | Dev | Should (sugerido) | 4 | T-037, T-066 |
-| [ ] | **T-068** | E4 | US-10 | Backend: editar prescrição de exercício já criada (séries, repetições, carga, intensidade, descanso) com antes/depois no audit log (`TRAINING_EXERCISE_UPDATED`); hoje só dá para adicionar, reordenar e remover o treino inteiro | Dev | Should (sugerido) | 2 | T-014, T-037 |
+| [x] | **T-068** | E4 | US-10 | Backend: editar prescrição de exercício já criada (séries, repetições, carga, intensidade, descanso, nome, observações) com antes/depois no audit log (`TRAINING_EXERCISE_UPDATED`); inclui remover prescrição (`TRAINING_EXERCISE_REMOVED`) e trocar pela versão corrente do exercício da biblioteca. *(Ampliada em 2026-11-03: vale também para treino ativo, com aviso ao atleta — ver T-070.)* | Dev | Should (sugerido) | 2 | T-014, T-037 |
+| [x] | **T-070** | E4/E3 | US-38 | Backend: avisos in-app ao atleta — o coach edita (adiciona, ajusta, remove ou reordena) um treino ativo ou aprova uma dieta e o atleta recebe um aviso na mesma transação; o atleta lista, marca como lido e marca todos (`/api/v1/notifications`); treino em rascunho ou revisão não avisa | Dev | Must (sugerido) | 3 | T-068 |
+| [ ] | **T-071** | E4/E3 | US-38 | Backend: canais externos do aviso ao atleta (e-mail e push) e preferências de aviso; hoje o aviso existe só dentro do app | Dev | Should (sugerido) | 3 | T-070 |
 | [x] | **T-069** | E4/E8 | US-19 | Backend: aviso de versão mais nova do exercício nas prescrições — cada prescrição de exercício da biblioteca traz `exerciseVersion`, `newerVersionAvailable` e `currentExerciseId` (segue a cadeia até a versão corrente; sem aviso se a corrente foi removida); a prescrição continua apontando para a versão que o coach usou | Dev | Should (sugerido) | 1 | T-066 |
 | [x] | **T-065** | E1/E3/E4 | US-38 | Backend da área do atleta (T-054/T-055): leitura somente leitura filtrada — atleta só vê a dieta APROVADA (versão aprovada mais recente), planos/treinos/periodizações ACTIVE ou FINISHED e o balanço da dieta aprovada; registros removidos não aparecem para ninguém; avaliações com `metrics` já eram acessíveis ao atleta | Dev | Must (sugerido) | 2 | T-062 |
 
@@ -169,6 +171,11 @@
 > versiona só nome e descrição e não aponta para as sessões. Por isso o histórico é por sessão e por atleta e
 > não há instantâneo do que valia em cada semana — `T-067` liga as sessões à versão do plano e `T-068` permite
 > editar prescrições com antes/depois.
+>
+> **Regra de edição do treino mudou (2026-11-03)**: o treino **ativo** agora aceita adicionar, ajustar, remover e
+> reordenar exercícios (antes só rascunho e revisão); treino finalizado ou removido continua recusando (409). Como o
+> atleta já enxerga o treino ativo, cada alteração gera o aviso `TRAINING_CHANGED` para ele e fica no histórico com
+> antes/depois. Aprovar uma dieta gera `DIET_APPROVED`. Os avisos são in-app (`T-070`); e-mail e push ficam na `T-071`.
 
 > **Épico E9 / US-20 concluído em 2026-09-04** (T-008 a T-011): autenticação JWT
 > (AccessToken + RefreshToken), MFA/TOTP (setup/verify/confirm), RBAC

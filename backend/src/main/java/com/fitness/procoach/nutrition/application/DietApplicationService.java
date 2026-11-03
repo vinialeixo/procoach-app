@@ -5,6 +5,7 @@ import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.coach.domain.CoachId;
 import com.fitness.procoach.assessment.application.AssessmentApplicationService;
 import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.notification.application.NotificationService;
 import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.nutrition.domain.AthleteId;
 import com.fitness.procoach.nutrition.domain.Diet;
@@ -32,10 +33,12 @@ public class DietApplicationService {
 	private final AthleteAccessService athleteAccessService;
 	private final AssessmentApplicationService assessmentService;
 	private final AuditService auditService;
+	private final NotificationService notificationService;
 
 	public DietApplicationService(DietRepository repository, CoachApplicationService coachService,
 			AthleteAccessService athleteAccessService, AssessmentApplicationService assessmentService,
-			AuditService auditService) {
+			AuditService auditService, NotificationService notificationService) {
+		this.notificationService = notificationService;
 		this.auditService = auditService;
 		this.assessmentService = assessmentService;
 		this.repository = repository;
@@ -166,6 +169,14 @@ public class DietApplicationService {
 		Diet saved = repository.save(diet);
 		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "DIET_STATUS_CHANGED", userId,
 				AuditData.of("from", previous.name(), "to", saved.status().name(), "version", saved.version()));
+		if (saved.status() == DietStatus.APPROVED) {
+			// Aprovada: é o que o atleta passa a enxergar. Avisa na mesma transação.
+			notificationService.notifyAthlete(saved.athleteId().value(), "DIET_APPROVED",
+					saved.version() > 1
+							? "Seu coach atualizou sua dieta (versão " + saved.version() + "). Confira as novas metas."
+							: "Sua dieta está disponível.",
+					"Diet", saved.id().value());
+		}
 		return saved;
 	}
 

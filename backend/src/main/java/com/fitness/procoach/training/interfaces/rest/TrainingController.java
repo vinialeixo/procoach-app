@@ -9,10 +9,12 @@ import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.training.application.AddExerciseToTrainingUseCase;
 import com.fitness.procoach.training.application.CreateTrainingUseCase;
+import com.fitness.procoach.training.application.RemoveExerciseFromTrainingUseCase;
 import com.fitness.procoach.training.application.ReorderExercisesUseCase;
 import com.fitness.procoach.training.application.SoftDeleteTrainingUseCase;
 import com.fitness.procoach.training.application.TrainingQueryService;
 import com.fitness.procoach.training.application.TransitionTrainingStatusUseCase;
+import com.fitness.procoach.training.application.UpdateExercisePrescriptionUseCase;
 import com.fitness.procoach.training.domain.model.Periodization;
 import com.fitness.procoach.training.domain.model.Training;
 import com.fitness.procoach.training.domain.model.TrainingStatus;
@@ -62,11 +64,16 @@ public class TrainingController {
 
 	private final AthleteAccessService athleteAccessService;
 
+	private final UpdateExercisePrescriptionUseCase updateExerciseUseCase;
+
+	private final RemoveExerciseFromTrainingUseCase removeExerciseUseCase;
+
 	public TrainingController(CreateTrainingUseCase createTrainingUseCase,
 			AddExerciseToTrainingUseCase addExerciseUseCase, ReorderExercisesUseCase reorderExercisesUseCase,
 			TransitionTrainingStatusUseCase transitionStatusUseCase, SoftDeleteTrainingUseCase softDeleteUseCase,
 			TrainingQueryService queryService, CoachApplicationService coachService,
-			AthleteAccessService athleteAccessService) {
+			AthleteAccessService athleteAccessService, UpdateExercisePrescriptionUseCase updateExerciseUseCase,
+			RemoveExerciseFromTrainingUseCase removeExerciseUseCase) {
 		this.createTrainingUseCase = createTrainingUseCase;
 		this.addExerciseUseCase = addExerciseUseCase;
 		this.reorderExercisesUseCase = reorderExercisesUseCase;
@@ -75,6 +82,8 @@ public class TrainingController {
 		this.queryService = queryService;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
+		this.updateExerciseUseCase = updateExerciseUseCase;
+		this.removeExerciseUseCase = removeExerciseUseCase;
 	}
 
 	@Operation(summary = "Criar treino",
@@ -191,6 +200,43 @@ public class TrainingController {
 			@Valid @RequestBody ReorderExercisesRequest request) {
 		Training training = this.reorderExercisesUseCase.execute(id, UUID.fromString(jwt.getSubject()),
 				request.orderedPrescriptionIds());
+		return ResponseEntity.ok(toResponse(training));
+	}
+
+	@Operation(summary = "Editar prescrição de exercício",
+			description = "Altera séries, repetições, carga, intensidade, descanso, nome ou observações de uma "
+					+ "prescrição já criada — inclusive em treino ativo. O histórico guarda o antes/depois e, em treino "
+					+ "ativo, o atleta é avisado. Para usar a versão mais recente de um exercício da biblioteca, envie o "
+					+ "currentExerciseId. Treino finalizado ou removido retorna 409.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Prescrição atualizada"),
+			@ApiResponse(responseCode = "400", description = "Valores inválidos"),
+			@ApiResponse(responseCode = "404", description = "Treino ou prescrição não encontrados, ou de outro coach"),
+			@ApiResponse(responseCode = "409", description = "Treino não aceita edição (finalizado ou removido)") })
+	@PreAuthorize("hasRole('COACH')")
+	@PutMapping("/{id}/exercises/{prescriptionId}")
+	public ResponseEntity<TrainingResponse> updateExercise(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador do treino") @PathVariable UUID id,
+			@Parameter(description = "Identificador da prescrição") @PathVariable UUID prescriptionId,
+			@Valid @RequestBody UpdateExercisePrescriptionRequest request) {
+		Training training = this.updateExerciseUseCase.execute(id, prescriptionId, UUID.fromString(jwt.getSubject()),
+				request.exerciseId(), request.exerciseName(), request.sets(), request.repetitions(), request.load(),
+				request.intensityType(), request.intensityValue(), request.restSeconds(), request.notes());
+		return ResponseEntity.ok(toResponse(training));
+	}
+
+	@Operation(summary = "Remover prescrição de exercício",
+			description = "Remove uma prescrição do treino — inclusive em treino ativo, caso em que o atleta é avisado.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Prescrição removida"),
+			@ApiResponse(responseCode = "404", description = "Treino ou prescrição não encontrados, ou de outro coach"),
+			@ApiResponse(responseCode = "409", description = "Treino não aceita edição (finalizado ou removido)") })
+	@PreAuthorize("hasRole('COACH')")
+	@DeleteMapping("/{id}/exercises/{prescriptionId}")
+	public ResponseEntity<TrainingResponse> removeExercise(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador do treino") @PathVariable UUID id,
+			@Parameter(description = "Identificador da prescrição") @PathVariable UUID prescriptionId) {
+		Training training = this.removeExerciseUseCase.execute(id, prescriptionId, UUID.fromString(jwt.getSubject()));
 		return ResponseEntity.ok(toResponse(training));
 	}
 

@@ -182,14 +182,14 @@ class TrainingTest {
 	}
 
 	@Test
-	void blocksEditWhenActive() {
+	void allowsEditWhenActive() {
 		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		t.transitionTo(TrainingStatus.IN_REVIEW);
 		t.transitionTo(TrainingStatus.ACTIVE);
 
-		assertThatThrownBy(() -> t.addExercise(createPrescription("Supino", 0)))
-			.isInstanceOf(IllegalStateException.class)
-			.hasMessageContaining("DRAFT or IN_REVIEW");
+		t.addExercise(createPrescription("Supino", 0));
+
+		assertThat(t.getExercises()).hasSize(1);
 	}
 
 	@Test
@@ -201,7 +201,7 @@ class TrainingTest {
 
 		assertThatThrownBy(() -> t.addExercise(createPrescription("Supino", 0)))
 			.isInstanceOf(IllegalStateException.class)
-			.hasMessageContaining("DRAFT or IN_REVIEW");
+			.hasMessageContaining("DRAFT, IN_REVIEW or ACTIVE");
 	}
 
 	@Test
@@ -255,4 +255,105 @@ class TrainingTest {
 				IntensityType.RPE, new BigDecimal("7.5"), 90, null);
 	}
 
+	// ---- editar prescrição (T-068) ----
+
+	private Training trainingWith(ExercisePrescription... prescriptions) {
+		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		for (ExercisePrescription p : prescriptions) {
+			t.addExercise(p);
+		}
+		return t;
+	}
+
+	private static void update(Training t, ExercisePrescription target, UUID exerciseId, int sets, int reps) {
+		t.updateExercise(target.getId(), exerciseId, "Supino", sets, reps, new BigDecimal("62.5"), IntensityType.RPE,
+				new BigDecimal("8.5"), 120, "obs");
+	}
+
+	@Test
+	void updatesPrescriptionKeepingIdAndPosition() {
+		ExercisePrescription first = createPrescription("Supino", 0);
+		ExercisePrescription second = createPrescription("Agachamento", 1);
+		Training t = trainingWith(first, second);
+
+		update(t, second, null, 5, 12);
+
+		ExercisePrescription updated = t.getExercises().get(1);
+		assertThat(updated.getId()).isEqualTo(second.getId());
+		assertThat(updated.getOrderIndex()).isEqualTo(1);
+		assertThat(updated.getSets()).isEqualTo(5);
+		assertThat(updated.getRepetitions()).isEqualTo(12);
+		assertThat(updated.getLoad()).isEqualByComparingTo("62.5");
+		assertThat(updated.getRestSeconds()).isEqualTo(120);
+		assertThat(updated.getNotes()).isEqualTo("obs");
+		assertThat(t.getExercises().get(0)).isSameAs(first);
+	}
+
+	@Test
+	void updateAllowedWhenActive() {
+		ExercisePrescription ex = createPrescription("Supino", 0);
+		Training t = trainingWith(ex);
+		t.transitionTo(TrainingStatus.IN_REVIEW);
+		t.transitionTo(TrainingStatus.ACTIVE);
+
+		update(t, ex, null, 6, 8);
+
+		assertThat(t.getExercises().get(0).getSets()).isEqualTo(6);
+	}
+
+	@Test
+	void updateBlockedWhenFinished() {
+		ExercisePrescription ex = createPrescription("Supino", 0);
+		Training t = trainingWith(ex);
+		t.transitionTo(TrainingStatus.IN_REVIEW);
+		t.transitionTo(TrainingStatus.ACTIVE);
+		t.transitionTo(TrainingStatus.FINISHED);
+
+		assertThatThrownBy(() -> update(t, ex, null, 6, 8)).isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	void updateOfUnknownPrescriptionIsRejected() {
+		Training t = trainingWith(createPrescription("Supino", 0));
+
+		assertThatThrownBy(() -> t.updateExercise(UUID.randomUUID(), null, "Supino", 4, 10, new BigDecimal("60"),
+				IntensityType.RPE, new BigDecimal("8"), 90, null)).isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	void invalidValuesAreRejectedAndLeavePrescriptionUntouched() {
+		ExercisePrescription ex = createPrescription("Supino", 0);
+		Training t = trainingWith(ex);
+
+		assertThatThrownBy(() -> update(t, ex, null, 0, 10)).isInstanceOf(IllegalArgumentException.class);
+
+		assertThat(t.getExercises().get(0)).isSameAs(ex);
+	}
+
+	@Test
+	void libraryExerciseCanSwitchToAnotherVersionAndNullKeepsTheCurrent() {
+		UUID v1 = UUID.randomUUID();
+		UUID v2 = UUID.randomUUID();
+		ExercisePrescription ex = ExercisePrescription.create(v1, "Supino", false, 0, 4, 10, new BigDecimal("60"),
+				IntensityType.RPE, new BigDecimal("8"), 90, null);
+		Training t = trainingWith(ex);
+
+		update(t, ex, null, 4, 10);
+		assertThat(t.getExercises().get(0).getExerciseId()).isEqualTo(v1);
+
+		update(t, ex, v2, 4, 10);
+		assertThat(t.getExercises().get(0).getExerciseId()).isEqualTo(v2);
+	}
+
+	@Test
+	void customExerciseAlwaysKeepsItsOwnId() {
+		ExercisePrescription custom = ExercisePrescription.create(null, "Meu exercício", true, 0, 3, 12,
+				new BigDecimal("20"), IntensityType.RPE, new BigDecimal("7"), 60, null);
+		Training t = trainingWith(custom);
+
+		update(t, custom, UUID.randomUUID(), 3, 12);
+
+		assertThat(t.getExercises().get(0).getExerciseId()).isNull();
+		assertThat(t.getExercises().get(0).isCustomExercise()).isTrue();
+	}
 }

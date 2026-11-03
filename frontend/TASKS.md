@@ -71,6 +71,8 @@
 | [ ] | **T-055** | E2 | US-38 | Front: área do atleta — histórico de avaliações (somente leitura) | Dev | Should (sugerido) | 2 | T-025 |
 | [x] | **T-056** | E0 | Fundação | Front: configurar ESLint (config ausente desde T-006) | Dev | Must (sugerido) | 0.5 | T-006 |
 | [ ] | **T-060** | E9 | US-20 | Front: reintroduzir MFA — etapa 2 no login e tela de ativação com QR Code (recuperar `MfaSetupPage`, `useVerifyMfa`, `useStartMfaSetup`, `useConfirmMfaSetup` e a etapa de código do `LoginPage` do histórico do git; `qrcode` segue no `package.json`) | Dev | Should | 2 | T-059 |
+| [ ] | **T-072** | E4/E3 | US-38 | Front: avisos do atleta — sino com contagem de não lidos, lista de avisos e marcar como lido (`/api/v1/notifications`; só o atleta acessa) | Dev | Should (sugerido) | 3 | T-070, T-054 |
+| [ ] | **T-073** | E4 | US-10 | Front: coach edita e remove prescrições do treino (inclusive ativo), com o aviso "há versão mais nova" do exercício e botão para trocar pela versão corrente | Dev | Should (sugerido) | 3 | T-068, T-069, T-040 |
 | [x] | **T-063** | E9 | US-20 | Front: convite do atleta — botão "Convidar para o app" na ficha (gera e copia o link) e tela pública /convite/:token para o atleta definir a senha | Dev | Must (sugerido) | 2 | T-062 |
 
 > **MFA/TOTP desligado em 2026-11-03** (decisão do time, backlog `T-059`/`T-060`): o login passa a

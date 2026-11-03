@@ -23,11 +23,14 @@ public class ReorderExercisesUseCase {
 
 	private final AuditService auditService;
 
+	private final TrainingNotifier notifier;
+
 	public ReorderExercisesUseCase(TrainingRepository trainingRepository, TrainingOwnershipGuard ownershipGuard,
-			AuditService auditService) {
+			AuditService auditService, TrainingNotifier notifier) {
 		this.trainingRepository = trainingRepository;
 		this.ownershipGuard = ownershipGuard;
 		this.auditService = auditService;
+		this.notifier = notifier;
 	}
 
 	public Training execute(UUID trainingId, UUID userId, List<UUID> orderedPrescriptionIds) {
@@ -43,6 +46,8 @@ public class ReorderExercisesUseCase {
 		Training saved = this.trainingRepository.save(training);
 		this.auditService.record("Training", saved.getId(), saved.getAthleteId(), "TRAINING_EXERCISES_REORDERED",
 				userId, AuditData.of("before", before, "after", order(saved)));
+		this.notifier.trainingChanged(saved,
+				"Seu coach reorganizou a ordem dos exercícios do treino \"" + saved.getName() + "\".");
 		return saved;
 	}
 

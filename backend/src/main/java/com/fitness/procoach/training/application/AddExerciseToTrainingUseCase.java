@@ -27,13 +27,16 @@ public class AddExerciseToTrainingUseCase {
 
 	private final AuditService auditService;
 
+	private final TrainingNotifier notifier;
+
 	public AddExerciseToTrainingUseCase(TrainingRepository trainingRepository,
 			ApplicationEventPublisher eventPublisher, TrainingOwnershipGuard ownershipGuard,
-			AuditService auditService) {
+			AuditService auditService, TrainingNotifier notifier) {
 		this.trainingRepository = trainingRepository;
 		this.eventPublisher = eventPublisher;
 		this.ownershipGuard = ownershipGuard;
 		this.auditService = auditService;
+		this.notifier = notifier;
 	}
 
 	public Training execute(UUID trainingId, UUID userId, UUID exerciseId, String exerciseName,
@@ -59,6 +62,8 @@ public class AddExerciseToTrainingUseCase {
 						"sets", prescription.getSets(), "repetitions", prescription.getRepetitions(), "load",
 						prescription.getLoad(), "intensityType", prescription.getIntensityType(), "intensityValue",
 						prescription.getIntensityValue(), "restSeconds", prescription.getRestSeconds()));
+		this.notifier.trainingChanged(saved, "Seu coach adicionou \"" + prescription.getExerciseName()
+				+ "\" ao treino \"" + saved.getName() + "\".");
 		this.eventPublisher.publishEvent(new ExerciseAddedEvent(saved.getId(), prescription.getId(),
 				prescription.getExerciseId(), prescription.getExerciseName(), prescription.isCustomExercise(),
 				prescription.getSets(), prescription.getRepetitions()));
