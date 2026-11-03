@@ -28,7 +28,7 @@
 
 | Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
 |---|---|---|---|---|---|---|---|---|
-| [ ] | **T-027** | E2 | US-04/05/06 | Front: avaliação física + gráficos de evolução + comparação | Dev | Must | 3 | T-025 |
+| [ ] | **T-027** | E2 | US-04/05/06 | Front: avaliação física + gráficos de evolução + comparação | Dev | Must | 3 | T-025, T-026 (comparação lado a lado; sem ela a tela só mostra evolução histórica) |
 
 ## S4
 
@@ -67,8 +67,8 @@
 
 | Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
 |---|---|---|---|---|---|---|---|---|
-| [ ] | **T-054** | E1/E3/E4 | US-38 | Front: área do atleta — visualizar dieta e treino atuais (somente leitura) | Dev | Must (sugerido) | 3 | T-033, T-037 |
-| [ ] | **T-055** | E2 | US-38 | Front: área do atleta — histórico de avaliações (somente leitura) | Dev | Should (sugerido) | 2 | T-025 |
+| [ ] | **T-054** | E1/E3/E4 | US-38 | Front: área do atleta — visualizar dieta e treino atuais (somente leitura) | Dev | Must (sugerido) | 3 | T-033, T-037, T-065, T-067 |
+| [ ] | **T-055** | E2 | US-38 | Front: área do atleta — histórico de avaliações (somente leitura) | Dev | Should (sugerido) | 2 | T-025, T-065 |
 | [x] | **T-056** | E0 | Fundação | Front: configurar ESLint (config ausente desde T-006) | Dev | Must (sugerido) | 0.5 | T-006 |
 | [ ] | **T-060** | E9 | US-20 | Front: reintroduzir MFA — etapa 2 no login e tela de ativação com QR Code (recuperar `MfaSetupPage`, `useVerifyMfa`, `useStartMfaSetup`, `useConfirmMfaSetup` e a etapa de código do `LoginPage` do histórico do git; `qrcode` segue no `package.json`) | Dev | Should | 2 | T-059 |
 | [ ] | **T-072** | E4/E3 | US-38 | Front: avisos do atleta — sino com contagem de não lidos, lista de avisos e marcar como lido (`/api/v1/notifications`; só o atleta acessa) | Dev | Should (sugerido) | 3 | T-070, T-054 |
@@ -87,6 +87,15 @@
 > códigos de recuperação.
 
 > `T-054`/`T-055` — o backend já está pronto (backlog `T-065`): o atleta autenticado consulta `GET /api/v1/diets` e `/diets/history`, `GET /api/v1/diets/energy-balance?athleteId=`, `GET /api/training/plans/athlete/{id}[/latest]`, `GET /api/training/trainings/athlete/{id}`, `GET /api/v1/assessments?athleteId=` (com `metrics`). O atleta só recebe conteúdo liberado pelo coach (dieta aprovada, plano e treino ativos); sem dieta aprovada o `GET /diets` responde 404.
+
+> **Alinhamento front × back (proposta do backend, aguardando confirmação do time de front)**
+> - `T-027`: a comparação lado a lado depende da `T-026` (backend, aberta). `T-061` (fator de atividade) **não** altera o aceite: hoje o GET usa 1,2 e o front só exibe o valor devolvido; planejar à parte.
+> - `T-040`: escopo mínimo = só o que o backend já oferece (biblioteca de exercícios, planos, sessões com `planId`, periodização, prescrição). `T-038` (exercício personalizado) e `T-039` (semelhantes) ficam **fora**. Biblioteca como consulta dentro do editor de treino. Módulo `src/lib/training.ts` concentra URLs, DTOs e versionamento. `T-073`/`T-074` vêm depois.
+> - Treino: toda alteração de plano cria nova versão (`previousVersionId`); versões antigas seguem consultáveis; sessão pertence a uma versão (`planId`, `?planId=`); prescrição pode ser editada/removida até com o treino ACTIVE (o atleta é avisado); transição inválida responde 409.
+> - Estados do atleta (`T-054`/`T-055`): conteúdo disponível; sem conteúdo (listas vazias); dieta não aprovada (`GET /diets` → 404, tratar como vazio); 401 sessão expirada; 403 acesso negado. 404 nunca é autorização.
+> - `T-072`: usar só a API in-app (`/api/v1/notifications`); preferências e dispositivos são a `T-075`. E-mail e push (`T-071`) já existem no backend; a entrega é transparente para o front.
+> - MFA: SPEC atualizado; o front segue com e-mail e senha.
+> - MVP2 (`M2-004`, `M2-017`, `M2-021`): sem backend (M2-003, M2-014, M2-019/020 abertas); não iniciar telas antes dos contratos. Prioridade sugerida: `T-040` → `T-054`/`T-055` → `T-072` → `T-073`/`T-074` → `T-075` → MVP2.
 
 > `T-056` identificada em 2026-09-02 durante a implementação da `T-011`: `npm run lint`
 > quebrado por falta de `.eslintrc`/`eslint.config.*` na raiz do frontend — lacuna da

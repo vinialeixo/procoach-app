@@ -31,7 +31,7 @@ que é **apenas consultivo e read-only**.
 
 | ID | Requisito |
 |---|---|
-| RF-01 | Coach autentica com e-mail/senha + MFA. |
+| RF-01 | Coach autentica com e-mail/senha. MFA/TOTP está desligado por decisão de 2026-11-03 (flag `procoach.security.mfa.enabled`, padrão `false`); a reintrodução é decisão futura, condicionada às pendências de segurança da T-059. |
 | RF-02 | Coach adiciona e remove atletas (soft-delete). |
 | RF-03 | Coach cria avaliação física; sistema calcula IMC, TMB e TDEE automaticamente. |
 | RF-04 | Coach monta dieta com refeições e macros. |
@@ -53,7 +53,7 @@ que é **apenas consultivo e read-only**.
 |---|---|
 | RNF-01 | Auditabilidade total: AuditLog append-only, imutável. |
 | RNF-02 | Rastreabilidade: versionamento de agregados críticos (Diet, TrainingPlan, Assessment). |
-| RNF-03 | Segurança: RBAC + MFA; isolamento multi-tenant por coach. |
+| RNF-03 | Segurança: RBAC; isolamento multi-tenant por coach. MFA fica para decisão futura (ver RF-01). |
 | RNF-04 | RAG stateless e read-only — nunca escreve no domínio. |
 | RNF-05 | Arquitetura modular (Spring Modulith) com boundaries verificáveis. |
 | RNF-06 | Testes automatizados com Testcontainers para persistência/auditoria. |
@@ -92,7 +92,7 @@ Referências entre agregados são feitas por **ID** (DDD), não por objeto aninh
 
 | Método | Rota | Descrição |
 |---|---|---|
-| POST | `/api/v1/auth/login` | Login + MFA |
+| POST | `/api/v1/auth/login` | Login por e-mail e senha (etapa de MFA só com a flag ligada) |
 | POST | `/api/v1/athletes` | Adicionar atleta |
 | DELETE | `/api/v1/athletes/{id}` | Remover atleta (soft-delete) |
 | POST | `/api/v1/athletes/{id}/assessments` | Criar avaliação |
@@ -108,7 +108,7 @@ Comunicação Core ↔ RAG: **gRPC read-only**.
 
 ## 8. Stack
 
-Java 21, Spring Boot 3.x, Spring Modulith, JPA/Hibernate, Flyway, Spring Security (RBAC+MFA),
+Java 21, Spring Boot 3.x, Spring Modulith, JPA/Hibernate, Flyway, Spring Security (RBAC; MFA desligado),
 RabbitMQ/Kafka, PostgreSQL + pgvector, S3 (MinIO/AWS), Python + LlamaIndex + LlamaParse (RAG), gRPC.
 
 ---
