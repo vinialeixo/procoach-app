@@ -1,0 +1,41 @@
+package com.fitness.procoach.library.interfaces;
+
+import java.util.List;
+
+import com.fitness.procoach.library.domain.Equipment;
+import com.fitness.procoach.library.domain.ExerciseReference;
+import com.fitness.procoach.library.domain.MuscleGroup;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+/** DTO de entrada para atualização de exercício. */
+@Schema(description = "Dados para atualização dos campos descritivos de um exercício (id, createdBy e createdAt "
+		+ "são imutáveis).")
+public record UpdateExerciseRequest(
+		@Schema(description = "Nome do exercício", example = "Supino reto com barra")
+		@NotBlank String name,
+		@Schema(description = "Grupos musculares trabalhados", example = "[\"PEITO\", \"TRICEPS\"]")
+		@NotEmpty List<MuscleGroup> muscleGroups,
+		@Schema(description = "Equipamento necessário", example = "BARRA_LIVRE")
+		@NotNull Equipment equipment,
+		@Schema(description = "Descrição da execução correta do movimento",
+				example = "Deitado no banco, desça a barra controlada até o peito e empurre de volta.")
+		@NotBlank String execution,
+		@Schema(description = "Erros comuns de execução",
+				example = "[\"Arquear a lombar\", \"Quicar a barra no peito\"]")
+		List<String> commonErrors,
+		@Schema(description = "Progressões (variações mais difíceis)",
+				example = "[\"Supino inclinado com barra\"]")
+		List<String> progressions,
+		@Schema(description = "Regressões (variações mais fáceis)",
+				example = "[\"Supino com halteres\", \"Flexão de braço\"]")
+		List<String> regressions,
+		@Schema(description = "Contraindicações",
+				example = "[\"Lesão no ombro em fase aguda\"]")
+		List<String> contraindications,
+		@Schema(description = "Referências científicas que embasam o exercício")
+		List<ExerciseReference> references) {
+}
