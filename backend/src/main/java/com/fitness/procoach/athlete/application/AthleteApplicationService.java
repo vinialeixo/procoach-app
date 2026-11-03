@@ -1,6 +1,7 @@
 package com.fitness.procoach.athlete.application;
 
 import com.fitness.procoach.athlete.domain.Athlete;
+import com.fitness.procoach.athlete.domain.AthleteStatus;
 import com.fitness.procoach.athlete.domain.AthleteId;
 import com.fitness.procoach.athlete.domain.AthleteRepository;
 import com.fitness.procoach.athlete.domain.Goal;
@@ -11,6 +12,7 @@ import com.fitness.procoach.athlete.domain.Weight;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -64,6 +66,41 @@ public class AthleteApplicationService {
 		}
 		athlete.softDelete();
 		repository.save(athlete);
+	}
+
+	/** Atletas da carteira do coach autenticado, com filtro opcional por status. */
+	public List<Athlete> list(UUID userId, AthleteStatus status) {
+		UUID coachId = coachService.requireCoachIdByUserId(userId).value();
+		return repository.findActiveByCoachId(coachId).stream()
+				.filter(a -> status == null || a.status() == status)
+				.toList();
+	}
+
+	/** Ficha de um atleta da carteira; 404 se inexistente, removido ou de outro coach. */
+	public Athlete get(UUID userId, UUID athleteId) {
+		UUID coachId = coachService.requireCoachIdByUserId(userId).value();
+		return requireOwned(athleteId, coachId);
+	}
+
+	/** Troca o status do atleta (US-005); mesma regra de posse do {@link #remove}. */
+	public Athlete changeStatus(ChangeStatusCommand command) {
+		UUID coachId = coachService.requireCoachIdByUserId(command.userId()).value();
+		Athlete athlete = requireOwned(command.athleteId(), coachId);
+		athlete.changeStatus(command.status());
+		return repository.save(athlete);
+	}
+
+	private Athlete requireOwned(UUID athleteId, UUID coachId) {
+		Athlete athlete = repository.findById(AthleteId.of(athleteId))
+				.filter(a -> !a.isDeleted())
+				.orElseThrow(() -> new AthleteNotFoundException(athleteId));
+		if (!athlete.coachId().equals(coachId)) {
+			throw new AthleteNotFoundException(athleteId);
+		}
+		return athlete;
+	}
+
+	public record ChangeStatusCommand(UUID userId, UUID athleteId, AthleteStatus status, String reason) {
 	}
 
 	public record RegisterAthleteCommand(UUID userId, String name, Sex sex, LocalDate birthDate,

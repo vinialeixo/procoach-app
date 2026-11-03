@@ -38,7 +38,11 @@ public record DietResponse(
 		@Schema(description = "true quando esta versão foi substituída por uma mais recente e tornou-se somente "
 				+ "leitura — nunca pode ser alterada ou sobrescrita (US-015)", example = "false") boolean readOnly,
 		@Schema(description = "true quando o registro foi excluído logicamente (soft-delete)",
-				example = "false") boolean deleted) {
+				example = "false") boolean deleted,
+		@Schema(description = "Usuário que criou esta versão (auditoria, US-016)",
+				example = "2f6b1c3d-7a0e-4b5d-9c8a-1e2f3a4b5c6d") UUID createdBy,
+		@Schema(description = "Último usuário que alterou o registro",
+				example = "2f6b1c3d-7a0e-4b5d-9c8a-1e2f3a4b5c6d") UUID updatedBy) {
 
 	public static DietResponse from(Diet diet) {
 		return new DietResponse(diet.id().value(), diet.coachId().value(), diet.athleteId().value(),
@@ -46,6 +50,6 @@ public record DietResponse(
 				diet.macros().carbohydrates(), diet.macros().fat(), diet.status(), diet.version(),
 				diet.previousVersionId() == null ? null : diet.previousVersionId().value(),
 				diet.changeReason(), diet.createdAt(), diet.updatedAt(), diet.isReadOnly(),
-				diet.isDeleted());
+				diet.isDeleted(), diet.createdBy(), diet.updatedBy());
 	}
 }

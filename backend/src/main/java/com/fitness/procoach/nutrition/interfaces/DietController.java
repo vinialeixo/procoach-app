@@ -82,6 +82,43 @@ public class DietController {
 		return ResponseEntity.created(location).body(DietResponse.from(diet));
 	}
 
+	@Operation(summary = "Criar nova versão da dieta",
+			description = "Cria a próxima versão (v2, v3...) a partir da versão informada. A versão de origem "
+					+ "passa a ser somente leitura e o motivo da alteração é obrigatório (US-015/US-016).")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "Nova versão criada"),
+			@ApiResponse(responseCode = "400", description = "Campos inválidos ou motivo ausente"),
+			@ApiResponse(responseCode = "404", description = "Dieta não encontrada ou de outro coach"),
+			@ApiResponse(responseCode = "409", description = "Versão de origem somente leitura ou removida") })
+	@PreAuthorize("hasRole('COACH')")
+	@PostMapping("/{id}/versions")
+	public ResponseEntity<DietResponse> createVersion(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Versão de origem") @PathVariable UUID id,
+			@Valid @RequestBody CreateDietVersionRequest request) {
+		Diet next = service.createNewVersion(new DietApplicationService.NewVersionCommand(
+				UUID.fromString(jwt.getSubject()), id, request.objective(), request.calories(),
+				request.protein(), request.carbohydrates(), request.fat(), request.changeReason()));
+		URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
+				.path("/api/v1/diets/{id}")
+				.buildAndExpand(next.id().value())
+				.toUri();
+		return ResponseEntity.created(location).body(DietResponse.from(next));
+	}
+
+	@Operation(summary = "Alterar status da dieta",
+			description = "Fluxo Rascunho → Em Revisão → Aprovada → Arquivada (US-017). Transição inválida retorna 409.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Status alterado"),
+			@ApiResponse(responseCode = "404", description = "Dieta não encontrada ou de outro coach"),
+			@ApiResponse(responseCode = "409", description = "Transição inválida") })
+	@PreAuthorize("hasRole('COACH')")
+	@PostMapping("/{id}/status")
+	public DietResponse changeStatus(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador da dieta") @PathVariable UUID id,
+			@Valid @RequestBody ChangeDietStatusRequest request) {
+		return DietResponse.from(service.changeStatus(UUID.fromString(jwt.getSubject()), id, request.status()));
+	}
+
 	/**
 	 * Retorna uma dieta pelo identificador.
 	 */

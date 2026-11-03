@@ -8,6 +8,7 @@ import com.fitness.procoach.nutrition.domain.Diet;
 import com.fitness.procoach.nutrition.domain.DietId;
 import com.fitness.procoach.nutrition.domain.DietObjective;
 import com.fitness.procoach.nutrition.domain.DietRepository;
+import com.fitness.procoach.nutrition.domain.DietStatus;
 import com.fitness.procoach.nutrition.domain.Macronutrients;
 import java.util.List;
 import java.util.UUID;
@@ -82,6 +83,33 @@ public class DietApplicationService {
 		CoachId coachId = coachService.requireCoachIdByUserId(userId);
 		athleteAccessService.requireOwnedByCoach(diet.athleteId().value(), coachId.value());
 		return diet;
+	}
+
+	/**
+	 * Cria a próxima versão a partir de {@code dietId} (US-015/US-016): a versão
+	 * de origem é congelada (readOnly) e o motivo da alteração é obrigatório.
+	 * Mesma regra de posse do {@link #findOwnedById}.
+	 */
+	public Diet createNewVersion(NewVersionCommand command) {
+		Diet current = findOwnedById(new DietId(command.dietId()), command.userId());
+		Diet next = current.createNewVersion(
+				command.objective(),
+				Macronutrients.of(command.calories(), command.protein(), command.carbohydrates(), command.fat()),
+				command.changeReason(),
+				command.userId());
+		repository.save(current);
+		return repository.save(next);
+	}
+
+	/** Transiciona o status da dieta (US-017); transição inválida lança IllegalStateException. */
+	public Diet changeStatus(UUID userId, UUID dietId, DietStatus status) {
+		Diet diet = findOwnedById(new DietId(dietId), userId);
+		diet.changeStatus(status);
+		return repository.save(diet);
+	}
+
+	public record NewVersionCommand(UUID userId, UUID dietId, DietObjective objective,
+			double calories, double protein, double carbohydrates, double fat, String changeReason) {
 	}
 
 	public record CreateDietCommand(UUID userId, UUID athleteId, DietObjective objective,

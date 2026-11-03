@@ -4,7 +4,7 @@ import { AppShell } from "@/layouts/AppShell";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
-import { useAthletes, Athlete, AthleteStatus } from "@/lib/athletes";
+import { GOAL_LABEL, useAthletes, Athlete, AthleteStatus } from "@/lib/athletes";
 import "./AthleteList.css";
 
 // T-022 — Listagem de atletas (US-003). Persona: Coach.
@@ -22,7 +22,7 @@ const STATUS_OPTIONS: { value: "" | AthleteStatus; label: string }[] = [
 const columns: Column<Athlete>[] = [
   { key: "name", header: "Nome", render: (a) => a.name },
   { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
-  { key: "goal", header: "Objetivo", render: (a) => a.goal },
+  { key: "goal", header: "Objetivo", render: (a) => GOAL_LABEL[a.goal] },
 ];
 
 export function AthleteListPage() {

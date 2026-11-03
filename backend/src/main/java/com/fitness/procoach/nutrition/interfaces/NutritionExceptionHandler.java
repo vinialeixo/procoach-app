@@ -43,6 +43,16 @@ public class NutritionExceptionHandler {
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
 	}
 
+	/** Transição de status inválida ou versão somente leitura/removida. */
+	@ExceptionHandler(IllegalStateException.class)
+	public ResponseEntity<Map<String, Object>> handleConflict(IllegalStateException ex) {
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("timestamp", Instant.now());
+		body.put("status", 409);
+		body.put("error", ex.getMessage());
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+	}
+
 	@ExceptionHandler(DietNotFoundException.class)
 	public ResponseEntity<Map<String, Object>> handleNotFound(DietNotFoundException ex) {
 		Map<String, Object> body = new LinkedHashMap<>();

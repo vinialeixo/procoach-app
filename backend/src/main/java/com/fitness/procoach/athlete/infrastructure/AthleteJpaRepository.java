@@ -1,5 +1,6 @@
 package com.fitness.procoach.athlete.infrastructure;
 
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -7,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * Repositório Spring Data da entidade JPA de Athlete.
  */
 public interface AthleteJpaRepository extends JpaRepository<AthleteJpaEntity, UUID> {
+
+	List<AthleteJpaEntity> findByCoachIdAndDeletedFalseOrderByCreatedAtDesc(UUID coachId);
 }

@@ -6,7 +6,7 @@ import { AppShell } from "@/layouts/AppShell";
 import { Field } from "@/components/ui/Field";
 import { SelectField } from "@/components/ui/SelectField";
 import { Button } from "@/components/ui/Button";
-import { useCreateAthlete } from "@/lib/athletes";
+import { GOALS, GOAL_LABEL, SEXES, SEX_LABEL, useCreateAthlete } from "@/lib/athletes";
 import "./AthleteForm.css";
 
 // T-019 — Cadastro de atleta (US-001). Persona: Coach.
@@ -17,7 +17,7 @@ import "./AthleteForm.css";
 
 const schema = z.object({
   name: z.string().min(1, "Informe o nome"),
-  sex: z.enum(["M", "F", "OTHER"], { required_error: "Selecione o sexo" }),
+  sex: z.enum(SEXES, { required_error: "Selecione o sexo" }),
   birthDate: z.string().min(1, "Informe a data de nascimento"),
   heightCm: z.coerce
     .number({ invalid_type_error: "Altura inválida" })
@@ -25,7 +25,7 @@ const schema = z.object({
   weightKg: z.coerce
     .number({ invalid_type_error: "Peso inválido" })
     .positive("Peso deve ser positivo"),
-  goal: z.string().min(1, "Informe o objetivo"),
+  goal: z.enum(GOALS, { required_error: "Selecione o objetivo" }),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -69,11 +69,7 @@ export function AthleteCreatePage() {
             label="Sexo"
             placeholder="Selecione"
             error={errors.sex?.message}
-            options={[
-              { value: "M", label: "Masculino" },
-              { value: "F", label: "Feminino" },
-              { value: "OTHER", label: "Outro" },
-            ]}
+            options={SEXES.map((s) => ({ value: s, label: SEX_LABEL[s] }))}
             {...register("sex")}
           />
           <Field
@@ -100,9 +96,10 @@ export function AthleteCreatePage() {
               {...register("weightKg")}
             />
           </div>
-          <Field
+          <SelectField
             label="Objetivo"
-            placeholder="Ex.: hipertrofia, cutting, manutenção"
+            placeholder="Selecione"
+            options={GOALS.map((g) => ({ value: g, label: GOAL_LABEL[g] }))}
             error={errors.goal?.message}
             {...register("goal")}
           />

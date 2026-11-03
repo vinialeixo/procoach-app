@@ -3,7 +3,9 @@ package com.fitness.procoach.athlete.infrastructure;
 import com.fitness.procoach.athlete.domain.Athlete;
 import com.fitness.procoach.athlete.domain.AthleteId;
 import com.fitness.procoach.athlete.domain.AthleteRepository;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,14 @@ public class AthleteRepositoryAdapter implements AthleteRepository {
 	@Transactional(readOnly = true)
 	public Optional<Athlete> findById(AthleteId id) {
 		return jpaRepository.findById(id.value()).map(AthleteMapper::toDomain);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<Athlete> findActiveByCoachId(UUID coachId) {
+		return jpaRepository.findByCoachIdAndDeletedFalseOrderByCreatedAtDesc(coachId).stream()
+				.map(AthleteMapper::toDomain)
+				.toList();
 	}
 
 	@Override

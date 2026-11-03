@@ -24,7 +24,7 @@ public final class Athlete {
 	private final Height height;
 	private final Weight weight;
 	private final Goal goal;
-	private final AthleteStatus status;
+	private AthleteStatus status;
 	private final Instant createdAt;
 	private Instant updatedAt;
 	private boolean deleted;
@@ -83,6 +83,22 @@ public final class Athlete {
 		}
 		this.deleted = true;
 		this.deletedAt = Instant.now();
+		this.updatedAt = Instant.now();
+	}
+
+	/**
+	 * Troca o estado do acompanhamento (US-005). Atleta removido não muda de
+	 * estado, e trocar para o estado atual é recusado.
+	 */
+	public void changeStatus(AthleteStatus newStatus) {
+		Objects.requireNonNull(newStatus, "newStatus must not be null");
+		if (this.deleted) {
+			throw new IllegalStateException("Athlete has been soft-deleted: " + this.id);
+		}
+		if (this.status == newStatus) {
+			throw new IllegalStateException("Athlete is already " + newStatus);
+		}
+		this.status = newStatus;
 		this.updatedAt = Instant.now();
 	}
 

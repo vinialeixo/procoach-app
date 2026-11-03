@@ -134,4 +134,32 @@ class AthleteTest {
 		assertThat(athlete.isDeleted()).isFalse();
 		assertThat(athlete.deletedAt()).isNull();
 	}
+
+	@Test
+	void changeStatusTrocaOEstadoEAtualizaTimestamp() {
+		Athlete athlete = newAthlete();
+		java.time.Instant before = athlete.updatedAt();
+
+		athlete.changeStatus(AthleteStatus.PAUSED);
+
+		assertThat(athlete.status()).isEqualTo(AthleteStatus.PAUSED);
+		assertThat(athlete.updatedAt()).isAfterOrEqualTo(before);
+	}
+
+	@Test
+	void changeStatusParaOEstadoAtualEhRecusado() {
+		Athlete athlete = newAthlete();
+
+		assertThatThrownBy(() -> athlete.changeStatus(AthleteStatus.ACTIVE))
+				.isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	void changeStatusEmAtletaRemovidoEhRecusado() {
+		Athlete athlete = newAthlete();
+		athlete.softDelete();
+
+		assertThatThrownBy(() -> athlete.changeStatus(AthleteStatus.PAUSED))
+				.isInstanceOf(IllegalStateException.class);
+	}
 }

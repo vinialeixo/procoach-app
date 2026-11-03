@@ -2,22 +2,26 @@ package com.fitness.procoach.athlete.interfaces;
 
 import com.fitness.procoach.athlete.application.AthleteApplicationService;
 import com.fitness.procoach.athlete.domain.Athlete;
+import com.fitness.procoach.athlete.domain.AthleteStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -62,6 +66,36 @@ public class AthleteController {
 				.buildAndExpand(athlete.id().value())
 				.toUri();
 		return ResponseEntity.created(location).body(AthleteResponse.from(athlete));
+	}
+
+	@Operation(summary = "Listar atletas da carteira",
+			description = "Atletas não removidos do coach autenticado, com filtro opcional por status.")
+	@PreAuthorize("hasRole('COACH')")
+	@GetMapping
+	public List<AthleteResponse> list(@AuthenticationPrincipal Jwt jwt,
+			@RequestParam(required = false) AthleteStatus status) {
+		return service.list(UUID.fromString(jwt.getSubject()), status).stream()
+				.map(AthleteResponse::from)
+				.toList();
+	}
+
+	@Operation(summary = "Ficha do atleta",
+			description = "Retorna o atleta; 404 se não existe, foi removido ou é de outro coach.")
+	@PreAuthorize("hasRole('COACH')")
+	@GetMapping("/{id}")
+	public AthleteResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+		return AthleteResponse.from(service.get(UUID.fromString(jwt.getSubject()), id));
+	}
+
+	@Operation(summary = "Alterar status do atleta",
+			description = "Troca o status (Ativo/Pausado/Finalizado) com motivo obrigatório. "
+					+ "Trocar para o status atual retorna 409.")
+	@PreAuthorize("hasRole('COACH')")
+	@PostMapping("/{id}/status")
+	public AthleteResponse changeStatus(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id,
+			@Valid @RequestBody ChangeAthleteStatusRequest request) {
+		return AthleteResponse.from(service.changeStatus(new AthleteApplicationService.ChangeStatusCommand(
+				UUID.fromString(jwt.getSubject()), id, request.status(), request.reason())));
 	}
 
 	/**

@@ -4,10 +4,11 @@ import { apiClient } from "./api-client";
 /**
  * E3 — Dietas versionadas (US-011, US-014, US-015, US-016, US-017).
  *
- * CONTRATO ASSUMIDO: os endpoints REST de dieta (T-029, T-031, T-032, T-033)
- * ainda não existem no backend — os caminhos e formatos abaixo são
- * suposição; ajustar aqui quando o núcleo for implementado.
- * Os nomes de campos espelham o agregado de domínio que já existe
+ * Contrato alinhado ao backend (DietController, /api/v1/diets): a criação
+ * recebe athleteId no corpo, a listagem usa /diets/history?athleteId= e a
+ * resposta traz os macros planos (calories/protein/...). Este módulo traduz
+ * para o formato da UI (`macros` aninhado) nas bordas.
+ * Os nomes de campos espelham o agregado de domínio
  * (com.fitness.procoach.nutrition: Diet + Macronutrients, T-050) e as regras
  * que ele impõe:
  *
@@ -103,45 +104,78 @@ export const STATUS_LABEL: Record<DietStatus, string> = {
   ARCHIVED: "Arquivada",
 };
 
-// --- Chamadas (contratos assumidos) ----------------------------------------
+// Formato do backend (DietResponse).
+type ApiDiet = {
+  id: string;
+  coachId: string;
+  athleteId: string;
+  objective: DietObjective;
+  calories: number;
+  protein: number;
+  carbohydrates: number;
+  fat: number;
+  status: DietStatus;
+  version: number;
+  previousVersionId: string | null;
+  changeReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  readOnly: boolean;
+  deleted: boolean;
+  createdBy: string;
+  updatedBy: string;
+};
+
+function toDietVersion(d: ApiDiet): DietVersion {
+  const { calories, protein, carbohydrates, fat, ...rest } = d;
+  return { ...rest, macros: { calories, protein, carbohydrates, fat } };
+}
+
+function toApiBody(payload: CreateDietPayload) {
+  return { objective: payload.objective, ...payload.macros };
+}
+
+// --- Chamadas ----------------------------------------------------------------
 
 async function listDiets(athleteId: string): Promise<DietVersion[]> {
-  const { data } = await apiClient.get(`/athletes/${athleteId}/diets`);
-  return data;
+  const { data } = await apiClient.get<ApiDiet[]>("/diets/history", {
+    params: { athleteId },
+  });
+  return data.map(toDietVersion);
 }
 
 async function createDiet(
   athleteId: string,
   payload: CreateDietPayload
 ): Promise<DietVersion> {
-  const { data } = await apiClient.post(`/athletes/${athleteId}/diets`, payload);
-  return data;
+  const { data } = await apiClient.post<ApiDiet>("/diets", {
+    athleteId,
+    ...toApiBody(payload),
+  });
+  return toDietVersion(data);
 }
 
 // Cria a próxima versão a partir de `versionId`; o backend congela a versão
 // de origem (readOnly). Nunca é um update — é um POST de nova versão.
 async function createDietVersion(
-  athleteId: string,
+  _athleteId: string,
   versionId: string,
   payload: CreateDietVersionPayload
 ): Promise<DietVersion> {
-  const { data } = await apiClient.post(
-    `/athletes/${athleteId}/diets/${versionId}/versions`,
-    payload
-  );
-  return data;
+  const { data } = await apiClient.post<ApiDiet>(`/diets/${versionId}/versions`, {
+    ...toApiBody(payload),
+    changeReason: payload.changeReason,
+  });
+  return toDietVersion(data);
 }
 
 async function changeDietStatus(
-  athleteId: string,
+  _athleteId: string,
   versionId: string,
   payload: ChangeDietStatusPayload
 ): Promise<DietVersion> {
-  const { data } = await apiClient.post(
-    `/athletes/${athleteId}/diets/${versionId}/status`,
-    payload
-  );
-  return data;
+  const { data } = await apiClient.post<ApiDiet>(`/diets/${versionId}/status`, payload);
+  return toDietVersion(data);
 }
 
 // Versão corrente da cadeia: a única que o domínio permite mutar (não está

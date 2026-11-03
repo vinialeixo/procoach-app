@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextareaField } from "@/components/ui/TextareaField";
 import { Button } from "@/components/ui/Button";
-import { useAthlete, useChangeAthleteStatus } from "@/lib/athletes";
+import { GOAL_LABEL, SEX_LABEL, useAthlete, useChangeAthleteStatus } from "@/lib/athletes";
 import { AthleteAssessmentsPanel } from "./AthleteAssessmentsPanel";
 import { AthleteDietsPanel } from "./AthleteDietsPanel";
 import "./AthleteDetail.css";
@@ -145,11 +145,11 @@ export function AthleteDetailPage() {
         </div>
 
         <dl className="athlete-detail__grid">
-          <div><dt>Sexo</dt><dd>{athlete.sex === "M" ? "Masculino" : athlete.sex === "F" ? "Feminino" : "Outro"}</dd></div>
+          <div><dt>Sexo</dt><dd>{SEX_LABEL[athlete.sex]}</dd></div>
           <div><dt>Nascimento</dt><dd>{athlete.birthDate}</dd></div>
           <div><dt>Altura</dt><dd>{athlete.heightCm} cm</dd></div>
           <div><dt>Peso</dt><dd>{athlete.weightKg} kg</dd></div>
-          <div className="athlete-detail__goal"><dt>Objetivo</dt><dd>{athlete.goal}</dd></div>
+          <div className="athlete-detail__goal"><dt>Objetivo</dt><dd>{GOAL_LABEL[athlete.goal]}</dd></div>
         </dl>
 
         <nav className="athlete-detail__tabs" aria-label="Seções do atleta">
