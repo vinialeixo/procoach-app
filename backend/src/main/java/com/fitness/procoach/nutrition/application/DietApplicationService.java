@@ -3,9 +3,12 @@ package com.fitness.procoach.nutrition.application;
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.coach.domain.CoachId;
+import com.fitness.procoach.assessment.application.AssessmentApplicationService;
 import com.fitness.procoach.nutrition.domain.AthleteId;
 import com.fitness.procoach.nutrition.domain.Diet;
 import com.fitness.procoach.nutrition.domain.DietId;
+import com.fitness.procoach.nutrition.domain.EnergyBalance;
+import com.fitness.procoach.nutrition.domain.EnergyBalanceCalculator;
 import com.fitness.procoach.nutrition.domain.DietObjective;
 import com.fitness.procoach.nutrition.domain.DietRepository;
 import com.fitness.procoach.nutrition.domain.DietStatus;
@@ -24,9 +27,11 @@ public class DietApplicationService {
 	private final DietRepository repository;
 	private final CoachApplicationService coachService;
 	private final AthleteAccessService athleteAccessService;
+	private final AssessmentApplicationService assessmentService;
 
 	public DietApplicationService(DietRepository repository, CoachApplicationService coachService,
-			AthleteAccessService athleteAccessService) {
+			AthleteAccessService athleteAccessService, AssessmentApplicationService assessmentService) {
+		this.assessmentService = assessmentService;
 		this.repository = repository;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
@@ -113,6 +118,26 @@ public class DietApplicationService {
 		Diet diet = findOwnedById(new DietId(dietId), userId);
 		diet.changeStatus(status);
 		return repository.save(diet);
+	}
+
+	/** Dieta com o balanço energético calculado e a avaliação que o embasou. */
+	public record DietEnergyBalance(Diet diet, AssessmentApplicationService.EnergyProfile profile,
+			EnergyBalance balance) {
+	}
+
+	/**
+	 * Déficit/superávit da dieta em relação ao GET da avaliação mais recente do
+	 * atleta (T-030/US-07). Mesma regra de posse do {@link #findOwnedById}; se o
+	 * atleta não tem avaliação, não há GET e a resposta é 409.
+	 */
+	public DietEnergyBalance energyBalance(UUID dietId, UUID userId) {
+		Diet diet = findOwnedById(new DietId(dietId), userId);
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElseThrow(() -> new IllegalStateException(
+						"Athlete has no assessment; register one to calculate the energy balance"));
+		return new DietEnergyBalance(diet, profile,
+				EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal()));
 	}
 
 	public record NewVersionCommand(UUID userId, UUID dietId, DietObjective objective,

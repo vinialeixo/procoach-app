@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -82,6 +83,26 @@ public class AssessmentApplicationService {
 			previousWeight = assessment.measurements().weightKg();
 		}
 		return views;
+	}
+
+	/** Gasto energético do atleta na avaliação mais recente (T-030). */
+	public record EnergyProfile(LocalDate assessmentDate, BigDecimal weightKg, BigDecimal tmbKcal,
+			BigDecimal getKcal) {
+	}
+
+	/**
+	 * TMB e GET da avaliação mais recente do atleta, ou vazio se ele ainda não tem
+	 * nenhuma. A posse do atleta deve ter sido validada pelo chamador.
+	 */
+	public Optional<EnergyProfile> latestEnergyProfile(UUID athleteId) {
+		List<AssessmentView> views = historyWithMetrics(athleteId);
+		if (views.isEmpty()) {
+			return Optional.empty();
+		}
+		AssessmentView latest = views.get(views.size() - 1);
+		return Optional.of(new EnergyProfile(latest.assessment().assessmentDate(),
+				latest.assessment().measurements().weightKg(), latest.metrics().tmbKcal(),
+				latest.metrics().getKcal()));
 	}
 
 	/** Uma avaliação com suas métricas (a anterior vem do histórico do mesmo atleta). */

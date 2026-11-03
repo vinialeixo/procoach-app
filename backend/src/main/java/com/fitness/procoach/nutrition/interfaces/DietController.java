@@ -119,6 +119,20 @@ public class DietController {
 		return DietResponse.from(service.changeStatus(UUID.fromString(jwt.getSubject()), id, request.status()));
 	}
 
+	@Operation(summary = "Balanço energético da dieta",
+			description = "Compara as calorias da dieta com o GET da avaliação mais recente do atleta e informa "
+					+ "déficit, manutenção (±5% do GET) ou superávit (T-030/US-07). Atleta sem avaliação retorna 409.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Balanço calculado"),
+			@ApiResponse(responseCode = "404", description = "Dieta não encontrada ou de outro coach"),
+			@ApiResponse(responseCode = "409", description = "Atleta sem avaliação para basear o cálculo") })
+	@PreAuthorize("hasRole('COACH')")
+	@GetMapping("/{id}/energy-balance")
+	public EnergyBalanceResponse energyBalance(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador da dieta") @PathVariable UUID id) {
+		return EnergyBalanceResponse.from(service.energyBalance(id, UUID.fromString(jwt.getSubject())));
+	}
+
 	/**
 	 * Retorna uma dieta pelo identificador.
 	 */

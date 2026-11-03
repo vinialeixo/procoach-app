@@ -235,4 +235,71 @@ class DietControllerTest {
 						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
 	}
+
+	// ---- T-030: balanço energético da dieta ----
+
+	private String createDiet(String coachToken, String athleteId) throws Exception {
+		MvcResult created = mockMvc.perform(post("/api/v1/diets")
+						.header("Authorization", bearer(coachToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(validRequestJson(athleteId)))
+				.andExpect(status().isCreated())
+				.andReturn();
+		return JsonPath.read(created.getResponse().getContentAsString(), "$.id");
+	}
+
+	@Test
+	void balancoEnergeticoSemAvaliacaoRetorna409() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		String dietId = createDiet(coach, athleteId);
+
+		mockMvc.perform(get("/api/v1/diets/{id}/energy-balance", dietId)
+						.header("Authorization", bearer(coach)))
+				.andExpect(status().isConflict());
+	}
+
+	@Test
+	void balancoEnergeticoUsaOGetDaAvaliacaoMaisRecente() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		String dietId = createDiet(coach, athleteId);
+
+		// Atleta: mulher nascida em 1995-07-20 -> 31 anos em 2026-09-01.
+		// TMB = 10·60 + 6,25·165 − 5·31 − 161 = 1315; GET = 1315,25 × 1,2 -> 1578.
+		mockMvc.perform(post("/api/v1/assessments")
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "athleteId": "%s",
+								  "assessmentDate": "2026-09-01",
+								  "weightKg": 60,
+								  "heightCm": 165
+								}
+								""".formatted(athleteId)))
+				.andExpect(status().isCreated());
+
+		// Dieta de 2500 kcal contra GET 1578: superávit de 922 kcal.
+		mockMvc.perform(get("/api/v1/diets/{id}/energy-balance", dietId)
+						.header("Authorization", bearer(coach)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.dietId").value(dietId))
+				.andExpect(jsonPath("$.tmbKcal").value(1315))
+				.andExpect(jsonPath("$.getKcal").value(1578))
+				.andExpect(jsonPath("$.balanceKcal").value(922))
+				.andExpect(jsonPath("$.classification").value("SURPLUS"))
+				.andExpect(jsonPath("$.basedOnAssessmentDate").value("2026-09-01"));
+	}
+
+	@Test
+	void coachNaoVeBalancoDeDietaDeOutroCoach() throws Exception {
+		String coachA = registerCoach(mockMvc, uniqueEmail("coach-a"));
+		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
+		String dietId = createDiet(coachA, registerAthlete(mockMvc, coachA));
+
+		mockMvc.perform(get("/api/v1/diets/{id}/energy-balance", dietId)
+						.header("Authorization", bearer(coachB)))
+				.andExpect(status().isNotFound());
+	}
 }
