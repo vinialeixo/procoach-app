@@ -2,6 +2,7 @@ package com.fitness.procoach.library;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,6 +41,12 @@ class ExerciseLibraryIntegrationTest {
 				List.of(new ExerciseReference("Schoenfeld", "Hypertrophy", "Human Kinetics", 2020)), coachId);
 	}
 
+	private ExerciseApplicationService.UpdateExerciseCommand updateCommand(String name, Equipment equipment) {
+		return new ExerciseApplicationService.UpdateExerciseCommand(name, List.of(MuscleGroup.PEITO), equipment,
+				"nova execução", List.of("erro novo"), List.of("progressão nova"), List.of("regressão nova"),
+				List.of("contraindicação nova"), List.of(new ExerciseReference("Autor", "Título", "Fonte", 2021)));
+	}
+
 	@Test
 	void criaEBuscaExercicioPorNome() {
 		Exercise created = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO, MuscleGroup.TRICEPS)));
@@ -61,20 +68,54 @@ class ExerciseLibraryIntegrationTest {
 	}
 
 	@Test
-	void atualizaExercicio() {
+	void editarCriaNovaVersaoEDeixaAAnteriorIntacta() {
 		Exercise created = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO)));
 
-		Exercise updated = service.update(created.getId(),
-				new ExerciseApplicationService.UpdateExerciseCommand("Supino Inclinado",
-						List.of(MuscleGroup.PEITO), Equipment.HALTERES, "nova execução",
-						List.of("erro novo"), List.of("progressão nova"), List.of("regressão nova"),
-						List.of("contraindicação nova"),
-						List.of(new ExerciseReference("Autor", "Título", "Fonte", 2021))),
+		Exercise updated = service.update(created.getId(), updateCommand("Supino Inclinado", Equipment.HALTERES),
 				coachId);
 
+		assertNotEquals(created.getId(), updated.getId());
 		assertEquals("Supino Inclinado", updated.getName());
 		assertEquals(Equipment.HALTERES, updated.getEquipment());
-		assertEquals(created.getId(), updated.getId());
+		assertEquals(2, updated.getVersion());
+		assertEquals(created.getId(), updated.getPreviousVersionId());
+		// A versão antiga continua legível por id, com o conteúdo original, mas congelada.
+		Exercise old = service.findById(created.getId());
+		assertEquals("Supino Reto", old.getName());
+		assertEquals(Equipment.BARRA_LIVRE, old.getEquipment());
+		assertTrue(old.isSuperseded());
+	}
+
+	@Test
+	void buscaEListagemMostramSoAVersaoCorrente() {
+		Exercise created = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO)));
+		Exercise updated = service.update(created.getId(), updateCommand("Supino Inclinado", Equipment.HALTERES),
+				coachId);
+
+		List<Exercise> byName = service.search("supino", null);
+		assertEquals(1, byName.size());
+		assertEquals(updated.getId(), byName.get(0).getId());
+		assertTrue(service.findAll().stream().noneMatch(e -> e.getId().equals(created.getId())));
+	}
+
+	@Test
+	void versaoAntigaNaoPodeSerEditadaNovamente() {
+		Exercise created = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO)));
+		service.update(created.getId(), updateCommand("Supino Inclinado", Equipment.HALTERES), coachId);
+
+		assertThrows(IllegalStateException.class, () -> service.update(created.getId(),
+				updateCommand("Outra edição", Equipment.BARRA_LIVRE), coachId));
+	}
+
+	@Test
+	void cadeiaDeVersoesAvancaAPartirDaCorrente() {
+		Exercise v1 = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO)));
+		Exercise v2 = service.update(v1.getId(), updateCommand("Supino Inclinado", Equipment.HALTERES), coachId);
+		Exercise v3 = service.update(v2.getId(), updateCommand("Supino Declinado", Equipment.BARRA_LIVRE), coachId);
+
+		assertEquals(3, v3.getVersion());
+		assertEquals(v2.getId(), v3.getPreviousVersionId());
+		assertTrue(service.findById(v2.getId()).isSuperseded());
 	}
 
 	@Test
@@ -125,38 +166,35 @@ class ExerciseLibraryIntegrationTest {
 	void edicaoDoExercicioFicaNoHistoricoComAntesEDepois() {
 		Exercise created = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO)));
 
-		service.update(created.getId(),
-				new ExerciseApplicationService.UpdateExerciseCommand("Supino Inclinado",
-						List.of(MuscleGroup.PEITO), Equipment.HALTERES, "nova execução",
-						List.of("erro comum"), List.of("progressão"), List.of("regressão"),
-						List.of("contraindicação"),
-						List.of(new ExerciseReference("Schoenfeld", "Hypertrophy", "Human Kinetics", 2020))),
+		Exercise updated = service.update(created.getId(), updateCommand("Supino Inclinado", Equipment.HALTERES),
 				coachId);
 
-		var log = auditService.findByAggregate(created.getId());
-		assertEquals(List.of("EXERCISE_CREATED", "EXERCISE_UPDATED"),
-				log.stream().map(l -> l.getEventType()).toList());
-		String data = log.get(1).getData();
+		assertEquals(List.of("EXERCISE_CREATED"),
+				auditService.findByAggregate(created.getId()).stream().map(l -> l.getEventType()).toList());
+		var log = auditService.findByAggregate(updated.getId());
+		assertEquals(List.of("EXERCISE_VERSIONED"), log.stream().map(l -> l.getEventType()).toList());
+		String data = log.get(0).getData();
+		assertTrue(data.contains("\"version\":2"), data);
+		assertTrue(data.contains("\"previousVersionId\":\"" + created.getId() + "\""), data);
 		assertTrue(data.contains("\"nameBefore\":\"Supino Reto\""), data);
 		assertTrue(data.contains("\"nameAfter\":\"Supino Inclinado\""), data);
 		assertTrue(data.contains("\"equipmentAfter\":\"HALTERES\""), data);
-		assertTrue(data.contains("execution"), data);
-		assertEquals(coachId, log.get(1).getActorId());
+		assertEquals(coachId, log.get(0).getActorId());
 	}
 
 	@Test
 	void editarSemMudarNadaRegistraListaDeAlteracoesVazia() {
 		Exercise created = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO)));
 
-		service.update(created.getId(),
+		Exercise updated = service.update(created.getId(),
 				new ExerciseApplicationService.UpdateExerciseCommand("Supino Reto", List.of(MuscleGroup.PEITO),
 						Equipment.BARRA_LIVRE, "Deite no banco e empurre a barra.", List.of("erro comum"),
 						List.of("progressão"), List.of("regressão"), List.of("contraindicação"),
 						List.of(new ExerciseReference("Schoenfeld", "Hypertrophy", "Human Kinetics", 2020))),
 				coachId);
 
-		var log = auditService.findByAggregate(created.getId());
-		assertTrue(log.get(1).getData().contains("\"changed\":\"\""), log.get(1).getData());
+		var log = auditService.findByAggregate(updated.getId());
+		assertTrue(log.get(0).getData().contains("\"changed\":\"\""), log.get(0).getData());
 	}
 
 	@Test

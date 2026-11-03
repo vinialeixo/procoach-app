@@ -35,12 +35,17 @@ public record ExerciseResponse(
 		@Schema(description = "Identificador de quem criou o exercício",
 				example = "2f6b1c3d-7a0e-4b5d-9c8a-1e2f3a4b5c6d") UUID createdBy,
 		@Schema(description = "Data/hora de criação do registro", example = "2026-09-01T10:15:30Z") Instant createdAt,
-		@Schema(description = "Data/hora da última atualização", example = "2026-09-01T10:15:30Z") Instant updatedAt) {
+		@Schema(description = "Data/hora da última atualização", example = "2026-09-01T10:15:30Z") Instant updatedAt,
+		@Schema(description = "Número da versão do exercício (v1, v2, ...) — editar cria uma nova versão", example = "1") int version,
+		@Schema(description = "Versão anterior na cadeia (null na v1)",
+				example = "3a4b5c6d-7e8f-4a9b-0c1d-2e3f4a5b6c7d") UUID previousVersionId,
+		@Schema(description = "true quando uma versão mais nova substituiu esta; a versão antiga continua legível "
+				+ "(treinos já prescritos apontam para ela) mas não aparece nas buscas", example = "false") boolean superseded) {
 
 	public static ExerciseResponse from(Exercise e) {
 		return new ExerciseResponse(e.getId(), e.getName(), e.getMuscleGroups(), e.getEquipment(),
 				e.getExecution(), e.getCommonErrors(), e.getProgressions(), e.getRegressions(),
 				e.getContraindications(), e.getReferences(), e.getCreatedBy(), e.getCreatedAt(),
-				e.getUpdatedAt());
+				e.getUpdatedAt(), e.getVersion(), e.getPreviousVersionId(), e.isSuperseded());
 	}
 }

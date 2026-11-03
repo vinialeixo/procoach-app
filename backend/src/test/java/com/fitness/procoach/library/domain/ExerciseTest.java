@@ -2,6 +2,8 @@ package com.fitness.procoach.library.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -101,21 +103,66 @@ class ExerciseTest {
 	}
 
 	@Test
-	void atualizaCamposEditaveisSemAlterarIdECreatedBy() {
-		Exercise e = validExercise();
-		UUID id = e.getId();
-		Instant originalCreatedAt = e.getCreatedAt();
+	void editarCriaNovaVersaoEPreservaAAnterior() {
+		Exercise v1 = validExercise();
+		Instant now = Instant.now();
 
-		e.update("Supino Inclinado", List.of(MuscleGroup.PEITO), Equipment.HALTERES,
+		Exercise v2 = v1.createNewVersion("Supino Inclinado", List.of(MuscleGroup.PEITO), Equipment.HALTERES,
 				"nova execução", List.of("erro novo"), List.of("progressão nova"),
 				List.of("regressão nova"), List.of("contraindicação nova"),
-				List.of(new ExerciseReference("Autor", "Título", "Fonte", 2021)), Instant.now());
+				List.of(new ExerciseReference("Autor", "Título", "Fonte", 2021)), now);
 
-		assertEquals(id, e.getId());
-		assertEquals(originalCreatedAt, e.getCreatedAt());
-		assertEquals(coachId, e.getCreatedBy());
-		assertEquals("Supino Inclinado", e.getName());
-		assertEquals(Equipment.HALTERES, e.getEquipment());
+		assertNotEquals(v1.getId(), v2.getId());
+		assertEquals(2, v2.getVersion());
+		assertEquals(v1.getId(), v2.getPreviousVersionId());
+		assertEquals(coachId, v2.getCreatedBy());
+		assertEquals("Supino Inclinado", v2.getName());
+		assertEquals(Equipment.HALTERES, v2.getEquipment());
+		assertFalse(v2.isSuperseded());
+		// A versão anterior fica congelada, com o conteúdo original.
+		assertTrue(v1.isSuperseded());
+		assertEquals("Supino Reto", v1.getName());
+		assertEquals(Equipment.BARRA_LIVRE, v1.getEquipment());
+		assertEquals(1, v1.getVersion());
+	}
+
+	@Test
+	void versaoSubstituidaNaoPodeSerEditadaNemRemovida() {
+		Exercise v1 = validExercise();
+		v1.createNewVersion("Supino Inclinado", List.of(MuscleGroup.PEITO), Equipment.HALTERES, "execução",
+				List.of(), List.of(), List.of(), List.of(), List.of(), Instant.now());
+
+		assertThrows(IllegalStateException.class, () -> v1.createNewVersion("Outro", List.of(MuscleGroup.PEITO),
+				Equipment.HALTERES, "execução", List.of(), List.of(), List.of(), List.of(), List.of(), Instant.now()));
+		assertThrows(IllegalStateException.class, () -> v1.delete(Instant.now()));
+	}
+
+	@Test
+	void exercicioRemovidoNaoGeraNovaVersao() {
+		Exercise e = validExercise();
+		e.delete(Instant.now());
+
+		assertThrows(IllegalStateException.class, () -> e.createNewVersion("Outro", List.of(MuscleGroup.PEITO),
+				Equipment.HALTERES, "execução", List.of(), List.of(), List.of(), List.of(), List.of(), Instant.now()));
+	}
+
+	@Test
+	void novaVersaoInvalidaNaoCongelaAAnterior() {
+		Exercise v1 = validExercise();
+
+		assertThrows(IllegalArgumentException.class, () -> v1.createNewVersion(" ", List.of(MuscleGroup.PEITO),
+				Equipment.HALTERES, "execução", List.of(), List.of(), List.of(), List.of(), List.of(), Instant.now()));
+
+		assertFalse(v1.isSuperseded());
+	}
+
+	@Test
+	void exercicioNovoComecaNaVersaoUmSemAnterior() {
+		Exercise e = validExercise();
+
+		assertEquals(1, e.getVersion());
+		assertNull(e.getPreviousVersionId());
+		assertFalse(e.isSuperseded());
 	}
 
 	@Test

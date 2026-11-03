@@ -81,6 +81,15 @@ public class ExerciseJpaEntity {
 	@Column(name = "deleted", nullable = false)
 	private boolean deleted;
 
+	@Column(name = "version", nullable = false)
+	private int version = 1;
+
+	@Column(name = "previous_version_id", unique = true)
+	private UUID previousVersionId;
+
+	@Column(name = "superseded", nullable = false)
+	private boolean superseded;
+
 	protected ExerciseJpaEntity() {
 	}
 
@@ -204,5 +213,29 @@ public class ExerciseJpaEntity {
 	/** Converte um VO de domínio para a entidade embutida. */
 	public ExerciseReferenceJpa fromDomainReference(ExerciseReference ref) {
 		return new ExerciseReferenceJpa(ref.authors(), ref.title(), ref.source(), ref.year());
+	}
+
+	public int getVersion() {
+		return version;
+	}
+
+	public void setVersion(int version) {
+		this.version = version;
+	}
+
+	public UUID getPreviousVersionId() {
+		return previousVersionId;
+	}
+
+	public void setPreviousVersionId(UUID previousVersionId) {
+		this.previousVersionId = previousVersionId;
+	}
+
+	public boolean isSuperseded() {
+		return superseded;
+	}
+
+	public void setSuperseded(boolean superseded) {
+		this.superseded = superseded;
 	}
 }

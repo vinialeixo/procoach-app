@@ -69,6 +69,9 @@ public class ExerciseRepositoryAdapter implements ExerciseRepository {
 		jpa.setCreatedAt(e.getCreatedAt());
 		jpa.setUpdatedAt(e.getUpdatedAt());
 		jpa.setDeleted(e.isDeleted());
+		jpa.setVersion(e.getVersion());
+		jpa.setPreviousVersionId(e.getPreviousVersionId());
+		jpa.setSuperseded(e.isSuperseded());
 		return jpa;
 	}
 
@@ -88,6 +91,9 @@ public class ExerciseRepositoryAdapter implements ExerciseRepository {
 				.createdAt(jpa.getCreatedAt())
 				.updatedAt(jpa.getUpdatedAt())
 				.deleted(jpa.isDeleted())
+				.version(jpa.getVersion())
+				.previousVersionId(jpa.getPreviousVersionId())
+				.superseded(jpa.isSuperseded())
 				.build();
 	}
 }

@@ -114,7 +114,7 @@
 | [ ] | **T-061** | E2 | US-05 | Backend: nível de atividade do atleta (fator do GET) — hoje a T-025 usa fator sedentário 1,2 fixo; guardar o fator por atleta/avaliação e usá-lo no cálculo do GET (e reaproveitar na T-030) | Dev | Should (sugerido) | 2 | T-025 |
 | [x] | **T-062** | E9 | US-20 | Backend: convite do atleta (primeira credencial) — coach gera link de uso único (7 dias, só o hash do token é guardado); atleta consulta e aceita sem autenticação, define a senha e abre a sessão; um acesso por atleta | Dev | Must (sugerido) | 3 | T-008, T-017 |
 | [ ] | **T-064** | E9 | US-20 | Backend: envio do convite do atleta por e-mail (hoje o coach copia o link e repassa) e reenvio | Dev | Should (sugerido) | 2 | T-062 |
-| [ ] | **T-066** | E8 | US-19 | Backend: exercício da biblioteca versionado — editar cria nova versão (v2, v3…) em vez de sobrescrever, para que treinos já prescritos não mudem retroativamente; listagens mostram só a versão corrente | Dev | Should (sugerido) | 3 | T-014, T-036 |
+| [x] | **T-066** | E8 | US-19 | Backend: exercício da biblioteca versionado — editar cria nova versão (v2, v3…) em vez de sobrescrever, para que treinos já prescritos não mudem retroativamente; listagens mostram só a versão corrente | Dev | Should (sugerido) | 3 | T-014, T-036 |
 | [ ] | **T-067** | E4 | US-10/US-12 | Backend: sessões de treino ligadas à versão do plano — cada sessão passa a pertencer a uma versão do plano (hoje plano e sessões só se ligam pela periodização); criar a v2 do plano gera as sessões da v2 e deixa a v1 intacta, para responder "o que o atleta tinha prescrito na semana N do ciclo" | Dev | Should (sugerido) | 4 | T-037, T-066 |
 | [ ] | **T-068** | E4 | US-10 | Backend: editar prescrição de exercício já criada (séries, repetições, carga, intensidade, descanso) com antes/depois no audit log (`TRAINING_EXERCISE_UPDATED`); hoje só dá para adicionar, reordenar e remover o treino inteiro | Dev | Should (sugerido) | 2 | T-014, T-037 |
 | [x] | **T-065** | E1/E3/E4 | US-38 | Backend da área do atleta (T-054/T-055): leitura somente leitura filtrada — atleta só vê a dieta APROVADA (versão aprovada mais recente), planos/treinos/periodizações ACTIVE ou FINISHED e o balanço da dieta aprovada; registros removidos não aparecem para ninguém; avaliações com `metrics` já eram acessíveis ao atleta | Dev | Must (sugerido) | 2 | T-062 |
@@ -155,8 +155,10 @@
 > **T-014 redefinida (2026-11-03)**: adicionar e reordenar exercícios do treino (`TRAINING_EXERCISE_ADDED`,
 > `TRAINING_EXERCISES_REORDERED`, com a ordem antes/depois) e criar, editar e remover exercício da biblioteca
 > (`EXERCISE_CREATED/UPDATED/DELETED`, com os campos alterados e antes/depois de nome, equipamento e grupos
-> musculares) entram no audit log. Observações livres do treino ficam de fora do histórico. Hoje a edição do
-> exercício ainda sobrescreve o registro — `T-066` torna o exercício imutável por versão.
+> musculares) entram no audit log. Observações livres do treino ficam de fora do histórico. A edição do
+> exercício deixou de sobrescrever com a `T-066`: editar cria uma nova versão (id novo, `version`+1,
+> `previousVersionId`), a anterior fica `superseded` e legível por id, e as buscas mostram só a versão
+> corrente; o evento passa a ser `EXERCISE_VERSIONED`. Migração `V803` (Postgres, não exercitada em H2).
 >
 > **Modelo de treino hoje**: a periodização (ex.: ciclo de 3 meses) tem id, datas e status, mas não contém
 > exercícios; as sessões de treino (semana/dia) guardam as prescrições (séries, repetições, carga…); o plano

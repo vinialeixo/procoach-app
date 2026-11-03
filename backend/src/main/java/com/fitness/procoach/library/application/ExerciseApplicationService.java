@@ -61,15 +61,16 @@ public class ExerciseApplicationService {
 	 */
 	@Transactional
 	public Exercise update(UUID id, UpdateExerciseCommand command, UUID requesterId) {
-		Exercise exercise = findOwned(id, requesterId);
-		Snapshot before = Snapshot.of(exercise);
-		exercise.update(command.name(), command.muscleGroups(), command.equipment(),
+		Exercise current = findOwned(id, requesterId);
+		Snapshot before = Snapshot.of(current);
+		Exercise next = current.createNewVersion(command.name(), command.muscleGroups(), command.equipment(),
 				command.execution(), command.commonErrors(), command.progressions(),
 				command.regressions(), command.contraindications(), command.references(),
 				clock.instant());
-		Exercise saved = repository.save(exercise);
-		auditService.record("Exercise", saved.getId(), null, "EXERCISE_UPDATED", requesterId,
-				before.changes(Snapshot.of(saved)));
+		repository.save(current);
+		Exercise saved = repository.save(next);
+		auditService.record("Exercise", saved.getId(), null, "EXERCISE_VERSIONED", requesterId,
+				before.changes(Snapshot.of(saved), saved.getVersion(), current.getId()));
 		return saved;
 	}
 
@@ -103,7 +104,7 @@ public class ExerciseApplicationService {
 		 * equipamento e grupos musculares), o antes e o depois. Textos longos (execução, erros
 		 * comuns etc.) entram só pelo nome do campo.
 		 */
-		String changes(Snapshot after) {
+		String changes(Snapshot after, int version, UUID previousVersionId) {
 			List<String> changed = new ArrayList<>();
 			List<Object> pairs = new ArrayList<>();
 			if (!Objects.equals(name, after.name)) {
@@ -138,7 +139,8 @@ public class ExerciseApplicationService {
 			if (!Objects.equals(references, after.references)) {
 				changed.add("references");
 			}
-			List<Object> all = new ArrayList<>(List.of("changed", String.join(",", changed)));
+			List<Object> all = new ArrayList<>(List.of("version", version, "previousVersionId",
+					previousVersionId.toString(), "changed", String.join(",", changed)));
 			all.addAll(pairs);
 			return AuditData.of(all.toArray());
 		}

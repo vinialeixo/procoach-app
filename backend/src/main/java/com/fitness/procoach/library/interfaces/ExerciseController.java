@@ -60,11 +60,12 @@ public class ExerciseController {
 		return ResponseEntity.status(HttpStatus.CREATED).body(ExerciseResponse.from(created));
 	}
 
-	@Operation(summary = "Atualizar exercício",
+	@Operation(summary = "Editar exercício (cria nova versão)",
 			description = "Atualiza os dados descritivos de um exercício da biblioteca (id, createdBy e createdAt "
 					+ "são imutáveis).")
 	@ApiResponses({
-			@ApiResponse(responseCode = "200", description = "Exercício atualizado com sucesso"),
+			@ApiResponse(responseCode = "200", description = "Nova versão criada (id novo); a anterior fica somente leitura"),
+			@ApiResponse(responseCode = "409", description = "Versão já substituída: edite a versão corrente"),
 			@ApiResponse(responseCode = "400", description = "Campos inválidos ou ausentes"),
 			@ApiResponse(responseCode = "404", description = "Exercício não encontrado ou de outro coach") })
 	// T-009/US-037: somente o coach gerencia o conteúdo da biblioteca.

@@ -31,6 +31,9 @@ public class Exercise {
 	private final Instant createdAt;
 	private Instant updatedAt;
 	private boolean deleted;
+	private final int version;
+	private final UUID previousVersionId;
+	private boolean superseded;
 
 	private Exercise(Builder builder) {
 		this.id = builder.id;
@@ -47,6 +50,9 @@ public class Exercise {
 		this.createdAt = builder.createdAt;
 		this.updatedAt = builder.updatedAt;
 		this.deleted = builder.deleted;
+		this.version = builder.version;
+		this.previousVersionId = builder.previousVersionId;
+		this.superseded = builder.superseded;
 	}
 
 	public static Builder builder() {
@@ -54,26 +60,50 @@ public class Exercise {
 	}
 
 	/**
-	 * Atualiza os campos editáveis do exercício. Nunca altera id, createdBy ou createdAt.
+	 * Edição versionada (T-066): o exercício nunca é sobrescrito. Esta versão passa a
+	 * ser a anterior (somente leitura, {@code superseded}) e a nova, com id novo,
+	 * carrega os campos editados — treinos já prescritos seguem apontando para a
+	 * versão que o coach usou. Mantém {@code createdBy}; só a versão corrente pode
+	 * ser editada.
 	 */
-	public void update(String name, List<MuscleGroup> muscleGroups, Equipment equipment,
+	public Exercise createNewVersion(String name, List<MuscleGroup> muscleGroups, Equipment equipment,
 			String execution, List<String> commonErrors, List<String> progressions,
 			List<String> regressions, List<String> contraindications,
 			List<ExerciseReference> references, Instant now) {
-		this.name = requireText(name, "name");
-		this.muscleGroups = requireNonEmpty(muscleGroups, "muscleGroups");
-		this.equipment = Objects.requireNonNull(equipment, "equipment é obrigatório");
-		this.execution = requireText(execution, "execution");
-		this.commonErrors = copy(commonErrors);
-		this.progressions = copy(progressions);
-		this.regressions = copy(regressions);
-		this.contraindications = copy(contraindications);
-		this.references = copyRefs(references);
-		this.updatedAt = Objects.requireNonNull(now, "now é obrigatório");
+		if (deleted) {
+			throw new IllegalStateException("Cannot version a deleted exercise");
+		}
+		if (superseded) {
+			throw new IllegalStateException("Exercise version has been superseded; edit the current version");
+		}
+		Objects.requireNonNull(now, "now é obrigatório");
+		// A nova versão é validada antes de congelar esta.
+		Exercise next = builder()
+				.name(name)
+				.muscleGroups(muscleGroups)
+				.equipment(equipment)
+				.execution(execution)
+				.commonErrors(copy(commonErrors))
+				.progressions(copy(progressions))
+				.regressions(copy(regressions))
+				.contraindications(copy(contraindications))
+				.references(copyRefs(references))
+				.createdBy(createdBy)
+				.createdAt(now)
+				.updatedAt(now)
+				.version(version + 1)
+				.previousVersionId(id)
+				.build();
+		this.superseded = true;
+		this.updatedAt = now;
+		return next;
 	}
 
 	/** Soft-delete: marca como excluído sem remoção física. */
 	public void delete(Instant now) {
+		if (superseded) {
+			throw new IllegalStateException("Exercise version has been superseded; delete the current version");
+		}
 		this.deleted = true;
 		this.updatedAt = Objects.requireNonNull(now, "now é obrigatório");
 	}
@@ -134,6 +164,19 @@ public class Exercise {
 		return deleted;
 	}
 
+	public int getVersion() {
+		return version;
+	}
+
+	public UUID getPreviousVersionId() {
+		return previousVersionId;
+	}
+
+	/** {@code true} quando uma versão mais nova já substituiu esta (somente leitura). */
+	public boolean isSuperseded() {
+		return superseded;
+	}
+
 	private static String requireText(String value, String field) {
 		if (value == null || value.isBlank()) {
 			throw new IllegalArgumentException(field + " é obrigatório");
@@ -171,6 +214,9 @@ public class Exercise {
 		private Instant createdAt = Instant.now();
 		private Instant updatedAt = Instant.now();
 		private boolean deleted;
+		private int version = 1;
+		private UUID previousVersionId;
+		private boolean superseded;
 
 		public Builder id(UUID id) {
 			this.id = id;
@@ -242,6 +288,21 @@ public class Exercise {
 			return this;
 		}
 
+		public Builder version(int version) {
+			this.version = version;
+			return this;
+		}
+
+		public Builder previousVersionId(UUID previousVersionId) {
+			this.previousVersionId = previousVersionId;
+			return this;
+		}
+
+		public Builder superseded(boolean superseded) {
+			this.superseded = superseded;
+			return this;
+		}
+
 		public Exercise build() {
 			Exercise exercise = new Exercise(this);
 			// valida campos obrigatórios no build
@@ -249,6 +310,9 @@ public class Exercise {
 			exercise.muscleGroups = requireNonEmpty(exercise.muscleGroups, "muscleGroups");
 			exercise.equipment = Objects.requireNonNull(exercise.equipment, "equipment é obrigatório");
 			exercise.execution = requireText(exercise.execution, "execution");
+			if (exercise.version < 1) {
+				throw new IllegalArgumentException("version deve ser >= 1");
+			}
 			if (exercise.createdBy == null) {
 				throw new NullPointerException("createdBy é obrigatório");
 			}

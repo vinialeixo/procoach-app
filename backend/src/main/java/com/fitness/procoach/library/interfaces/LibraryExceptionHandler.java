@@ -3,6 +3,7 @@ package com.fitness.procoach.library.interfaces;
 import java.time.Instant;
 import java.util.Map;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -26,6 +27,20 @@ public class LibraryExceptionHandler {
 	public ResponseEntity<Map<String, Object>> handleDomainViolation(IllegalArgumentException ex) {
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 				.body(Map.of("timestamp", Instant.now(), "status", 400, "error", ex.getMessage()));
+	}
+
+	/** Versão já substituída ou exercício removido (ex.: editar uma versão antiga). */
+	@ExceptionHandler(IllegalStateException.class)
+	public ResponseEntity<Map<String, Object>> handleConflict(IllegalStateException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+				.body(Map.of("timestamp", Instant.now(), "status", 409, "error", ex.getMessage()));
+	}
+
+	/** Duas edições simultâneas da mesma versão: a cadeia não bifurca (UNIQUE em previous_version_id). */
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	public ResponseEntity<Map<String, Object>> handleIntegrityViolation(DataIntegrityViolationException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("timestamp", Instant.now(), "status", 409,
+				"error", "Conflito: o exercício foi alterado por outra requisição. Tente novamente."));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
