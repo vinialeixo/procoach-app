@@ -1,8 +1,12 @@
 package com.fitness.procoach.training.application;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
+import com.fitness.procoach.audit.application.AuditData;
+import com.fitness.procoach.audit.application.AuditService;
+import com.fitness.procoach.training.domain.model.ExercisePrescription;
 import com.fitness.procoach.training.domain.model.Training;
 import com.fitness.procoach.training.domain.repository.TrainingRepository;
 
@@ -17,9 +21,13 @@ public class ReorderExercisesUseCase {
 
 	private final TrainingOwnershipGuard ownershipGuard;
 
-	public ReorderExercisesUseCase(TrainingRepository trainingRepository, TrainingOwnershipGuard ownershipGuard) {
+	private final AuditService auditService;
+
+	public ReorderExercisesUseCase(TrainingRepository trainingRepository, TrainingOwnershipGuard ownershipGuard,
+			AuditService auditService) {
 		this.trainingRepository = trainingRepository;
 		this.ownershipGuard = ownershipGuard;
+		this.auditService = auditService;
 	}
 
 	public Training execute(UUID trainingId, UUID userId, List<UUID> orderedPrescriptionIds) {
@@ -30,8 +38,19 @@ public class ReorderExercisesUseCase {
 		// do coach autenticado — treino de outro coach resulta em 404.
 		this.ownershipGuard.requireResourceOwnedByCoach(training.getAthleteId(), userId);
 
+		String before = order(training);
 		training.reorderExercises(orderedPrescriptionIds);
-		return this.trainingRepository.save(training);
+		Training saved = this.trainingRepository.save(training);
+		this.auditService.record("Training", saved.getId(), saved.getAthleteId(), "TRAINING_EXERCISES_REORDERED",
+				userId, AuditData.of("before", before, "after", order(saved)));
+		return saved;
 	}
 
+	/** Ids das prescrições na ordem de execução, separados por vírgula. */
+	private static String order(Training training) {
+		return training.getExercises().stream()
+			.sorted(Comparator.comparingInt(ExercisePrescription::getOrderIndex))
+			.map(e -> e.getId().toString())
+			.collect(java.util.stream.Collectors.joining(","));
+	}
 }

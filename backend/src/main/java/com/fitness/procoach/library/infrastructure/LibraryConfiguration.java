@@ -5,6 +5,7 @@ import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.library.application.ExerciseApplicationService;
 import com.fitness.procoach.library.domain.ExerciseRepository;
 
@@ -18,7 +19,8 @@ public class LibraryConfiguration {
 	}
 
 	@Bean
-	public ExerciseApplicationService exerciseApplicationService(ExerciseRepository repository, Clock clock) {
-		return new ExerciseApplicationService(repository, clock);
+	public ExerciseApplicationService exerciseApplicationService(ExerciseRepository repository, Clock clock,
+			AuditService auditService) {
+		return new ExerciseApplicationService(repository, clock, auditService);
 	}
 }

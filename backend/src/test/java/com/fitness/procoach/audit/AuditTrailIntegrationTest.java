@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -156,5 +157,59 @@ class AuditTrailIntegrationTest {
 				java.util.UUID.fromString(athleteId)).tokens().accessToken();
 
 		history(athleteToken, athleteId).andExpect(status().isForbidden());
+	}
+
+	@Test
+	void exerciciosDoTreinoSaoRegistradosComAntesEDepoisDaOrdem() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		MvcResult periodization = mockMvc.perform(post("/api/training/periodizations")
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{ \"athleteId\": \"%s\", \"name\": \"Macrociclo\", \"startDate\": \"2026-09-07\", \"endDate\": \"2026-11-29\" }"
+								.formatted(athleteId)))
+				.andExpect(status().isCreated())
+				.andReturn();
+		String periodizationId = JsonPath.read(periodization.getResponse().getContentAsString(), "$.id");
+		MvcResult training = mockMvc.perform(post("/api/training/trainings")
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{ "periodizationId": "%s", "athleteId": "%s", "name": "Treino A", "weekNumber": 1, "dayOfWeek": 1 }
+								""".formatted(periodizationId, athleteId)))
+				.andExpect(status().isCreated())
+				.andReturn();
+		String trainingId = JsonPath.read(training.getResponse().getContentAsString(), "$.id");
+
+		String exercise = """
+				{ "exerciseName": "%s", "customExercise": true, "orderIndex": %d, "sets": 4, "repetitions": 10,
+				  "load": 60.0, "intensityType": "RPE", "intensityValue": 8.0, "restSeconds": 90,
+				  "notes": "texto livre que não deve ir para o histórico" }
+				""";
+		mockMvc.perform(post("/api/training/trainings/{id}/exercises", trainingId)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(exercise.formatted("Supino", 0)))
+				.andExpect(status().isOk());
+		MvcResult withTwo = mockMvc.perform(post("/api/training/trainings/{id}/exercises", trainingId)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(exercise.formatted("Agachamento", 1)))
+				.andExpect(status().isOk())
+				.andReturn();
+		java.util.List<String> ids = JsonPath.read(withTwo.getResponse().getContentAsString(), "$.exercises[*].id");
+		mockMvc.perform(put("/api/training/trainings/{id}/exercises/reorder", trainingId)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{ \"orderedPrescriptionIds\": [\"%s\", \"%s\"] }".formatted(ids.get(1), ids.get(0))))
+				.andExpect(status().isOk());
+
+		history(coach, athleteId)
+				.andExpect(jsonPath("$[*].eventType").value(hasItems("TRAINING_EXERCISE_ADDED",
+						"TRAINING_EXERCISES_REORDERED")))
+				.andExpect(jsonPath("$[?(@.eventType==\"TRAINING_EXERCISES_REORDERED\")].data")
+						.value(hasItem(containsString(ids.get(0) + "," + ids.get(1)))))
+				.andExpect(jsonPath("$[?(@.eventType==\"TRAINING_EXERCISE_ADDED\")].data")
+						.value(org.hamcrest.Matchers.not(hasItem(containsString("texto livre")))));
 	}
 }

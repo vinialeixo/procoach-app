@@ -115,4 +115,57 @@ class ExerciseLibraryIntegrationTest {
 		assertFalse(all.isEmpty());
 		assertTrue(all.stream().noneMatch(e -> e.getId().equals(a.getId())));
 	}
+
+	// ---- histórico de alterações (T-014 redefinida) ----
+
+	@Autowired
+	private com.fitness.procoach.audit.application.AuditService auditService;
+
+	@Test
+	void edicaoDoExercicioFicaNoHistoricoComAntesEDepois() {
+		Exercise created = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO)));
+
+		service.update(created.getId(),
+				new ExerciseApplicationService.UpdateExerciseCommand("Supino Inclinado",
+						List.of(MuscleGroup.PEITO), Equipment.HALTERES, "nova execução",
+						List.of("erro comum"), List.of("progressão"), List.of("regressão"),
+						List.of("contraindicação"),
+						List.of(new ExerciseReference("Schoenfeld", "Hypertrophy", "Human Kinetics", 2020))),
+				coachId);
+
+		var log = auditService.findByAggregate(created.getId());
+		assertEquals(List.of("EXERCISE_CREATED", "EXERCISE_UPDATED"),
+				log.stream().map(l -> l.getEventType()).toList());
+		String data = log.get(1).getData();
+		assertTrue(data.contains("\"nameBefore\":\"Supino Reto\""), data);
+		assertTrue(data.contains("\"nameAfter\":\"Supino Inclinado\""), data);
+		assertTrue(data.contains("\"equipmentAfter\":\"HALTERES\""), data);
+		assertTrue(data.contains("execution"), data);
+		assertEquals(coachId, log.get(1).getActorId());
+	}
+
+	@Test
+	void editarSemMudarNadaRegistraListaDeAlteracoesVazia() {
+		Exercise created = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO)));
+
+		service.update(created.getId(),
+				new ExerciseApplicationService.UpdateExerciseCommand("Supino Reto", List.of(MuscleGroup.PEITO),
+						Equipment.BARRA_LIVRE, "Deite no banco e empurre a barra.", List.of("erro comum"),
+						List.of("progressão"), List.of("regressão"), List.of("contraindicação"),
+						List.of(new ExerciseReference("Schoenfeld", "Hypertrophy", "Human Kinetics", 2020))),
+				coachId);
+
+		var log = auditService.findByAggregate(created.getId());
+		assertTrue(log.get(1).getData().contains("\"changed\":\"\""), log.get(1).getData());
+	}
+
+	@Test
+	void remocaoDoExercicioFicaNoHistorico() {
+		Exercise created = service.create(command("Levantamento Terra", List.of(MuscleGroup.COSTAS)));
+
+		service.delete(created.getId(), coachId);
+
+		var log = auditService.findByAggregate(created.getId());
+		assertEquals("EXERCISE_DELETED", log.get(log.size() - 1).getEventType());
+	}
 }

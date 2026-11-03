@@ -24,7 +24,7 @@
 | [x] | **T-010** | E9 | US-20 | Restringir acesso do atleta apenas aos próprios dados | Dev | Must | 2 | T-009 |
 | [ ] | **T-012** | E9 | US-20 | Testes de segurança e autorização (RBAC) | QA | Must | 2 | T-010 |
 | [x] | **T-013** | E10 | US-21 | Implementar audit log imutável (append-only) | Dev | Must | 3 | T-005 |
-| [ ] | **T-014** | E10 | US-21 | Versionamento de agregados (versão/data/autor/histórico) | Dev | Must | 4 | T-005 |
+| [x] | **T-014** | E10 | US-21 | Histórico de alterações dos agregados mutáveis (exercício da biblioteca e treino): quem, quando e antes/depois no audit log. *(Redefinida em 2026-11-03: dieta e plano já versionam por cadeia própria, então o módulo `version` genérico foi descartado.)* | Dev | Must | 4 | T-005 |
 | [x] | **T-015** | E10 | US-21 | Registrar eventos: cadastro, alteração, exclusão lógica, login, aprovação | Dev | Must | 3 | T-014 |
 | [x] | **T-046** | E0 | Fundação | Criar módulo de domínio security + agregado User/Role (com.fitness.procoach.security) | Dev | Must | 2 | T-004 |
 | [x] | **T-047** | E0 | Fundação | Criar módulo cross-cutting audit + agregado AuditLog/Version (com.fitness.procoach.audit) | Dev | Must | 2 | T-004 |
@@ -114,6 +114,7 @@
 | [ ] | **T-061** | E2 | US-05 | Backend: nível de atividade do atleta (fator do GET) — hoje a T-025 usa fator sedentário 1,2 fixo; guardar o fator por atleta/avaliação e usá-lo no cálculo do GET (e reaproveitar na T-030) | Dev | Should (sugerido) | 2 | T-025 |
 | [x] | **T-062** | E9 | US-20 | Backend: convite do atleta (primeira credencial) — coach gera link de uso único (7 dias, só o hash do token é guardado); atleta consulta e aceita sem autenticação, define a senha e abre a sessão; um acesso por atleta | Dev | Must (sugerido) | 3 | T-008, T-017 |
 | [ ] | **T-064** | E9 | US-20 | Backend: envio do convite do atleta por e-mail (hoje o coach copia o link e repassa) e reenvio | Dev | Should (sugerido) | 2 | T-062 |
+| [ ] | **T-066** | E8 | US-19 | Backend: exercício da biblioteca versionado — editar cria nova versão (v2, v3…) em vez de sobrescrever, para que treinos já prescritos não mudem retroativamente; listagens mostram só a versão corrente | Dev | Should (sugerido) | 3 | T-014, T-036 |
 | [x] | **T-065** | E1/E3/E4 | US-38 | Backend da área do atleta (T-054/T-055): leitura somente leitura filtrada — atleta só vê a dieta APROVADA (versão aprovada mais recente), planos/treinos/periodizações ACTIVE ou FINISHED e o balanço da dieta aprovada; registros removidos não aparecem para ninguém; avaliações com `metrics` já eram acessíveis ao atleta | Dev | Must (sugerido) | 2 | T-062 |
 
 > `T-057`/`T-058` identificadas em 2026-09-02: nenhuma task original cria o agregado
@@ -149,6 +150,11 @@
 > `T-014` (versionamento genérico de agregados) segue em aberto: dieta e plano já versionam por cadeia
 > própria (`previousVersionId`), então o módulo `version` genérico ainda não tem uso — decidir se a task é
 > dada como coberta ou redefinida. `T-043` (LGPD) pode partir deste histórico.
+> **T-014 redefinida (2026-11-03)**: adicionar e reordenar exercícios do treino (`TRAINING_EXERCISE_ADDED`,
+> `TRAINING_EXERCISES_REORDERED`, com a ordem antes/depois) e criar, editar e remover exercício da biblioteca
+> (`EXERCISE_CREATED/UPDATED/DELETED`, com os campos alterados e antes/depois de nome, equipamento e grupos
+> musculares) entram no audit log. Observações livres do treino ficam de fora do histórico. Hoje a edição do
+> exercício ainda sobrescreve o registro — `T-066` torna o exercício imutável por versão.
 
 > **Épico E9 / US-20 concluído em 2026-09-04** (T-008 a T-011): autenticação JWT
 > (AccessToken + RefreshToken), MFA/TOTP (setup/verify/confirm), RBAC
