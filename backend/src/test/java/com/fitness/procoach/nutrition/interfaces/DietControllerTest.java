@@ -302,4 +302,73 @@ class DietControllerTest {
 						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
 	}
+
+	// ---- T-030: visão do atleta ----
+
+	@Autowired
+	private com.fitness.procoach.security.application.AuthService authService;
+
+	private String athleteToken(String athleteId) {
+		return authService.registerAthleteCredential(uniqueEmail("atleta"), "senha-Forte-123", java.util.UUID.fromString(athleteId))
+				.tokens().accessToken();
+	}
+
+	private void registerAssessment(String coach, String athleteId) throws Exception {
+		mockMvc.perform(post("/api/v1/assessments")
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "athleteId": "%s",
+								  "assessmentDate": "2026-09-01",
+								  "weightKg": 60,
+								  "heightCm": 165
+								}
+								""".formatted(athleteId)))
+				.andExpect(status().isCreated());
+	}
+
+	@Test
+	void atletaVeOProprioBalancoEnergetico() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		createDiet(coach, athleteId);
+		registerAssessment(coach, athleteId);
+
+		mockMvc.perform(get("/api/v1/diets/energy-balance").param("athleteId", athleteId)
+						.header("Authorization", bearer(athleteToken(athleteId))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.getKcal").value(1578))
+				.andExpect(jsonPath("$.balanceKcal").value(922))
+				.andExpect(jsonPath("$.classification").value("SURPLUS"));
+	}
+
+	@Test
+	void atletaNaoVeBalancoDeOutroAtleta() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteA = registerAthlete(mockMvc, coach);
+		String athleteB = registerAthlete(mockMvc, coach);
+		createDiet(coach, athleteB);
+		registerAssessment(coach, athleteB);
+
+		mockMvc.perform(get("/api/v1/diets/energy-balance").param("athleteId", athleteB)
+						.header("Authorization", bearer(athleteToken(athleteA))))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void coachVeBalancoDoAtletaDaPropriaCarteiraEOutroCoachNao() throws Exception {
+		String coachA = registerCoach(mockMvc, uniqueEmail("coach-a"));
+		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
+		String athleteId = registerAthlete(mockMvc, coachA);
+		createDiet(coachA, athleteId);
+		registerAssessment(coachA, athleteId);
+
+		mockMvc.perform(get("/api/v1/diets/energy-balance").param("athleteId", athleteId)
+						.header("Authorization", bearer(coachA)))
+				.andExpect(status().isOk());
+		mockMvc.perform(get("/api/v1/diets/energy-balance").param("athleteId", athleteId)
+						.header("Authorization", bearer(coachB)))
+				.andExpect(status().isNotFound());
+	}
 }

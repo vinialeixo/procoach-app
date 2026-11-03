@@ -131,7 +131,19 @@ public class DietApplicationService {
 	 * atleta não tem avaliação, não há GET e a resposta é 409.
 	 */
 	public DietEnergyBalance energyBalance(UUID dietId, UUID userId) {
-		Diet diet = findOwnedById(new DietId(dietId), userId);
+		return balanceOf(findOwnedById(new DietId(dietId), userId));
+	}
+
+	/**
+	 * Balanço da versão mais recente da dieta do atleta (visão do atleta e do
+	 * coach). A posse/autorização do atleta deve ter sido validada pelo chamador
+	 * (guard do JWT e, para coach, a carteira). Atleta sem dieta resulta em 404.
+	 */
+	public DietEnergyBalance latestEnergyBalance(UUID athleteId) {
+		return balanceOf(latestByAthlete(athleteId));
+	}
+
+	private DietEnergyBalance balanceOf(Diet diet) {
 		AssessmentApplicationService.EnergyProfile profile = assessmentService
 				.latestEnergyProfile(diet.athleteId().value())
 				.orElseThrow(() -> new IllegalStateException(

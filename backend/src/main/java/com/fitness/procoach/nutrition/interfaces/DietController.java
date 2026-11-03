@@ -119,6 +119,25 @@ public class DietController {
 		return DietResponse.from(service.changeStatus(UUID.fromString(jwt.getSubject()), id, request.status()));
 	}
 
+	@Operation(summary = "Balanço energético da dieta atual do atleta",
+			description = "Balanço (déficit/manutenção/superávit) da versão mais recente da dieta do atleta, "
+					+ "contra o GET da avaliação mais recente. O atleta consulta o próprio balanço (claim athleteId "
+					+ "do JWT); o coach, o de atletas da própria carteira. 404 sem dieta; 409 sem avaliação.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Balanço calculado"),
+			@ApiResponse(responseCode = "403", description = "Atleta consultando dados de outro atleta"),
+			@ApiResponse(responseCode = "404", description = "Atleta sem dieta, ou atleta de outro coach"),
+			@ApiResponse(responseCode = "409", description = "Atleta sem avaliação para basear o cálculo") })
+	// T-010/US-038: atleta só consulta os próprios dados (claim athleteId do JWT).
+	// T-058: coach só consulta atletas da própria carteira.
+	@PreAuthorize("@athleteGuard.canAccess(authentication, #athleteId)")
+	@GetMapping("/energy-balance")
+	public EnergyBalanceResponse athleteEnergyBalance(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
+		requireCoachOwnsAthlete(jwt, athleteId);
+		return EnergyBalanceResponse.from(service.latestEnergyBalance(athleteId));
+	}
+
 	@Operation(summary = "Balanço energético da dieta",
 			description = "Compara as calorias da dieta com o GET da avaliação mais recente do atleta e informa "
 					+ "déficit, manutenção (±5% do GET) ou superávit (T-030/US-07). Atleta sem avaliação retorna 409.")

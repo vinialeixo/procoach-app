@@ -178,6 +178,37 @@ async function changeDietStatus(
   return toDietVersion(data);
 }
 
+// --- Balanço energético (T-030) ---------------------------------------------
+
+export type EnergyClassification = "DEFICIT" | "MAINTENANCE" | "SURPLUS";
+
+// Calorias da dieta atual contra o GET da avaliação mais recente. Calculado
+// pelo núcleo (GET /diets/energy-balance?athleteId=) — o front só exibe.
+export type EnergyBalance = {
+  dietId: string;
+  calories: number;
+  tmbKcal: number;
+  getKcal: number;
+  balanceKcal: number; // calorias da dieta - GET; negativo = déficit
+  balancePercent: number;
+  classification: EnergyClassification;
+  basedOnAssessmentDate: string; // ISO yyyy-mm-dd
+  weightKg: number;
+};
+
+export const CLASSIFICATION_LABEL: Record<EnergyClassification, string> = {
+  DEFICIT: "Déficit",
+  MAINTENANCE: "Manutenção",
+  SURPLUS: "Superávit",
+};
+
+async function getEnergyBalance(athleteId: string): Promise<EnergyBalance> {
+  const { data } = await apiClient.get<EnergyBalance>("/diets/energy-balance", {
+    params: { athleteId },
+  });
+  return data;
+}
+
 // Versão corrente da cadeia: a única que o domínio permite mutar (não está
 // readOnly nem deleted). Na prática é sempre a de maior número — v(n) vira
 // readOnly assim que v(n+1) é criada a partir dela.
@@ -238,5 +269,16 @@ export function useChangeDietStatus(athleteId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["diets", athleteId] });
     },
+  });
+}
+
+// 404 (atleta sem dieta) e 409 (sem avaliação) são estados esperados da tela,
+// não falhas transitórias: sem retry.
+export function useEnergyBalance(athleteId: string) {
+  return useQuery({
+    queryKey: ["diets", "energy-balance", athleteId],
+    queryFn: () => getEnergyBalance(athleteId),
+    enabled: Boolean(athleteId),
+    retry: false,
   });
 }
