@@ -74,6 +74,7 @@
 | [ ] | **T-072** | E4/E3 | US-38 | Front: avisos do atleta — sino com contagem de não lidos, lista de avisos e marcar como lido (`/api/v1/notifications`; só o atleta acessa) | Dev | Should (sugerido) | 3 | T-070, T-054 |
 | [ ] | **T-073** | E4 | US-10 | Front: coach edita e remove prescrições do treino (inclusive ativo), com o aviso "há versão mais nova" do exercício e botão para trocar pela versão corrente | Dev | Should (sugerido) | 3 | T-068, T-069, T-040 |
 | [ ] | **T-074** | E4 | US-10/US-12 | Front: versões do plano de treino — o coach cria a nova versão (que copia as sessões), compara e publica; o atleta vê as sessões da versão corrente e o histórico das anteriores (`planId` nas sessões; `?planId=` na listagem) | Dev | Should (sugerido) | 4 | T-067, T-040 |
+| [ ] | **T-075** | E4/E3 | US-38 | Front: preferências de aviso do atleta (e-mail e push) e registro do dispositivo para push (`GET/PUT /api/v1/notifications/preferences`, `POST/DELETE /api/v1/notifications/devices`) | Dev | Should (sugerido) | 2 | T-071, T-072 |
 | [x] | **T-063** | E9 | US-20 | Front: convite do atleta — botão "Convidar para o app" na ficha (gera e copia o link) e tela pública /convite/:token para o atleta definir a senha | Dev | Must (sugerido) | 2 | T-062 |
 
 > **MFA/TOTP desligado em 2026-11-03** (decisão do time, backlog `T-059`/`T-060`): o login passa a

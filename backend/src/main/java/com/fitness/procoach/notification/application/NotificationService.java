@@ -5,6 +5,7 @@ import com.fitness.procoach.notification.domain.NotificationRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,8 +19,11 @@ public class NotificationService {
 
 	private final NotificationRepository repository;
 
-	public NotificationService(NotificationRepository repository) {
+	private final ApplicationEventPublisher events;
+
+	public NotificationService(NotificationRepository repository, ApplicationEventPublisher events) {
 		this.repository = repository;
+		this.events = events;
 	}
 
 	/** Visão de leitura de um aviso. */
@@ -35,8 +39,11 @@ public class NotificationService {
 	@Transactional
 	public NotificationView notifyAthlete(UUID athleteId, String type, String message, String referenceType,
 			UUID referenceId) {
-		return NotificationView.of(repository
-				.save(Notification.create(athleteId, type, message, referenceType, referenceId, Instant.now())));
+		Notification saved = repository
+				.save(Notification.create(athleteId, type, message, referenceType, referenceId, Instant.now()));
+		// A entrega por e-mail/push só acontece depois do commit da ação que gerou o aviso.
+		events.publishEvent(new NotificationCreatedEvent(saved.getId()));
+		return NotificationView.of(saved);
 	}
 
 	/** Avisos do atleta, mais recentes primeiro. A autorização (o próprio atleta) é do chamador. */

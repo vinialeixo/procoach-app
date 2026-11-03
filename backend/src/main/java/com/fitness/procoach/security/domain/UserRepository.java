@@ -18,4 +18,7 @@ public interface UserRepository {
 
 	/** Já existe credencial vinculada a este atleta? */
 	boolean existsByAthleteId(UUID athleteId);
+
+	/** Credencial vinculada ao atleta, se ele já criou o acesso. */
+	Optional<User> findByAthleteId(UUID athleteId);
 }

@@ -118,7 +118,8 @@
 | [x] | **T-067** | E4 | US-10/US-12 | Backend: sessões de treino ligadas à versão do plano — cada sessão pertence a uma versão do plano (`planId`, obrigatório na criação); criar a v2 copia as sessões da v1 (em rascunho, prescrições com ids novos) e deixa a v1 intacta; ativar a v2 publica as sessões novas, encerra a v1 e as sessões dela como histórico (FINISHED) e avisa o atleta | Dev | Should (sugerido) | 4 | T-037, T-066 |
 | [x] | **T-068** | E4 | US-10 | Backend: editar prescrição de exercício já criada (séries, repetições, carga, intensidade, descanso, nome, observações) com antes/depois no audit log (`TRAINING_EXERCISE_UPDATED`); inclui remover prescrição (`TRAINING_EXERCISE_REMOVED`) e trocar pela versão corrente do exercício da biblioteca. *(Ampliada em 2026-11-03: vale também para treino ativo, com aviso ao atleta — ver T-070.)* | Dev | Should (sugerido) | 2 | T-014, T-037 |
 | [x] | **T-070** | E4/E3 | US-38 | Backend: avisos in-app ao atleta — o coach edita (adiciona, ajusta, remove ou reordena) um treino ativo ou aprova uma dieta e o atleta recebe um aviso na mesma transação; o atleta lista, marca como lido e marca todos (`/api/v1/notifications`); treino em rascunho ou revisão não avisa | Dev | Must (sugerido) | 3 | T-068 |
-| [ ] | **T-071** | E4/E3 | US-38 | Backend: canais externos do aviso ao atleta (e-mail e push) e preferências de aviso; hoje o aviso existe só dentro do app | Dev | Should (sugerido) | 3 | T-070 |
+| [x] | **T-071** | E4/E3 | US-38 | Backend: canais externos do aviso ao atleta — e-mail (SMTP, desligado por padrão) e push (porta `PushGateway`), com preferência por canal, registro de dispositivos, rastro de entrega e repetição das falhas (até 3 tentativas); entrega só depois do commit e fora da requisição do coach | Dev | Should (sugerido) | 3 | T-070 |
+| [ ] | **T-076** | E4/E3 | US-38 | Backend: provedor de push de verdade (FCM/APNs/Web Push) como implementação de `PushGateway`, com credenciais por ambiente e remoção de tokens inválidos; hoje só existe o provedor `log` | Dev | Should (sugerido) | 2 | T-071 |
 | [x] | **T-069** | E4/E8 | US-19 | Backend: aviso de versão mais nova do exercício nas prescrições — cada prescrição de exercício da biblioteca traz `exerciseVersion`, `newerVersionAvailable` e `currentExerciseId` (segue a cadeia até a versão corrente; sem aviso se a corrente foi removida); a prescrição continua apontando para a versão que o coach usou | Dev | Should (sugerido) | 1 | T-066 |
 | [x] | **T-065** | E1/E3/E4 | US-38 | Backend da área do atleta (T-054/T-055): leitura somente leitura filtrada — atleta só vê a dieta APROVADA (versão aprovada mais recente), planos/treinos/periodizações ACTIVE ou FINISHED e o balanço da dieta aprovada; registros removidos não aparecem para ninguém; avaliações com `metrics` já eram acessíveis ao atleta | Dev | Must (sugerido) | 2 | T-062 |
 
@@ -175,7 +176,7 @@
 > **Regra de edição do treino mudou (2026-11-03)**: o treino **ativo** agora aceita adicionar, ajustar, remover e
 > reordenar exercícios (antes só rascunho e revisão); treino finalizado ou removido continua recusando (409). Como o
 > atleta já enxerga o treino ativo, cada alteração gera o aviso `TRAINING_CHANGED` para ele e fica no histórico com
-> antes/depois. Aprovar uma dieta gera `DIET_APPROVED`. Os avisos são in-app (`T-070`); e-mail e push ficam na `T-071`.
+> antes/depois. Aprovar uma dieta gera `DIET_APPROVED`. Os avisos são in-app (`T-070`) e também saem por e-mail e push (`T-071`).
 >
 > **Sessões ligadas à versão do plano (T-067, 2026-11-03)**: `POST /api/training/trainings` agora exige `planId` (plano do
 > mesmo atleta e da mesma periodização; versão finalizada recusa com 409) e `GET /trainings/athlete/{id}` aceita
@@ -184,6 +185,15 @@
 > (`TRAINING_PLAN_PUBLISHED`). A edição no lugar (`T-068`) segue valendo para ajustes pequenos; a nova versão serve para
 > revisões maiores. Migração `V805` (Postgres) liga as sessões já existentes ao plano ativo ou mais recente da
 > periodização — não exercitada em H2.
+>
+> **Canais externos do aviso (T-071, 2026-11-03)**: depois do commit da ação do coach, cada aviso é entregue em um
+> executor próprio pelos canais disponíveis, respeitando a preferência do atleta (`GET/PUT /api/v1/notifications/preferences`,
+> padrão: tudo ligado; o aviso no app sempre existe). E-mail por SMTP usa `spring.mail.*` e fica desligado até
+> `procoach.notification.email.enabled=true` (`PROCOACH_EMAIL_ENABLED`); o destino é o e-mail de acesso do atleta. Push usa
+> `POST/DELETE /api/v1/notifications/devices` e só funciona com um provedor (`procoach.notification.push.provider`:
+> `none` por padrão, `log` só registra no log; FCM/APNs entram em `T-076`). Cada tentativa fica em `notification_delivery`
+> (SENT, FAILED, SKIPPED sem destino) e as falhas são repetidas a cada 5 min até 3 tentativas. Falha de canal nunca
+> derruba a ação do coach. Migração `V806` (Postgres), não exercitada em H2.
 
 > **Épico E9 / US-20 concluído em 2026-09-04** (T-008 a T-011): autenticação JWT
 > (AccessToken + RefreshToken), MFA/TOTP (setup/verify/confirm), RBAC

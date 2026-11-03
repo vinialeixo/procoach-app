@@ -45,6 +45,12 @@ public class JpaUserRepository implements UserRepository {
 
 	@Override
 	@Transactional(readOnly = true)
+	public Optional<User> findByAthleteId(UUID athleteId) {
+		return jpaRepository.findByAthleteId(athleteId).map(UserMapper::toDomain);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
 	public boolean existsByAthleteId(UUID athleteId) {
 		return jpaRepository.existsByAthleteId(athleteId);
 	}
