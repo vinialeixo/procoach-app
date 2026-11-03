@@ -2,6 +2,7 @@ package com.fitness.procoach.training.application;
 
 import com.fitness.procoach.notification.application.NotificationService;
 import com.fitness.procoach.training.domain.model.Training;
+import com.fitness.procoach.training.domain.model.TrainingPlan;
 import com.fitness.procoach.training.domain.model.TrainingStatus;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +16,18 @@ public class TrainingNotifier {
 
 	public static final String TYPE_TRAINING_CHANGED = "TRAINING_CHANGED";
 
+	public static final String TYPE_PLAN_PUBLISHED = "TRAINING_PLAN_PUBLISHED";
+
 	private final NotificationService notificationService;
 
 	public TrainingNotifier(NotificationService notificationService) {
 		this.notificationService = notificationService;
+	}
+
+	/** Plano publicado (v1 ativada ou nova versão ativada): o atleta passa a ver as sessões dele. */
+	public void planPublished(TrainingPlan plan, String message) {
+		notificationService.notifyAthlete(plan.getAthleteId(), TYPE_PLAN_PUBLISHED, message, "TrainingPlan",
+				plan.getId());
 	}
 
 	public void trainingChanged(Training training, String message) {

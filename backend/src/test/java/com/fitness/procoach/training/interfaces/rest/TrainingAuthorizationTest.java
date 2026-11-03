@@ -64,17 +64,18 @@ class TrainingAuthorizationTest {
 				""".formatted(athleteId, periodizationId);
 	}
 
-	private String trainingJson(String athleteId, String periodizationId) {
+	private String trainingJson(String athleteId, String periodizationId, String planId) {
 		return """
 				{
 				  "periodizationId": "%s",
+				  "planId": "%s",
 				  "athleteId": "%s",
 				  "name": "Treino A - Peito e Tríceps",
 				  "description": "Ênfase em força",
 				  "weekNumber": 1,
 				  "dayOfWeek": 1
 				}
-				""".formatted(periodizationId, athleteId);
+				""".formatted(periodizationId, planId, athleteId);
 	}
 
 	private String exerciseJson() {
@@ -117,10 +118,15 @@ class TrainingAuthorizationTest {
 	}
 
 	private String createTraining(String token, String athleteId, String periodizationId) throws Exception {
+		return createTraining(token, athleteId, periodizationId, createPlan(token, athleteId, periodizationId));
+	}
+
+	private String createTraining(String token, String athleteId, String periodizationId, String planId)
+			throws Exception {
 		MvcResult created = mockMvc.perform(post("/api/training/trainings")
 						.header("Authorization", bearer(token))
 						.contentType(MediaType.APPLICATION_JSON)
-						.content(trainingJson(athleteId, periodizationId)))
+						.content(trainingJson(athleteId, periodizationId, planId)))
 				.andExpect(status().isCreated())
 				.andReturn();
 		return JsonPath.read(created.getResponse().getContentAsString(), "$.id");
@@ -386,11 +392,13 @@ class TrainingAuthorizationTest {
 		String athleteOfB = registerAthlete(mockMvc, coachB);
 		String periodizationOfA = createPeriodization(coachA, athleteOfA);
 
-		// Coach B usa o próprio atleta, mas a periodização do coach A -> 404.
+		String planOfB = createPlan(coachB, athleteOfB, createPeriodization(coachB, athleteOfB));
+
+		// Coach B usa o próprio atleta e o próprio plano, mas a periodização do coach A -> 404.
 		mockMvc.perform(post("/api/training/trainings")
 						.header("Authorization", bearer(coachB))
 						.contentType(MediaType.APPLICATION_JSON)
-						.content(trainingJson(athleteOfB, periodizationOfA)))
+						.content(trainingJson(athleteOfB, periodizationOfA, planOfB)))
 				.andExpect(status().isNotFound());
 		mockMvc.perform(post("/api/training/plans")
 						.header("Authorization", bearer(coachB))

@@ -1,12 +1,15 @@
 package com.fitness.procoach.training.application;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.fitness.procoach.training.domain.event.TrainingPlanCreatedEvent;
 import com.fitness.procoach.audit.application.AuditData;
 import com.fitness.procoach.audit.application.AuditService;
+import com.fitness.procoach.training.domain.model.Training;
 import com.fitness.procoach.training.domain.model.TrainingPlan;
 import com.fitness.procoach.training.domain.repository.TrainingPlanRepository;
+import com.fitness.procoach.training.domain.repository.TrainingRepository;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -24,13 +27,16 @@ public class CreateTrainingPlanVersionUseCase {
 
 	private final AuditService auditService;
 
+	private final TrainingRepository trainingRepository;
+
 	public CreateTrainingPlanVersionUseCase(TrainingPlanRepository trainingPlanRepository,
 			ApplicationEventPublisher eventPublisher, TrainingOwnershipGuard ownershipGuard,
-			AuditService auditService) {
+			AuditService auditService, TrainingRepository trainingRepository) {
 		this.trainingPlanRepository = trainingPlanRepository;
 		this.eventPublisher = eventPublisher;
 		this.ownershipGuard = ownershipGuard;
 		this.auditService = auditService;
+		this.trainingRepository = trainingRepository;
 	}
 
 	public TrainingPlan execute(UUID currentPlanId, UUID userId, String newName, String newDescription) {
@@ -44,8 +50,15 @@ public class CreateTrainingPlanVersionUseCase {
 		TrainingPlan newVersion = current.createNewVersion(newName, newDescription);
 		TrainingPlan saved = this.trainingPlanRepository.save(newVersion);
 
+		// T-067: a nova versão nasce com uma cópia das sessões da versão de origem (em rascunho); as
+		// sessões da origem continuam intactas, como o atleta as viu.
+		List<Training> originSessions = this.trainingRepository.findByPlanIdAndDeletedFalse(current.getId());
+		for (Training session : originSessions) {
+			this.trainingRepository.save(session.copyForNewPlanVersion(saved.getId()));
+		}
 		this.auditService.record("TrainingPlan", saved.getId(), saved.getAthleteId(), "TRAINING_PLAN_VERSIONED", userId,
-				AuditData.of("version", saved.getVersion(), "previousVersionId", saved.getPreviousVersionId()));
+				AuditData.of("version", saved.getVersion(), "previousVersionId", saved.getPreviousVersionId(),
+						"copiedTrainings", originSessions.size()));
 		this.eventPublisher.publishEvent(new TrainingPlanCreatedEvent(saved.getId(), saved.getPeriodizationId(),
 				saved.getAthleteId(), saved.getCoachId(), saved.getName(), saved.getVersion(),
 				saved.getPreviousVersionId()));

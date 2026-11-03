@@ -23,4 +23,7 @@ public interface TrainingRepository {
 
 	List<Training> findByPeriodizationIdAndDeletedFalse(UUID periodizationId);
 
+	/** Sessões (não removidas) de uma versão do plano. */
+	List<Training> findByPlanIdAndDeletedFalse(UUID planId);
+
 }

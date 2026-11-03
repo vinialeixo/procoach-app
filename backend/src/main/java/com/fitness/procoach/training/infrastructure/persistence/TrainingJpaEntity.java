@@ -28,6 +28,9 @@ public class TrainingJpaEntity {
 	@Column(name = "periodization_id", nullable = false)
 	private UUID periodizationId;
 
+	@Column(name = "plan_id")
+	private UUID planId;
+
 	@Column(name = "athlete_id", nullable = false)
 	private UUID athleteId;
 
@@ -75,6 +78,14 @@ public class TrainingJpaEntity {
 
 	public void setId(UUID id) {
 		this.id = id;
+	}
+
+	public UUID getPlanId() {
+		return this.planId;
+	}
+
+	public void setPlanId(UUID planId) {
+		this.planId = planId;
 	}
 
 	public UUID getPeriodizationId() {

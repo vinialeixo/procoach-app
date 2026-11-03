@@ -19,4 +19,6 @@ interface TrainingSpringDataRepository extends JpaRepository<TrainingJpaEntity, 
 
 	List<TrainingJpaEntity> findByPeriodizationIdAndDeletedFalse(UUID periodizationId);
 
+	List<TrainingJpaEntity> findByPlanIdAndDeletedFalse(UUID planId);
+
 }

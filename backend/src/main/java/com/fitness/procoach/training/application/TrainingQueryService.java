@@ -113,10 +113,17 @@ public class TrainingQueryService {
 	 * em revisão ficam só com o coach.
 	 */
 	public List<Training> findTrainingsByAthlete(UUID athleteId, TrainingStatus status, boolean athleteView) {
+		return findTrainingsByAthlete(athleteId, status, null, athleteView);
+	}
+
+	/** Igual ao anterior, com filtro opcional por versão do plano ({@code planId}). */
+	public List<Training> findTrainingsByAthlete(UUID athleteId, TrainingStatus status, UUID planId,
+			boolean athleteView) {
 		List<Training> base = (status != null) ? findTrainingsByAthleteAndStatus(athleteId, status)
 				: findTrainingsByAthlete(athleteId);
 		return base.stream()
 			.filter(t -> !t.isDeleted())
+			.filter(t -> planId == null || planId.equals(t.getPlanId()))
 			.filter(t -> !athleteView || ATHLETE_VISIBLE.contains(t.getStatus()))
 			.toList();
 	}

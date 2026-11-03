@@ -9,7 +9,10 @@ import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.training.domain.event.TrainingCreatedEvent;
 import com.fitness.procoach.training.domain.model.Periodization;
 import com.fitness.procoach.training.domain.model.Training;
+import com.fitness.procoach.training.domain.model.TrainingPlan;
+import com.fitness.procoach.training.domain.model.TrainingStatus;
 import com.fitness.procoach.training.domain.repository.PeriodizationRepository;
+import com.fitness.procoach.training.domain.repository.TrainingPlanRepository;
 import com.fitness.procoach.training.domain.repository.TrainingRepository;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -32,19 +35,23 @@ public class CreateTrainingUseCase {
 
 	private final AuditService auditService;
 
+	private final TrainingPlanRepository trainingPlanRepository;
+
 	public CreateTrainingUseCase(TrainingRepository trainingRepository, PeriodizationRepository periodizationRepository,
 			ApplicationEventPublisher eventPublisher, CoachApplicationService coachService,
-			AthleteAccessService athleteAccessService, AuditService auditService) {
+			AthleteAccessService athleteAccessService, AuditService auditService,
+			TrainingPlanRepository trainingPlanRepository) {
 		this.trainingRepository = trainingRepository;
 		this.periodizationRepository = periodizationRepository;
 		this.eventPublisher = eventPublisher;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
 		this.auditService = auditService;
+		this.trainingPlanRepository = trainingPlanRepository;
 	}
 
-	public Training execute(UUID periodizationId, UUID athleteId, UUID userId, String name, String description,
-			int weekNumber, int dayOfWeek) {
+	public Training execute(UUID periodizationId, UUID planId, UUID athleteId, UUID userId, String name,
+			String description, int weekNumber, int dayOfWeek) {
 		// T-058: o coachId nunca vem do request — é resolvido server-side a partir
 		// do usuário autenticado, e o atleta-alvo precisa pertencer a esse coach.
 		UUID coachId = coachService.requireCoachIdByUserId(userId).value();
@@ -57,7 +64,20 @@ public class CreateTrainingUseCase {
 			throw new TrainingResourceNotFoundException("Periodization not found: " + periodizationId);
 		}
 
-		Training training = Training.create(periodization.getId(), athleteId, coachId, name, description, weekNumber,
+		// A sessão pertence a uma versão do plano (T-067): o plano precisa ser deste atleta e desta
+		// periodização, senão 404. Versão finalizada não recebe sessões novas.
+		TrainingPlan plan = this.trainingPlanRepository.findById(planId)
+			.filter(p -> !p.isDeleted())
+			.orElseThrow(() -> new TrainingResourceNotFoundException("TrainingPlan not found: " + planId));
+		if (!plan.getAthleteId().equals(athleteId) || !plan.getPeriodizationId().equals(periodization.getId())) {
+			throw new TrainingResourceNotFoundException("TrainingPlan not found: " + planId);
+		}
+		if (plan.getStatus() == TrainingStatus.FINISHED) {
+			throw new IllegalStateException("Plan version is finished; create a new version to add sessions");
+		}
+
+		Training training = Training.create(periodization.getId(), plan.getId(), athleteId, coachId, name, description,
+				weekNumber,
 				dayOfWeek);
 		Training saved = this.trainingRepository.save(training);
 

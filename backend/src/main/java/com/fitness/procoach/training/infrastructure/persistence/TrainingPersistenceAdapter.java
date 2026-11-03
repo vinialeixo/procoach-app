@@ -60,10 +60,16 @@ public class TrainingPersistenceAdapter implements TrainingRepository {
 			.toList();
 	}
 
+	@Override
+	public List<Training> findByPlanIdAndDeletedFalse(UUID planId) {
+		return this.springDataRepository.findByPlanIdAndDeletedFalse(planId).stream().map(this::toDomain).toList();
+	}
+
 	private TrainingJpaEntity toEntity(Training domain) {
 		TrainingJpaEntity entity = new TrainingJpaEntity();
 		entity.setId(domain.getId());
 		entity.setPeriodizationId(domain.getPeriodizationId());
+		entity.setPlanId(domain.getPlanId());
 		entity.setAthleteId(domain.getAthleteId());
 		entity.setCoachId(domain.getCoachId());
 		entity.setName(domain.getName());
@@ -104,7 +110,8 @@ public class TrainingPersistenceAdapter implements TrainingRepository {
 				ee.getSets(), ee.getRepetitions(), ee.getLoad(), ee.getIntensityType(), ee.getIntensityValue(),
 				ee.getRestSeconds(), ee.getNotes())).toList();
 
-		return new Training(entity.getId(), entity.getPeriodizationId(), entity.getAthleteId(), entity.getCoachId(),
+		return new Training(entity.getId(), entity.getPeriodizationId(), entity.getPlanId(), entity.getAthleteId(),
+				entity.getCoachId(),
 				entity.getName(), entity.getDescription(), entity.getWeekNumber(), entity.getDayOfWeek(),
 				entity.getStatus(), exercises, entity.getCreatedAt(), entity.getUpdatedAt(), entity.isDeleted(),
 				entity.getDeletedAt());

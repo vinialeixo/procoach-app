@@ -13,6 +13,7 @@ public class Training {
 	private final UUID id;
 
 	private final UUID periodizationId;
+	private final UUID planId;
 
 	private final UUID athleteId;
 
@@ -38,12 +39,15 @@ public class Training {
 
 	private Instant deletedAt;
 
-	public Training(UUID id, UUID periodizationId, UUID athleteId, UUID coachId, String name, String description,
+	public Training(UUID id, UUID periodizationId, UUID planId, UUID athleteId, UUID coachId, String name,
+			String description,
 			int weekNumber, int dayOfWeek, TrainingStatus status, List<ExercisePrescription> exercises,
 			Instant createdAt, Instant updatedAt, boolean deleted, Instant deletedAt) {
 		this.id = Objects.requireNonNull(id, "id must not be null");
 		this.periodizationId = Objects.requireNonNull(periodizationId,
 				"periodizationId must not be null — training must be linked to a periodization");
+		// planId é nulo só em sessões antigas, de antes do vínculo com a versão do plano (V805).
+		this.planId = planId;
 		this.athleteId = Objects.requireNonNull(athleteId, "athleteId must not be null");
 		this.coachId = Objects.requireNonNull(coachId, "coachId must not be null");
 		this.name = requireText(name, "name");
@@ -58,10 +62,11 @@ public class Training {
 		this.deletedAt = deletedAt;
 	}
 
-	public static Training create(UUID periodizationId, UUID athleteId, UUID coachId, String name, String description,
-			int weekNumber, int dayOfWeek) {
+	public static Training create(UUID periodizationId, UUID planId, UUID athleteId, UUID coachId, String name,
+			String description, int weekNumber, int dayOfWeek) {
+		Objects.requireNonNull(planId, "planId must not be null — training must belong to a plan version");
 		Instant now = Instant.now();
-		return new Training(UUID.randomUUID(), periodizationId, athleteId, coachId, name, description, weekNumber,
+		return new Training(UUID.randomUUID(), periodizationId, planId, athleteId, coachId, name, description, weekNumber,
 				dayOfWeek, TrainingStatus.DRAFT, List.of(), now, now, false, null);
 	}
 
@@ -137,6 +142,51 @@ public class Training {
 		touch();
 	}
 
+	/**
+	 * Cópia desta sessão para uma nova versão do plano (T-067): mesmos dados e prescrições (com ids
+	 * novos), em rascunho. A sessão original não muda.
+	 */
+	public Training copyForNewPlanVersion(UUID newPlanId) {
+		Objects.requireNonNull(newPlanId, "newPlanId must not be null");
+		ensureNotDeleted();
+		Instant now = Instant.now();
+		List<ExercisePrescription> copies = this.exercises.stream()
+			.map(e -> new ExercisePrescription(UUID.randomUUID(), e.getExerciseId(), e.getExerciseName(),
+					e.isCustomExercise(), e.getOrderIndex(), e.getSets(), e.getRepetitions(), e.getLoad(),
+					e.getIntensityType(), e.getIntensityValue(), e.getRestSeconds(), e.getNotes()))
+			.toList();
+		return new Training(UUID.randomUUID(), this.periodizationId, newPlanId, this.athleteId, this.coachId,
+				this.name, this.description, this.weekNumber, this.dayOfWeek, TrainingStatus.DRAFT, copies, now, now,
+				false, null);
+	}
+
+	/**
+	 * Publica a sessão junto com o plano: rascunho e revisão viram ACTIVE. Devolve {@code true}
+	 * se a sessão foi publicada; sessão já ativa, finalizada ou removida fica como está.
+	 */
+	public boolean publish() {
+		if (this.deleted) {
+			return false;
+		}
+		if (this.status == TrainingStatus.DRAFT) {
+			transitionTo(TrainingStatus.IN_REVIEW);
+		}
+		if (this.status == TrainingStatus.IN_REVIEW) {
+			transitionTo(TrainingStatus.ACTIVE);
+			return true;
+		}
+		return false;
+	}
+
+	/** Encerra a sessão quando o plano a que ela pertence é substituído; só atua em sessão ACTIVE. */
+	public boolean finishIfActive() {
+		if (!this.deleted && this.status == TrainingStatus.ACTIVE) {
+			transitionTo(TrainingStatus.FINISHED);
+			return true;
+		}
+		return false;
+	}
+
 	public void updateDetails(String name, String description, int weekNumber, int dayOfWeek) {
 		ensureEditable();
 		this.name = requireText(name, "name");
@@ -189,6 +239,11 @@ public class Training {
 
 	public UUID getId() {
 		return this.id;
+	}
+
+	/** Versão do plano a que a sessão pertence; nulo só em sessões anteriores à V805. */
+	public UUID getPlanId() {
+		return planId;
 	}
 
 	public UUID getPeriodizationId() {

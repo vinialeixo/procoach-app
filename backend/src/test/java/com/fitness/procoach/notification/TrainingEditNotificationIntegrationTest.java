@@ -63,12 +63,19 @@ class TrainingEditNotificationIntegrationTest {
 								.formatted(athleteId)))
 				.andExpect(status().isCreated())
 				.andReturn());
+		String planId = id(mockMvc.perform(post("/api/training/plans")
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{ \"athleteId\": \"%s\", \"periodizationId\": \"%s\", \"name\": \"Plano 1\" }"
+								.formatted(athleteId, periodizationId)))
+				.andExpect(status().isCreated())
+				.andReturn());
 		return id(mockMvc.perform(post("/api/training/trainings")
 						.header("Authorization", bearer(coach))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
-								{ "periodizationId": "%s", "athleteId": "%s", "name": "Treino A", "weekNumber": 1, "dayOfWeek": 1 }
-								""".formatted(periodizationId, athleteId)))
+								{ "periodizationId": "%s", "planId": "%s", "athleteId": "%s", "name": "Treino A", "weekNumber": 1, "dayOfWeek": 1 }
+								""".formatted(periodizationId, planId, athleteId)))
 				.andExpect(status().isCreated())
 				.andReturn());
 	}

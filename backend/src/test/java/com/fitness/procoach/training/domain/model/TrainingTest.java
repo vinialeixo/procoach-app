@@ -14,6 +14,8 @@ class TrainingTest {
 
 	private UUID periodizationId;
 
+	private UUID planId;
+
 	private UUID athleteId;
 
 	private UUID coachId;
@@ -21,13 +23,14 @@ class TrainingTest {
 	@BeforeEach
 	void setUp() {
 		this.periodizationId = UUID.randomUUID();
+		this.planId = UUID.randomUUID();
 		this.athleteId = UUID.randomUUID();
 		this.coachId = UUID.randomUUID();
 	}
 
 	@Test
 	void createsTrainingLinkedToPeriodization() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", "Peito/Tríceps",
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", "Peito/Tríceps",
 				1, 1);
 
 		assertThat(t.getId()).isNotNull();
@@ -42,7 +45,7 @@ class TrainingTest {
 	@Test
 	void rejectsNullPeriodizationId() {
 		assertThatThrownBy(
-				() -> Training.create(null, this.athleteId, this.coachId, "Treino", null, 1, 1))
+				() -> Training.create(null, this.planId, this.athleteId, this.coachId, "Treino", null, 1, 1))
 			.isInstanceOf(NullPointerException.class)
 			.hasMessageContaining("periodizationId must not be null");
 	}
@@ -50,21 +53,21 @@ class TrainingTest {
 	@Test
 	void rejectsNullAthleteId() {
 		assertThatThrownBy(
-				() -> Training.create(this.periodizationId, null, this.coachId, "Treino", null, 1, 1))
+				() -> Training.create(this.periodizationId, this.planId, null, this.coachId, "Treino", null, 1, 1))
 			.isInstanceOf(NullPointerException.class);
 	}
 
 	@Test
 	void rejectsBlankName() {
 		assertThatThrownBy(
-				() -> Training.create(this.periodizationId, this.athleteId, this.coachId, "  ", null, 1, 1))
+				() -> Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "  ", null, 1, 1))
 			.isInstanceOf(IllegalArgumentException.class)
 			.hasMessageContaining("name must not be blank");
 	}
 
 	@Test
 	void addsExerciseToTraining() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		ExercisePrescription ex = createPrescription("Supino", 0);
 
 		t.addExercise(ex);
@@ -75,7 +78,7 @@ class TrainingTest {
 
 	@Test
 	void removesExerciseFromTraining() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		ExercisePrescription ex = createPrescription("Supino", 0);
 		t.addExercise(ex);
 
@@ -86,7 +89,7 @@ class TrainingTest {
 
 	@Test
 	void rejectsRemovingNonExistentExercise() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 
 		assertThatThrownBy(() -> t.removeExercise(UUID.randomUUID()))
 			.isInstanceOf(IllegalArgumentException.class)
@@ -95,7 +98,7 @@ class TrainingTest {
 
 	@Test
 	void reordersExercises() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		ExercisePrescription ex1 = createPrescription("Supino", 0);
 		ExercisePrescription ex2 = createPrescription("Crucifixo", 1);
 		ExercisePrescription ex3 = createPrescription("Crossover", 2);
@@ -113,7 +116,7 @@ class TrainingTest {
 
 	@Test
 	void rejectsReorderWithWrongSize() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		t.addExercise(createPrescription("Supino", 0));
 
 		assertThatThrownBy(() -> t.reorderExercises(List.of(UUID.randomUUID(), UUID.randomUUID())))
@@ -123,7 +126,7 @@ class TrainingTest {
 
 	@Test
 	void rejectsReorderWithUnknownId() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		t.addExercise(createPrescription("Supino", 0));
 
 		assertThatThrownBy(() -> t.reorderExercises(List.of(UUID.randomUUID())))
@@ -133,7 +136,7 @@ class TrainingTest {
 
 	@Test
 	void transitionsStatusDraftToInReview() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 
 		t.transitionTo(TrainingStatus.IN_REVIEW);
 
@@ -142,7 +145,7 @@ class TrainingTest {
 
 	@Test
 	void transitionsFullFlow() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 
 		t.transitionTo(TrainingStatus.IN_REVIEW);
 		t.transitionTo(TrainingStatus.ACTIVE);
@@ -153,7 +156,7 @@ class TrainingTest {
 
 	@Test
 	void rejectsInvalidTransitionDraftToActive() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 
 		assertThatThrownBy(() -> t.transitionTo(TrainingStatus.ACTIVE))
 			.isInstanceOf(IllegalStateException.class)
@@ -162,7 +165,7 @@ class TrainingTest {
 
 	@Test
 	void rejectsInvalidTransitionDraftToFinished() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 
 		assertThatThrownBy(() -> t.transitionTo(TrainingStatus.FINISHED))
 			.isInstanceOf(IllegalStateException.class)
@@ -171,7 +174,7 @@ class TrainingTest {
 
 	@Test
 	void rejectsTransitionFromFinished() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		t.transitionTo(TrainingStatus.IN_REVIEW);
 		t.transitionTo(TrainingStatus.ACTIVE);
 		t.transitionTo(TrainingStatus.FINISHED);
@@ -183,7 +186,7 @@ class TrainingTest {
 
 	@Test
 	void allowsEditWhenActive() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		t.transitionTo(TrainingStatus.IN_REVIEW);
 		t.transitionTo(TrainingStatus.ACTIVE);
 
@@ -194,7 +197,7 @@ class TrainingTest {
 
 	@Test
 	void blocksEditWhenFinished() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		t.transitionTo(TrainingStatus.IN_REVIEW);
 		t.transitionTo(TrainingStatus.ACTIVE);
 		t.transitionTo(TrainingStatus.FINISHED);
@@ -206,7 +209,7 @@ class TrainingTest {
 
 	@Test
 	void allowsEditInReview() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		t.transitionTo(TrainingStatus.IN_REVIEW);
 
 		t.addExercise(createPrescription("Supino", 0));
@@ -216,7 +219,7 @@ class TrainingTest {
 
 	@Test
 	void softDeletesTraining() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 
 		t.softDelete();
 
@@ -226,7 +229,7 @@ class TrainingTest {
 
 	@Test
 	void rejectsOperationOnSoftDeletedTraining() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		t.softDelete();
 
 		assertThatThrownBy(() -> t.addExercise(createPrescription("Supino", 0)))
@@ -240,7 +243,7 @@ class TrainingTest {
 
 	@Test
 	void updatesDetails() {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 
 		t.updateDetails("Treino A v2", "Atualizado", 2, 3);
 
@@ -258,7 +261,7 @@ class TrainingTest {
 	// ---- editar prescrição (T-068) ----
 
 	private Training trainingWith(ExercisePrescription... prescriptions) {
-		Training t = Training.create(this.periodizationId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
 		for (ExercisePrescription p : prescriptions) {
 			t.addExercise(p);
 		}
@@ -355,5 +358,111 @@ class TrainingTest {
 
 		assertThat(t.getExercises().get(0).getExerciseId()).isNull();
 		assertThat(t.getExercises().get(0).isCustomExercise()).isTrue();
+	}
+
+	// ---- sessões ligadas à versão do plano (T-067) ----
+
+	@Test
+	void sessionBelongsToThePlanVersionItWasCreatedIn() {
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+
+		assertThat(t.getPlanId()).isEqualTo(this.planId);
+	}
+
+	@Test
+	void rejectsSessionWithoutPlan() {
+		assertThatThrownBy(() -> Training.create(this.periodizationId, null, this.athleteId, this.coachId, "Treino A", null, 1, 1))
+			.isInstanceOf(NullPointerException.class);
+	}
+
+	@Test
+	void copyForNewPlanVersionKeepsDataAndExercisesWithNewIdsInDraft() {
+		Training original = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", "desc", 2, 3);
+		original.addExercise(createPrescription("Supino", 0));
+		original.addExercise(createPrescription("Agachamento", 1));
+		original.transitionTo(TrainingStatus.IN_REVIEW);
+		original.transitionTo(TrainingStatus.ACTIVE);
+		UUID newPlan = UUID.randomUUID();
+
+		Training copy = original.copyForNewPlanVersion(newPlan);
+
+		assertThat(copy.getId()).isNotEqualTo(original.getId());
+		assertThat(copy.getPlanId()).isEqualTo(newPlan);
+		assertThat(copy.getPeriodizationId()).isEqualTo(this.periodizationId);
+		assertThat(copy.getName()).isEqualTo("Treino A");
+		assertThat(copy.getWeekNumber()).isEqualTo(2);
+		assertThat(copy.getDayOfWeek()).isEqualTo(3);
+		assertThat(copy.getStatus()).isEqualTo(TrainingStatus.DRAFT);
+		assertThat(copy.getExercises()).extracting(ExercisePrescription::getExerciseName).containsExactly("Supino", "Agachamento");
+		assertThat(copy.getExercises()).extracting(ExercisePrescription::getId)
+			.doesNotContainAnyElementsOf(original.getExercises().stream().map(ExercisePrescription::getId).toList());
+		// A original não muda.
+		assertThat(original.getPlanId()).isEqualTo(this.planId);
+		assertThat(original.getStatus()).isEqualTo(TrainingStatus.ACTIVE);
+		assertThat(original.getExercises()).hasSize(2);
+	}
+
+	@Test
+	void editingTheCopyDoesNotChangeTheOriginal() {
+		Training original = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		ExercisePrescription ex = createPrescription("Supino", 0);
+		original.addExercise(ex);
+		Training copy = original.copyForNewPlanVersion(UUID.randomUUID());
+
+		copy.updateExercise(copy.getExercises().get(0).getId(), null, "Supino", 5, 12, new BigDecimal("70"),
+				IntensityType.RPE, new BigDecimal("8"), 90, null);
+
+		assertThat(original.getExercises().get(0).getSets()).isEqualTo(3);
+		assertThat(copy.getExercises().get(0).getSets()).isEqualTo(5);
+	}
+
+	@Test
+	void cannotCopyARemovedSession() {
+		Training t = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "Treino A", null, 1, 1);
+		t.softDelete();
+
+		assertThatThrownBy(() -> t.copyForNewPlanVersion(UUID.randomUUID())).isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	void publishTakesDraftAndReviewToActive() {
+		Training draft = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "A", null, 1, 1);
+		Training review = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "B", null, 1, 2);
+		review.transitionTo(TrainingStatus.IN_REVIEW);
+
+		assertThat(draft.publish()).isTrue();
+		assertThat(review.publish()).isTrue();
+
+		assertThat(draft.getStatus()).isEqualTo(TrainingStatus.ACTIVE);
+		assertThat(review.getStatus()).isEqualTo(TrainingStatus.ACTIVE);
+	}
+
+	@Test
+	void publishLeavesActiveFinishedAndRemovedAsTheyAre() {
+		Training active = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "A", null, 1, 1);
+		active.publish();
+		Training finished = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "B", null, 1, 2);
+		finished.publish();
+		finished.transitionTo(TrainingStatus.FINISHED);
+		Training removed = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "C", null, 1, 3);
+		removed.softDelete();
+
+		assertThat(active.publish()).isFalse();
+		assertThat(finished.publish()).isFalse();
+		assertThat(removed.publish()).isFalse();
+		assertThat(finished.getStatus()).isEqualTo(TrainingStatus.FINISHED);
+	}
+
+	@Test
+	void finishIfActiveOnlyActsOnActiveSessions() {
+		Training active = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "A", null, 1, 1);
+		active.publish();
+		Training draft = Training.create(this.periodizationId, this.planId, this.athleteId, this.coachId, "B", null, 1, 2);
+
+		assertThat(active.finishIfActive()).isTrue();
+		assertThat(draft.finishIfActive()).isFalse();
+
+		assertThat(active.getStatus()).isEqualTo(TrainingStatus.FINISHED);
+		assertThat(draft.getStatus()).isEqualTo(TrainingStatus.DRAFT);
 	}
 }

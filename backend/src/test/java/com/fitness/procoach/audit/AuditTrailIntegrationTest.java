@@ -171,12 +171,20 @@ class AuditTrailIntegrationTest {
 				.andExpect(status().isCreated())
 				.andReturn();
 		String periodizationId = JsonPath.read(periodization.getResponse().getContentAsString(), "$.id");
+		MvcResult plan = mockMvc.perform(post("/api/training/plans")
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{ \"athleteId\": \"%s\", \"periodizationId\": \"%s\", \"name\": \"Plano 1\" }"
+								.formatted(athleteId, periodizationId)))
+				.andExpect(status().isCreated())
+				.andReturn();
+		String planId = JsonPath.read(plan.getResponse().getContentAsString(), "$.id");
 		MvcResult training = mockMvc.perform(post("/api/training/trainings")
 						.header("Authorization", bearer(coach))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
-								{ "periodizationId": "%s", "athleteId": "%s", "name": "Treino A", "weekNumber": 1, "dayOfWeek": 1 }
-								""".formatted(periodizationId, athleteId)))
+								{ "periodizationId": "%s", "planId": "%s", "athleteId": "%s", "name": "Treino A", "weekNumber": 1, "dayOfWeek": 1 }
+								""".formatted(periodizationId, planId, athleteId)))
 				.andExpect(status().isCreated())
 				.andReturn();
 		String trainingId = JsonPath.read(training.getResponse().getContentAsString(), "$.id");

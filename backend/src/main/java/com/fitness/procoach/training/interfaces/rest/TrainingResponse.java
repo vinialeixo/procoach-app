@@ -17,6 +17,8 @@ public record TrainingResponse(
 				example = "6e5d4c3b-2a1f-4e5d-9c8b-7a6f5e4d3c2b") UUID id,
 		@Schema(description = "Identificador da periodização à qual o treino pertence",
 				example = "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d") UUID periodizationId,
+		@Schema(description = "Versão do plano de treino a que a sessão pertence (null em sessões antigas)",
+				example = "4b3a2c1d-6e5f-4a7b-9c8d-1e2f3a4b5c6d") UUID planId,
 		@Schema(description = "Identificador do atleta",
 				example = "8c1d2e3f-4a5b-4c6d-8e9f-0a1b2c3d4e5f") UUID athleteId,
 		@Schema(description = "Identificador do coach responsável",
@@ -44,7 +46,7 @@ public record TrainingResponse(
 			.map(e -> ExercisePrescriptionResponse.from(e,
 				e.getExerciseId() == null ? null : versionStatuses.get(e.getExerciseId())))
 			.toList();
-		return new TrainingResponse(t.getId(), t.getPeriodizationId(), t.getAthleteId(), t.getCoachId(), t.getName(),
+		return new TrainingResponse(t.getId(), t.getPeriodizationId(), t.getPlanId(), t.getAthleteId(), t.getCoachId(), t.getName(),
 				t.getDescription(), t.getWeekNumber(), t.getDayOfWeek(), t.getStatus(), exerciseResponses,
 				t.getCreatedAt(), t.getUpdatedAt(), t.isDeleted());
 	}

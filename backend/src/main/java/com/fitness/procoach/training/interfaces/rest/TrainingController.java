@@ -87,7 +87,7 @@ public class TrainingController {
 	}
 
 	@Operation(summary = "Criar treino",
-			description = "Cria um treino (sessão) vinculado a uma periodização, com semana e dia da semana. "
+			description = "Cria um treino (sessão) de uma versão do plano (planId), com semana e dia da semana. "
 					+ "Retorna 201 Created.")
 	@ApiResponses({
 			@ApiResponse(responseCode = "201", description = "Treino criado com sucesso"),
@@ -99,7 +99,7 @@ public class TrainingController {
 			@Valid @RequestBody CreateTrainingRequest request) {
 		// T-058: o coachId nunca vem do request — é resolvido server-side a partir
 		// do usuário autenticado (subject do JWT) na camada de aplicação.
-		Training training = this.createTrainingUseCase.execute(request.periodizationId(), request.athleteId(),
+		Training training = this.createTrainingUseCase.execute(request.periodizationId(), request.planId(), request.athleteId(),
 				UUID.fromString(jwt.getSubject()), request.name(), request.description(), request.weekNumber(),
 				request.dayOfWeek());
 		return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(training));
@@ -154,9 +154,11 @@ public class TrainingController {
 	public ResponseEntity<List<TrainingResponse>> findByAthlete(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @PathVariable UUID athleteId,
 			@Parameter(description = "Filtro opcional de status do treino", example = "ACTIVE")
-			@RequestParam(required = false) TrainingStatus status) {
+			@RequestParam(required = false) TrainingStatus status,
+			@Parameter(description = "Filtro opcional por versão do plano")
+			@RequestParam(required = false) UUID planId) {
 		requireCoachOwnsAthlete(jwt, athleteId);
-		List<Training> trainings = this.queryService.findTrainingsByAthlete(athleteId, status, isAthlete(jwt));
+		List<Training> trainings = this.queryService.findTrainingsByAthlete(athleteId, status, planId, isAthlete(jwt));
 		return ResponseEntity.ok(toResponses(trainings));
 	}
 
