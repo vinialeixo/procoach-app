@@ -12,6 +12,7 @@ import com.fitness.procoach.nutrition.domain.DietStatus;
 import com.fitness.procoach.nutrition.domain.Macronutrients;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Application service do módulo nutrition. Orquestra o domínio e a porta de
@@ -41,6 +42,11 @@ public class DietApplicationService {
 	public Diet createDiet(CreateDietCommand command) {
 		CoachId coachId = coachService.requireCoachIdByUserId(command.userId());
 		athleteAccessService.requireOwnedByCoach(command.athleteId(), coachId.value());
+		// Uma cadeia de versões por atleta: a primeira dieta é v1; depois só nova versão.
+		if (repository.findLatestByAthleteId(AthleteId.of(command.athleteId())).isPresent()) {
+			throw new IllegalStateException(
+					"Athlete already has a diet; create a new version of the existing one");
+		}
 		Diet diet = Diet.create(
 				coachId,
 				AthleteId.of(command.athleteId()),
@@ -90,6 +96,7 @@ public class DietApplicationService {
 	 * de origem é congelada (readOnly) e o motivo da alteração é obrigatório.
 	 * Mesma regra de posse do {@link #findOwnedById}.
 	 */
+	@Transactional
 	public Diet createNewVersion(NewVersionCommand command) {
 		Diet current = findOwnedById(new DietId(command.dietId()), command.userId());
 		Diet next = current.createNewVersion(

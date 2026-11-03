@@ -30,7 +30,7 @@ public class TransitionTrainingPlanStatusUseCase {
 
 	public TrainingPlan execute(UUID planId, UUID userId, TrainingStatus targetStatus) {
 		TrainingPlan plan = this.trainingPlanRepository.findById(planId)
-			.orElseThrow(() -> new IllegalArgumentException("TrainingPlan not found: " + planId));
+			.orElseThrow(() -> new TrainingResourceNotFoundException("TrainingPlan not found: " + planId));
 
 		// T-058 (anti-IDOR): o plano precisa pertencer a um atleta da carteira
 		// do coach autenticado — plano de outro coach resulta em 404.

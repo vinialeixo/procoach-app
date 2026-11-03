@@ -24,7 +24,7 @@ public class ReorderExercisesUseCase {
 
 	public Training execute(UUID trainingId, UUID userId, List<UUID> orderedPrescriptionIds) {
 		Training training = this.trainingRepository.findById(trainingId)
-			.orElseThrow(() -> new IllegalArgumentException("Training not found: " + trainingId));
+			.orElseThrow(() -> new TrainingResourceNotFoundException("Training not found: " + trainingId));
 
 		// T-058 (anti-IDOR): o treino precisa pertencer a um atleta da carteira
 		// do coach autenticado — treino de outro coach resulta em 404.

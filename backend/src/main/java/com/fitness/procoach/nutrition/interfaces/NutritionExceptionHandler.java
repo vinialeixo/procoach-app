@@ -5,6 +5,7 @@ import com.fitness.procoach.nutrition.application.DietNotFoundException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -50,6 +51,16 @@ public class NutritionExceptionHandler {
 		body.put("timestamp", Instant.now());
 		body.put("status", 409);
 		body.put("error", ex.getMessage());
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+	}
+
+	/** Violação de UNIQUE (ex.: duas versões da mesma dieta em corrida) — 409. */
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	public ResponseEntity<Map<String, Object>> handleIntegrityViolation(DataIntegrityViolationException ex) {
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("timestamp", Instant.now());
+		body.put("status", 409);
+		body.put("error", "Conflito: o recurso foi alterado por outra requisição. Tente novamente.");
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
 	}
 

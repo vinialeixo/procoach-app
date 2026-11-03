@@ -2,6 +2,7 @@ package com.fitness.procoach.training.interfaces.rest;
 
 import java.util.List;
 import java.util.Optional;
+import jakarta.validation.Valid;
 import java.util.UUID;
 
 import com.fitness.procoach.athlete.application.AthleteAccessService;
@@ -86,7 +87,7 @@ public class TrainingController {
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping
 	public ResponseEntity<TrainingResponse> create(@AuthenticationPrincipal Jwt jwt,
-			@RequestBody CreateTrainingRequest request) {
+			@Valid @RequestBody CreateTrainingRequest request) {
 		// T-058: o coachId nunca vem do request — é resolvido server-side a partir
 		// do usuário autenticado (subject do JWT) na camada de aplicação.
 		Training training = this.createTrainingUseCase.execute(request.periodizationId(), request.athleteId(),
@@ -170,7 +171,7 @@ public class TrainingController {
 	@PostMapping("/{id}/exercises")
 	public ResponseEntity<TrainingResponse> addExercise(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do treino") @PathVariable UUID id,
-			@RequestBody AddExerciseRequest request) {
+			@Valid @RequestBody AddExerciseRequest request) {
 		Training training = this.addExerciseUseCase.execute(id, UUID.fromString(jwt.getSubject()),
 				request.exerciseId(), request.exerciseName(),
 				request.customExercise(), request.orderIndex(), request.sets(), request.repetitions(), request.load(),
@@ -192,7 +193,7 @@ public class TrainingController {
 	@PutMapping("/{id}/exercises/reorder")
 	public ResponseEntity<TrainingResponse> reorderExercises(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do treino") @PathVariable UUID id,
-			@RequestBody ReorderExercisesRequest request) {
+			@Valid @RequestBody ReorderExercisesRequest request) {
 		Training training = this.reorderExercisesUseCase.execute(id, UUID.fromString(jwt.getSubject()),
 				request.orderedPrescriptionIds());
 		return ResponseEntity.ok(TrainingResponse.from(training));
@@ -212,7 +213,7 @@ public class TrainingController {
 	@PostMapping("/{id}/transition")
 	public ResponseEntity<TrainingResponse> transitionStatus(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do treino") @PathVariable UUID id,
-			@RequestBody TransitionStatusRequest request) {
+			@Valid @RequestBody TransitionStatusRequest request) {
 		Training training = this.transitionStatusUseCase.execute(id, UUID.fromString(jwt.getSubject()),
 				request.targetStatus());
 		return ResponseEntity.ok(TrainingResponse.from(training));

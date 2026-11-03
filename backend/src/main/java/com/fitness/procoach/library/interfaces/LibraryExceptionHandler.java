@@ -21,6 +21,13 @@ public class LibraryExceptionHandler {
 				.body(Map.of("timestamp", Instant.now(), "status", 404, "error", ex.getMessage()));
 	}
 
+	/** Regras de domínio violadas (ex.: nome vazio, referência inválida). */
+	@ExceptionHandler(IllegalArgumentException.class)
+	public ResponseEntity<Map<String, Object>> handleDomainViolation(IllegalArgumentException ex) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+				.body(Map.of("timestamp", Instant.now(), "status", 400, "error", ex.getMessage()));
+	}
+
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST)

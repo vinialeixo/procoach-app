@@ -24,5 +24,5 @@ public record CreateDietVersionRequest(
 		@Schema(description = "Gorduras diárias em gramas", example = "90.0")
 		@NotNull(message = "fat é obrigatório") @Positive(message = "fat deve ser positivo") Double fat,
 		@Schema(description = "Motivo da alteração", example = "Ajuste de calorias após reavaliação")
-		@NotBlank(message = "changeReason é obrigatório") @Size(max = 500, message = "changeReason deve ter no máximo 500 caracteres") String changeReason) {
+		@NotBlank(message = "changeReason é obrigatório") @Size(max = 255, message = "changeReason deve ter no máximo 255 caracteres") String changeReason) {
 }

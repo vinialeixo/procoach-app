@@ -1,7 +1,6 @@
 package com.fitness.procoach.library.interfaces;
 
 import java.util.List;
-import java.util.UUID;
 
 import com.fitness.procoach.library.domain.Equipment;
 import com.fitness.procoach.library.domain.ExerciseReference;
@@ -12,7 +11,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
-/** DTO de entrada para criação de exercício. */
+/** DTO de entrada para criação de exercício. A autoria (createdBy) vem do JWT, nunca do corpo. */
 @Schema(description = "Dados para criação de um exercício na biblioteca, com embasamento científico.")
 public record CreateExerciseRequest(
 		@Schema(description = "Nome do exercício", example = "Supino reto com barra")
@@ -37,8 +36,5 @@ public record CreateExerciseRequest(
 				example = "[\"Lesão no ombro em fase aguda\"]")
 		List<String> contraindications,
 		@Schema(description = "Referências científicas que embasam o exercício")
-		List<ExerciseReference> references,
-		@Schema(description = "Identificador de quem criou o exercício (auditoria)",
-				example = "2f6b1c3d-7a0e-4b5d-9c8a-1e2f3a4b5c6d")
-		@NotNull UUID createdBy) {
+		List<ExerciseReference> references) {
 }

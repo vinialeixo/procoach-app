@@ -34,7 +34,7 @@ public class AddExerciseToTrainingUseCase {
 			boolean customExercise, int orderIndex, int sets, int repetitions, BigDecimal load,
 			IntensityType intensityType, BigDecimal intensityValue, int restSeconds, String notes) {
 		Training training = this.trainingRepository.findById(trainingId)
-			.orElseThrow(() -> new IllegalArgumentException("Training not found: " + trainingId));
+			.orElseThrow(() -> new TrainingResourceNotFoundException("Training not found: " + trainingId));
 
 		// T-058 (anti-IDOR): o treino precisa pertencer a um atleta da carteira
 		// do coach autenticado — treino de outro coach resulta em 404.

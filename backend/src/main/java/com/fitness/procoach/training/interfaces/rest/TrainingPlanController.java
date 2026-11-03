@@ -1,6 +1,7 @@
 package com.fitness.procoach.training.interfaces.rest;
 
 import java.util.List;
+import jakarta.validation.Valid;
 import java.util.UUID;
 
 import com.fitness.procoach.athlete.application.AthleteAccessService;
@@ -78,7 +79,7 @@ public class TrainingPlanController {
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping
 	public ResponseEntity<TrainingPlanResponse> create(@AuthenticationPrincipal Jwt jwt,
-			@RequestBody CreateTrainingPlanRequest request) {
+			@Valid @RequestBody CreateTrainingPlanRequest request) {
 		// T-058: o coachId nunca vem do request — é resolvido server-side a partir
 		// do usuário autenticado (subject do JWT) na camada de aplicação.
 		TrainingPlan plan = this.createTrainingPlanUseCase.execute(request.athleteId(),
@@ -158,7 +159,7 @@ public class TrainingPlanController {
 	@PostMapping("/{id}/versions")
 	public ResponseEntity<TrainingPlanResponse> createNewVersion(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador da versão de origem do plano") @PathVariable UUID id,
-			@RequestBody CreateTrainingPlanVersionRequest request) {
+			@Valid @RequestBody CreateTrainingPlanVersionRequest request) {
 		TrainingPlan newVersion = this.createVersionUseCase.execute(id, UUID.fromString(jwt.getSubject()),
 				request.newName(), request.newDescription());
 		return ResponseEntity.status(HttpStatus.CREATED).body(TrainingPlanResponse.from(newVersion));
@@ -178,7 +179,7 @@ public class TrainingPlanController {
 	@PostMapping("/{id}/transition")
 	public ResponseEntity<TrainingPlanResponse> transitionStatus(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do plano") @PathVariable UUID id,
-			@RequestBody TransitionStatusRequest request) {
+			@Valid @RequestBody TransitionStatusRequest request) {
 		TrainingPlan plan = this.transitionStatusUseCase.execute(id, UUID.fromString(jwt.getSubject()),
 				request.targetStatus());
 		return ResponseEntity.ok(TrainingPlanResponse.from(plan));

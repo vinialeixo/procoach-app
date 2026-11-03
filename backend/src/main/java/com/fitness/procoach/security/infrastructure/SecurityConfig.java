@@ -1,5 +1,6 @@
 package com.fitness.procoach.security.infrastructure;
 
+import com.fitness.procoach.security.application.JwtTokenService;
 import java.nio.charset.StandardCharsets;
 
 import javax.crypto.SecretKey;
@@ -14,7 +15,13 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
@@ -36,8 +43,8 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 public class SecurityConfig {
 
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter)
-			throws Exception {
+	SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter,
+			SecretKey jwtSecretKey) throws Exception {
 		return http
 				.csrf(csrf -> csrf.disable())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -51,8 +58,25 @@ public class SecurityConfig {
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 						.anyRequest().authenticated())
 				.oauth2ResourceServer(oauth2 -> oauth2
-						.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
+						.jwt(jwt -> jwt.decoder(accessTokenDecoder(jwtSecretKey))
+						.jwtAuthenticationConverter(jwtAuthenticationConverter)))
 				.build();
+	}
+
+	/**
+	 * Decoder usado pelo resource server (Authorization: Bearer): só aceita token
+	 * de acesso emitido pelo ProCoach. O refresh token e o desafio de MFA são
+	 * assinados com a mesma chave, mas só valem nos respectivos endpoints — que
+	 * os validam via {@link JwtTokenService} com o decoder genérico abaixo.
+	 */
+	static JwtDecoder accessTokenDecoder(SecretKey jwtSecretKey) {
+		NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtSecretKey).macAlgorithm(MacAlgorithm.HS256).build();
+		OAuth2TokenValidator<Jwt> accessOnly = jwt -> JwtTokenService.TYPE_ACCESS.equals(jwt.getClaimAsString("type"))
+				? OAuth2TokenValidatorResult.success()
+				: OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Token não é de acesso", null));
+		decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+				JwtValidators.createDefaultWithIssuer(JwtTokenService.ISSUER), accessOnly));
+		return decoder;
 	}
 
 	@Bean
@@ -72,6 +96,9 @@ public class SecurityConfig {
 
 	@Bean
 	SecretKey jwtSecretKey(@Value("${procoach.security.jwt.secret}") String secret) {
+		if (secret == null || secret.isBlank()) {
+			throw new IllegalStateException("procoach.security.jwt.secret (PROCOACH_JWT_SECRET) é obrigatório");
+		}
 		byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
 		if (bytes.length < 32) {
 			throw new IllegalStateException("procoach.security.jwt.secret precisa de ao menos 32 bytes (HS256)");

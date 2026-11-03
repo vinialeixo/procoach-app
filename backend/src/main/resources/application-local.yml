@@ -14,3 +14,9 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
+
+# Chave JWT apenas para desenvolvimento local — nunca usar fora do profile local.
+procoach:
+  security:
+    jwt:
+      secret: procoach-dev-jwt-secret-01234567

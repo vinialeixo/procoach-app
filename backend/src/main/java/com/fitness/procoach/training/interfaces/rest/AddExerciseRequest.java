@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.fitness.procoach.training.domain.model.IntensityType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 
 @Schema(description = "Prescrição de um exercício para um treino (séries, repetições, carga, intensidade e descanso).")
 public record AddExerciseRequest(
@@ -25,9 +26,9 @@ public record AddExerciseRequest(
 		@Schema(description = "Repetições por série", example = "10")
 		int repetitions,
 		@Schema(description = "Carga utilizada (kg)", example = "60.0")
-		BigDecimal load,
+		@NotNull(message = "load é obrigatório") BigDecimal load,
 		@Schema(description = "Tipo de intensidade: PERCENT_1RM, RPE, RIR ou ABSOLUTE_LOAD", example = "RPE")
-		IntensityType intensityType,
+		@NotNull(message = "intensityType é obrigatório") IntensityType intensityType,
 		@Schema(description = "Valor da intensidade (conforme o tipo: %1RM, RPE, RIR ou carga absoluta)",
 				example = "8.0")
 		BigDecimal intensityValue,

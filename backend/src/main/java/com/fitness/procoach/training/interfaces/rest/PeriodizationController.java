@@ -1,6 +1,7 @@
 package com.fitness.procoach.training.interfaces.rest;
 
 import java.util.List;
+import jakarta.validation.Valid;
 import java.util.UUID;
 
 import com.fitness.procoach.athlete.application.AthleteAccessService;
@@ -62,7 +63,7 @@ public class PeriodizationController {
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping
 	public ResponseEntity<PeriodizationResponse> create(@AuthenticationPrincipal Jwt jwt,
-			@RequestBody CreatePeriodizationRequest request) {
+			@Valid @RequestBody CreatePeriodizationRequest request) {
 		// T-058: o coachId nunca vem do request — é resolvido server-side a partir
 		// do usuário autenticado (subject do JWT) na camada de aplicação.
 		Periodization periodization = this.createPeriodizationUseCase.execute(request.athleteId(),

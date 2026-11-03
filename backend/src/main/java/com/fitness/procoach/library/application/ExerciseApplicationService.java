@@ -43,9 +43,13 @@ public class ExerciseApplicationService {
 		return repository.save(exercise);
 	}
 
-	public Exercise update(UUID id, UpdateExerciseCommand command) {
-		Exercise exercise = repository.findById(id)
-				.orElseThrow(() -> new ExerciseNotFoundException(id));
+	/**
+	 * Atualiza um exercício. Só o autor ({@code createdBy}) pode alterar; para
+	 * qualquer outro usuário o exercício aparece como inexistente (404), sem
+	 * vazar sua existência.
+	 */
+	public Exercise update(UUID id, UpdateExerciseCommand command, UUID requesterId) {
+		Exercise exercise = findOwned(id, requesterId);
 		exercise.update(command.name(), command.muscleGroups(), command.equipment(),
 				command.execution(), command.commonErrors(), command.progressions(),
 				command.regressions(), command.contraindications(), command.references(),
@@ -54,11 +58,19 @@ public class ExerciseApplicationService {
 	}
 
 	/** Soft-delete: marca como excluído, sem remoção física. */
-	public void delete(UUID id) {
-		Exercise exercise = repository.findById(id)
-				.orElseThrow(() -> new ExerciseNotFoundException(id));
+	public void delete(UUID id, UUID requesterId) {
+		Exercise exercise = findOwned(id, requesterId);
 		exercise.delete(clock.instant());
 		repository.save(exercise);
+	}
+
+	private Exercise findOwned(UUID id, UUID requesterId) {
+		Exercise exercise = repository.findById(id)
+				.orElseThrow(() -> new ExerciseNotFoundException(id));
+		if (!exercise.getCreatedBy().equals(requesterId)) {
+			throw new ExerciseNotFoundException(id);
+		}
+		return exercise;
 	}
 
 	public Exercise findById(UUID id) {

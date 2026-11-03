@@ -374,4 +374,49 @@ class TrainingAuthorizationTest {
 						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
 	}
+
+	// ---- revisão de código, lote 1 ----
+
+	@Test
+	void coachNaoVinculaTreinoAPeriodizacaoDeOutroCoach() throws Exception {
+		String coachA = registerCoach(mockMvc, uniqueEmail("coach-a"));
+		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
+		String athleteOfA = registerAthlete(mockMvc, coachA);
+		String athleteOfB = registerAthlete(mockMvc, coachB);
+		String periodizationOfA = createPeriodization(coachA, athleteOfA);
+
+		// Coach B usa o próprio atleta, mas a periodização do coach A -> 404.
+		mockMvc.perform(post("/api/training/trainings")
+						.header("Authorization", bearer(coachB))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(trainingJson(athleteOfB, periodizationOfA)))
+				.andExpect(status().isNotFound());
+		mockMvc.perform(post("/api/training/plans")
+						.header("Authorization", bearer(coachB))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(planJson(athleteOfB, periodizationOfA)))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void treinoInexistenteRetorna404eNao400() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+
+		mockMvc.perform(post("/api/training/trainings/{id}/exercises", java.util.UUID.randomUUID())
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(exerciseJson()))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void corpoSemCamposObrigatoriosRetorna400() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+
+		mockMvc.perform(post("/api/training/periodizations")
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isBadRequest());
+	}
 }

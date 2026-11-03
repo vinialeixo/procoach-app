@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,11 +50,13 @@ public class ExerciseController {
 	// T-009/US-037: somente o coach gerencia o conteúdo da biblioteca.
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping
-	public ResponseEntity<ExerciseResponse> create(@Valid @RequestBody CreateExerciseRequest request) {
+	public ResponseEntity<ExerciseResponse> create(@AuthenticationPrincipal Jwt jwt,
+			@Valid @RequestBody CreateExerciseRequest request) {
+		// createdBy (autoria/ownership) é sempre o subject do JWT — nunca vem do corpo.
 		Exercise created = service.create(new ExerciseApplicationService.CreateExerciseCommand(
 				request.name(), request.muscleGroups(), request.equipment(), request.execution(),
 				request.commonErrors(), request.progressions(), request.regressions(),
-				request.contraindications(), request.references(), request.createdBy()));
+				request.contraindications(), request.references(), UUID.fromString(jwt.getSubject())));
 		return ResponseEntity.status(HttpStatus.CREATED).body(ExerciseResponse.from(created));
 	}
 
@@ -62,17 +66,17 @@ public class ExerciseController {
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "Exercício atualizado com sucesso"),
 			@ApiResponse(responseCode = "400", description = "Campos inválidos ou ausentes"),
-			@ApiResponse(responseCode = "404", description = "Exercício não encontrado") })
+			@ApiResponse(responseCode = "404", description = "Exercício não encontrado ou de outro coach") })
 	// T-009/US-037: somente o coach gerencia o conteúdo da biblioteca.
 	@PreAuthorize("hasRole('COACH')")
 	@PutMapping("/{id}")
-	public ResponseEntity<ExerciseResponse> update(
+	public ResponseEntity<ExerciseResponse> update(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do exercício") @PathVariable UUID id,
 			@Valid @RequestBody UpdateExerciseRequest request) {
 		Exercise updated = service.update(id, new ExerciseApplicationService.UpdateExerciseCommand(
 				request.name(), request.muscleGroups(), request.equipment(), request.execution(),
 				request.commonErrors(), request.progressions(), request.regressions(),
-				request.contraindications(), request.references()));
+				request.contraindications(), request.references()), UUID.fromString(jwt.getSubject()));
 		return ResponseEntity.ok(ExerciseResponse.from(updated));
 	}
 
@@ -85,8 +89,9 @@ public class ExerciseController {
 	// T-009/US-037: somente o coach gerencia o conteúdo da biblioteca.
 	@PreAuthorize("hasRole('COACH')")
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> delete(@Parameter(description = "Identificador do exercício") @PathVariable UUID id) {
-		service.delete(id);
+	public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador do exercício") @PathVariable UUID id) {
+		service.delete(id, UUID.fromString(jwt.getSubject()));
 		return ResponseEntity.noContent().build();
 	}
 

@@ -32,10 +32,10 @@ import com.fitness.procoach.security.domain.User;
 public class JwtTokenService {
 
 	static final String CLAIM_TYPE = "type";
-	static final String TYPE_ACCESS = "access";
+	public static final String TYPE_ACCESS = "access";
 	static final String TYPE_REFRESH = "refresh";
 	static final String TYPE_MFA_CHALLENGE = "mfa_challenge";
-	static final String ISSUER = "procoach";
+	public static final String ISSUER = "procoach";
 
 	private final JwtEncoder encoder;
 	private final JwtDecoder decoder;

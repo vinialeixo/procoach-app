@@ -44,7 +44,12 @@ public class CreateTrainingPlanUseCase {
 		UUID coachId = coachService.requireCoachIdByUserId(userId).value();
 		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
 		Periodization periodization = this.periodizationRepository.findById(periodizationId)
-			.orElseThrow(() -> new IllegalArgumentException("Periodization not found: " + periodizationId));
+			.orElseThrow(() -> new TrainingResourceNotFoundException("Periodization not found: " + periodizationId));
+		// A periodização precisa ser do mesmo atleta — senão um coach vincularia treino/plano
+		// à periodização de outro coach. 404 para não vazar a existência.
+		if (!periodization.getAthleteId().equals(athleteId)) {
+			throw new TrainingResourceNotFoundException("Periodization not found: " + periodizationId);
+		}
 
 		TrainingPlan plan = TrainingPlan.create(athleteId, coachId, periodization.getId(), name, description);
 		TrainingPlan saved = this.trainingPlanRepository.save(plan);

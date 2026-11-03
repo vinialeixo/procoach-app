@@ -69,7 +69,8 @@ class ExerciseLibraryIntegrationTest {
 						List.of(MuscleGroup.PEITO), Equipment.HALTERES, "nova execução",
 						List.of("erro novo"), List.of("progressão nova"), List.of("regressão nova"),
 						List.of("contraindicação nova"),
-						List.of(new ExerciseReference("Autor", "Título", "Fonte", 2021))));
+						List.of(new ExerciseReference("Autor", "Título", "Fonte", 2021))),
+				coachId);
 
 		assertEquals("Supino Inclinado", updated.getName());
 		assertEquals(Equipment.HALTERES, updated.getEquipment());
@@ -80,10 +81,23 @@ class ExerciseLibraryIntegrationTest {
 	void softDeleteRemoveDaBusca() {
 		Exercise created = service.create(command("Levantamento Terra", List.of(MuscleGroup.COSTAS)));
 
-		service.delete(created.getId());
+		service.delete(created.getId(), coachId);
 
 		assertThrows(ExerciseNotFoundException.class, () -> service.findById(created.getId()));
 		assertTrue(service.search("levantamento", null).isEmpty());
+	}
+
+	@Test
+	void outroCoachNaoAtualizaNemRemoveExercicioAlheio() {
+		Exercise created = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO)));
+		UUID intruder = UUID.randomUUID();
+
+		assertThrows(ExerciseNotFoundException.class, () -> service.update(created.getId(),
+				new ExerciseApplicationService.UpdateExerciseCommand("Hackeado", List.of(MuscleGroup.PEITO),
+						Equipment.BARRA_LIVRE, "x", List.of(), List.of(), List.of(), List.of(), List.of()),
+				intruder));
+		assertThrows(ExerciseNotFoundException.class, () -> service.delete(created.getId(), intruder));
+		assertEquals("Supino Reto", service.findById(created.getId()).getName());
 	}
 
 	@Test
@@ -95,7 +109,7 @@ class ExerciseLibraryIntegrationTest {
 	void findAllRetornaSomenteAtivos() {
 		Exercise a = service.create(command("Rosca Direta", List.of(MuscleGroup.BICEPS)));
 		service.create(command("Tríceps Corda", List.of(MuscleGroup.TRICEPS)));
-		service.delete(a.getId());
+		service.delete(a.getId(), coachId);
 
 		List<Exercise> all = service.findAll();
 		assertFalse(all.isEmpty());
