@@ -9,6 +9,7 @@
 export type JwtPayload = {
   sub?: string;
   role?: "COACH" | "ATHLETE";
+  athleteId?: string;
   exp?: number;
   [key: string]: unknown;
 };

@@ -18,7 +18,7 @@ import "./AthleteForm.css";
 const optionalMeasure = z.preprocess(
   (v) => (v === "" || v === null || v === undefined ? undefined : v),
   z.coerce
-    .number({ invalid_type_error: "Valor inválido" })
+    .number({ error: "Valor inválido" })
     .positive("Deve ser positivo")
     .optional()
 );
@@ -26,17 +26,18 @@ const optionalMeasure = z.preprocess(
 const schema = z.object({
   assessmentDate: z.string().min(1, "Informe a data da avaliação"),
   weightKg: z.coerce
-    .number({ invalid_type_error: "Peso inválido" })
+    .number({ error: "Peso inválido" })
     .positive("Peso deve ser positivo"),
   heightCm: z.coerce
-    .number({ invalid_type_error: "Altura inválida" })
+    .number({ error: "Altura inválida" })
     .positive("Altura deve ser positiva"),
   bodyFatPercentage: optionalMeasure,
   muscleMassKg: optionalMeasure,
   waistCm: optionalMeasure,
   hipCm: optionalMeasure,
 });
-type FormValues = z.infer<typeof schema>;
+type FormInput = z.input<typeof schema>;
+type FormValues = z.output<typeof schema>;
 
 function todayLocal(): string {
   const now = new Date();
@@ -56,7 +57,9 @@ export function AssessmentCreatePage() {
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormInput, unknown, FormValues>({
+    resolver: zodResolver(schema),
+  });
 
   async function onSubmit(values: FormValues) {
     try {

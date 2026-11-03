@@ -17,17 +17,18 @@ import "./AthleteForm.css";
 
 const schema = z.object({
   name: z.string().min(1, "Informe o nome"),
-  sex: z.enum(SEXES, { required_error: "Selecione o sexo" }),
+  sex: z.enum(SEXES, { error: "Selecione o sexo" }),
   birthDate: z.string().min(1, "Informe a data de nascimento"),
   heightCm: z.coerce
-    .number({ invalid_type_error: "Altura inválida" })
+    .number({ error: "Altura inválida" })
     .positive("Altura deve ser positiva"),
   weightKg: z.coerce
-    .number({ invalid_type_error: "Peso inválido" })
+    .number({ error: "Peso inválido" })
     .positive("Peso deve ser positivo"),
-  goal: z.enum(GOALS, { required_error: "Selecione o objetivo" }),
+  goal: z.enum(GOALS, { error: "Selecione o objetivo" }),
 });
-type FormValues = z.infer<typeof schema>;
+type FormInput = z.input<typeof schema>;
+type FormValues = z.output<typeof schema>;
 
 export function AthleteCreatePage() {
   const navigate = useNavigate();
@@ -37,7 +38,9 @@ export function AthleteCreatePage() {
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormInput, unknown, FormValues>({
+    resolver: zodResolver(schema),
+  });
 
   async function onSubmit(values: FormValues) {
     try {

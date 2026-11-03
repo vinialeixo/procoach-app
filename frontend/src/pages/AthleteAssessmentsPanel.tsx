@@ -74,7 +74,13 @@ function hasDiff(row: MetricRow): boolean {
   return new Set(row.values).size > 1;
 }
 
-export function AthleteAssessmentsPanel({ athleteId }: { athleteId: string }) {
+export function AthleteAssessmentsPanel({
+  athleteId,
+  allowCreate = true,
+}: {
+  athleteId: string;
+  allowCreate?: boolean;
+}) {
   const { data: assessments, isLoading, isError } = useAssessments(athleteId);
   const [chartMetricKey, setChartMetricKey] = useState(CHART_METRICS[0].key);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -238,12 +244,14 @@ export function AthleteAssessmentsPanel({ athleteId }: { athleteId: string }) {
     <div className="assessments">
       <div className="assessments__header">
         <h2 className="assessments__title">Avaliações físicas</h2>
-        <Link
-          to={`/coach/athletes/${athleteId}/assessments/new`}
-          className="assessments__new"
-        >
-          <Button>Nova avaliação</Button>
-        </Link>
+        {allowCreate && (
+          <Link
+            to={`/coach/athletes/${athleteId}/assessments/new`}
+            className="assessments__new"
+          >
+            <Button>Nova avaliação</Button>
+          </Link>
+        )}
       </div>
 
       {isError && (
