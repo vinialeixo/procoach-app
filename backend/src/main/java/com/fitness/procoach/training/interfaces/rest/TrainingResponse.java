@@ -2,8 +2,10 @@ package com.fitness.procoach.training.interfaces.rest;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import com.fitness.procoach.library.application.ExerciseApplicationService;
 import com.fitness.procoach.training.domain.model.Training;
 import com.fitness.procoach.training.domain.model.TrainingStatus;
 
@@ -31,9 +33,16 @@ public record TrainingResponse(
 				example = "false") boolean deleted) {
 
 	public static TrainingResponse from(Training t) {
+		return from(t, Map.of());
+	}
+
+	/** Com o status de versão dos exercícios da biblioteca, por id do exercício. */
+	public static TrainingResponse from(Training t,
+			Map<UUID, ExerciseApplicationService.ExerciseVersionStatus> versionStatuses) {
 		List<ExercisePrescriptionResponse> exerciseResponses = t.getExercises()
 			.stream()
-			.map(ExercisePrescriptionResponse::from)
+			.map(e -> ExercisePrescriptionResponse.from(e,
+				e.getExerciseId() == null ? null : versionStatuses.get(e.getExerciseId())))
 			.toList();
 		return new TrainingResponse(t.getId(), t.getPeriodizationId(), t.getAthleteId(), t.getCoachId(), t.getName(),
 				t.getDescription(), t.getWeekNumber(), t.getDayOfWeek(), t.getStatus(), exerciseResponses,

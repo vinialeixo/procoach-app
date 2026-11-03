@@ -155,6 +155,44 @@ public class ExerciseApplicationService {
 		return exercise;
 	}
 
+	/**
+	 * Status de versão de um exercício da biblioteca (T-066). {@code currentVersionId} é o id da
+	 * versão corrente quando esta já foi substituída e a corrente continua ativa; {@code null}
+	 * caso contrário (é a corrente, ou a cadeia terminou removida).
+	 */
+	public record ExerciseVersionStatus(UUID exerciseId, int version, boolean superseded, UUID currentVersionId) {
+
+		public boolean newerVersionAvailable() {
+			return currentVersionId != null;
+		}
+	}
+
+	/**
+	 * Status de versão dos exercícios informados. Ids que não existem na biblioteca (ou removidos)
+	 * ficam de fora do resultado. Segue a cadeia de sucessores até a versão corrente.
+	 */
+	@Transactional(readOnly = true)
+	public java.util.Map<UUID, ExerciseVersionStatus> versionStatuses(java.util.Collection<UUID> exerciseIds) {
+		java.util.Map<UUID, ExerciseVersionStatus> result = new java.util.LinkedHashMap<>();
+		for (UUID exerciseId : new java.util.LinkedHashSet<>(exerciseIds)) {
+			repository.findById(exerciseId).ifPresent(exercise -> {
+				Exercise cursor = exercise;
+				while (cursor.isSuperseded()) {
+					Exercise next = repository.findSuccessor(cursor.getId()).orElse(null);
+					if (next == null) {
+						break;
+					}
+					cursor = next;
+				}
+				UUID current = (exercise.isSuperseded() && !cursor.isSuperseded() && !cursor.isDeleted())
+						? cursor.getId() : null;
+				result.put(exerciseId,
+						new ExerciseVersionStatus(exerciseId, exercise.getVersion(), exercise.isSuperseded(), current));
+			});
+		}
+		return result;
+	}
+
 	public Exercise findById(UUID id) {
 		return repository.findById(id)
 				.orElseThrow(() -> new ExerciseNotFoundException(id));

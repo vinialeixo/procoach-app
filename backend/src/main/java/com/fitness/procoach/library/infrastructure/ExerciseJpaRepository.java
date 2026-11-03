@@ -27,4 +27,6 @@ public interface ExerciseJpaRepository extends JpaRepository<ExerciseJpaEntity, 
 	List<ExerciseJpaEntity> findAllActive();
 
 	Optional<ExerciseJpaEntity> findByIdAndDeletedFalse(UUID id);
+
+	Optional<ExerciseJpaEntity> findByPreviousVersionId(UUID previousVersionId);
 }

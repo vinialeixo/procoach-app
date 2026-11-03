@@ -206,4 +206,35 @@ class ExerciseLibraryIntegrationTest {
 		var log = auditService.findByAggregate(created.getId());
 		assertEquals("EXERCISE_DELETED", log.get(log.size() - 1).getEventType());
 	}
+
+	// ---- status de versão para o módulo de treino (T-066) ----
+
+	@Test
+	void statusDeVersaoIndicaAVersaoCorrenteAPartirDeQualquerVersaoAntiga() {
+		Exercise v1 = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO)));
+		Exercise v2 = service.update(v1.getId(), updateCommand("Supino Inclinado", Equipment.HALTERES), coachId);
+		Exercise v3 = service.update(v2.getId(), updateCommand("Supino Declinado", Equipment.BARRA_LIVRE), coachId);
+
+		var statuses = service.versionStatuses(List.of(v1.getId(), v2.getId(), v3.getId(), UUID.randomUUID()));
+
+		assertEquals(3, statuses.size());
+		assertTrue(statuses.get(v1.getId()).superseded());
+		assertEquals(v3.getId(), statuses.get(v1.getId()).currentVersionId());
+		assertEquals(v3.getId(), statuses.get(v2.getId()).currentVersionId());
+		assertEquals(3, statuses.get(v3.getId()).version());
+		assertFalse(statuses.get(v3.getId()).superseded());
+		assertFalse(statuses.get(v3.getId()).newerVersionAvailable());
+	}
+
+	@Test
+	void statusDeVersaoNaoSugereVersaoCorrenteRemovida() {
+		Exercise v1 = service.create(command("Supino Reto", List.of(MuscleGroup.PEITO)));
+		Exercise v2 = service.update(v1.getId(), updateCommand("Supino Inclinado", Equipment.HALTERES), coachId);
+		service.delete(v2.getId(), coachId);
+
+		var status = service.versionStatuses(List.of(v1.getId())).get(v1.getId());
+
+		assertTrue(status.superseded());
+		assertFalse(status.newerVersionAvailable());
+	}
 }

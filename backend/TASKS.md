@@ -117,6 +117,7 @@
 | [x] | **T-066** | E8 | US-19 | Backend: exercício da biblioteca versionado — editar cria nova versão (v2, v3…) em vez de sobrescrever, para que treinos já prescritos não mudem retroativamente; listagens mostram só a versão corrente | Dev | Should (sugerido) | 3 | T-014, T-036 |
 | [ ] | **T-067** | E4 | US-10/US-12 | Backend: sessões de treino ligadas à versão do plano — cada sessão passa a pertencer a uma versão do plano (hoje plano e sessões só se ligam pela periodização); criar a v2 do plano gera as sessões da v2 e deixa a v1 intacta, para responder "o que o atleta tinha prescrito na semana N do ciclo" | Dev | Should (sugerido) | 4 | T-037, T-066 |
 | [ ] | **T-068** | E4 | US-10 | Backend: editar prescrição de exercício já criada (séries, repetições, carga, intensidade, descanso) com antes/depois no audit log (`TRAINING_EXERCISE_UPDATED`); hoje só dá para adicionar, reordenar e remover o treino inteiro | Dev | Should (sugerido) | 2 | T-014, T-037 |
+| [x] | **T-069** | E4/E8 | US-19 | Backend: aviso de versão mais nova do exercício nas prescrições — cada prescrição de exercício da biblioteca traz `exerciseVersion`, `newerVersionAvailable` e `currentExerciseId` (segue a cadeia até a versão corrente; sem aviso se a corrente foi removida); a prescrição continua apontando para a versão que o coach usou | Dev | Should (sugerido) | 1 | T-066 |
 | [x] | **T-065** | E1/E3/E4 | US-38 | Backend da área do atleta (T-054/T-055): leitura somente leitura filtrada — atleta só vê a dieta APROVADA (versão aprovada mais recente), planos/treinos/periodizações ACTIVE ou FINISHED e o balanço da dieta aprovada; registros removidos não aparecem para ninguém; avaliações com `metrics` já eram acessíveis ao atleta | Dev | Must (sugerido) | 2 | T-062 |
 
 > `T-057`/`T-058` identificadas em 2026-09-02: nenhuma task original cria o agregado
@@ -159,6 +160,9 @@
 > exercício deixou de sobrescrever com a `T-066`: editar cria uma nova versão (id novo, `version`+1,
 > `previousVersionId`), a anterior fica `superseded` e legível por id, e as buscas mostram só a versão
 > corrente; o evento passa a ser `EXERCISE_VERSIONED`. Migração `V803` (Postgres, não exercitada em H2).
+> `T-069` avisa, em cada prescrição do treino, quando o exercício da biblioteca já tem versão mais nova
+> (`newerVersionAvailable` + `currentExerciseId`). Trocar a prescrição para a versão corrente depende da
+> `T-068` (editar prescrição).
 >
 > **Modelo de treino hoje**: a periodização (ex.: ciclo de 3 meses) tem id, datas e status, mas não contém
 > exercícios; as sessões de treino (semana/dia) guardam as prescrições (séries, repetições, carga…); o plano

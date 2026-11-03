@@ -53,6 +53,12 @@ public class ExerciseRepositoryAdapter implements ExerciseRepository {
 		jpaRepository.save(toJpa(exercise));
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<Exercise> findSuccessor(UUID previousVersionId) {
+		return jpaRepository.findByPreviousVersionId(previousVersionId).map(this::toDomain);
+	}
+
 	private ExerciseJpaEntity toJpa(Exercise e) {
 		ExerciseJpaEntity jpa = new ExerciseJpaEntity();
 		jpa.setId(e.getId());

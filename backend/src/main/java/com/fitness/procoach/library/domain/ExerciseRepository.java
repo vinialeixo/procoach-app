@@ -20,4 +20,7 @@ public interface ExerciseRepository {
 	List<Exercise> search(String name, MuscleGroup muscleGroup);
 
 	void delete(Exercise exercise);
+
+	/** Versão que substituiu {@code previousVersionId}, mesmo que removida; vazio se não há sucessora. */
+	Optional<Exercise> findSuccessor(UUID previousVersionId);
 }

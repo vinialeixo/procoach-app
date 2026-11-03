@@ -93,7 +93,7 @@ public class TrainingController {
 		Training training = this.createTrainingUseCase.execute(request.periodizationId(), request.athleteId(),
 				UUID.fromString(jwt.getSubject()), request.name(), request.description(), request.weekNumber(),
 				request.dayOfWeek());
-		return ResponseEntity.status(HttpStatus.CREATED).body(TrainingResponse.from(training));
+		return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(training));
 	}
 
 	@Operation(summary = "Buscar treino por id")
@@ -110,7 +110,7 @@ public class TrainingController {
 	public ResponseEntity<TrainingResponse> findById(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do treino") @PathVariable UUID id) {
 		return this.queryService.findTrainingById(id, UUID.fromString(jwt.getSubject()))
-			.map(t -> ResponseEntity.ok(TrainingResponse.from(t)))
+			.map(t -> ResponseEntity.ok(toResponse(t)))
 			.orElse(ResponseEntity.notFound().build());
 	}
 
@@ -129,10 +129,7 @@ public class TrainingController {
 		if (periodization.isEmpty()) {
 			return ResponseEntity.notFound().build();
 		}
-		List<TrainingResponse> result = this.queryService.findTrainingsByPeriodization(periodizationId)
-			.stream()
-			.map(TrainingResponse::from)
-			.toList();
+		List<TrainingResponse> result = toResponses(this.queryService.findTrainingsByPeriodization(periodizationId));
 		return ResponseEntity.ok(result);
 	}
 
@@ -151,7 +148,7 @@ public class TrainingController {
 			@RequestParam(required = false) TrainingStatus status) {
 		requireCoachOwnsAthlete(jwt, athleteId);
 		List<Training> trainings = this.queryService.findTrainingsByAthlete(athleteId, status, isAthlete(jwt));
-		return ResponseEntity.ok(trainings.stream().map(TrainingResponse::from).toList());
+		return ResponseEntity.ok(toResponses(trainings));
 	}
 
 	@Operation(summary = "Adicionar exercício ao treino",
@@ -174,7 +171,7 @@ public class TrainingController {
 				request.exerciseId(), request.exerciseName(),
 				request.customExercise(), request.orderIndex(), request.sets(), request.repetitions(), request.load(),
 				request.intensityType(), request.intensityValue(), request.restSeconds(), request.notes());
-		return ResponseEntity.ok(TrainingResponse.from(training));
+		return ResponseEntity.ok(toResponse(training));
 	}
 
 	@Operation(summary = "Reordenar exercícios do treino",
@@ -194,7 +191,7 @@ public class TrainingController {
 			@Valid @RequestBody ReorderExercisesRequest request) {
 		Training training = this.reorderExercisesUseCase.execute(id, UUID.fromString(jwt.getSubject()),
 				request.orderedPrescriptionIds());
-		return ResponseEntity.ok(TrainingResponse.from(training));
+		return ResponseEntity.ok(toResponse(training));
 	}
 
 	@Operation(summary = "Transicionar status do treino",
@@ -214,7 +211,7 @@ public class TrainingController {
 			@Valid @RequestBody TransitionStatusRequest request) {
 		Training training = this.transitionStatusUseCase.execute(id, UUID.fromString(jwt.getSubject()),
 				request.targetStatus());
-		return ResponseEntity.ok(TrainingResponse.from(training));
+		return ResponseEntity.ok(toResponse(training));
 	}
 
 	@Operation(summary = "Remover treino (soft-delete)",
@@ -250,5 +247,16 @@ public class TrainingController {
 	/** Chamada do próprio atleta (somente leitura, só conteúdo liberado pelo coach). */
 	private static boolean isAthlete(Jwt jwt) {
 		return jwt != null && "ATHLETE".equals(jwt.getClaimAsString("role"));
+	}
+
+	/** Resposta do treino com o aviso de versão mais nova dos exercícios da biblioteca (T-066). */
+	private TrainingResponse toResponse(Training training) {
+		return TrainingResponse.from(training, this.queryService.exerciseVersionStatuses(List.of(training)));
+	}
+
+	/** Uma única consulta de versões para a lista inteira. */
+	private List<TrainingResponse> toResponses(List<Training> trainings) {
+		var statuses = this.queryService.exerciseVersionStatuses(trainings);
+		return trainings.stream().map(t -> TrainingResponse.from(t, statuses)).toList();
 	}
 }

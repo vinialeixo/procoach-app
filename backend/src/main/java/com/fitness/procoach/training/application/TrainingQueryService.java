@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import com.fitness.procoach.library.application.ExerciseApplicationService;
 import com.fitness.procoach.training.domain.model.Periodization;
 import com.fitness.procoach.training.domain.model.PeriodizationStatus;
 import com.fitness.procoach.training.domain.model.Training;
@@ -27,6 +28,8 @@ public class TrainingQueryService {
 	private static final Set<TrainingStatus> ATHLETE_VISIBLE = EnumSet.of(TrainingStatus.ACTIVE,
 			TrainingStatus.FINISHED);
 
+	private final ExerciseApplicationService exerciseService;
+
 	private final TrainingRepository trainingRepository;
 
 	private final TrainingPlanRepository trainingPlanRepository;
@@ -36,7 +39,9 @@ public class TrainingQueryService {
 	private final TrainingOwnershipGuard ownershipGuard;
 
 	public TrainingQueryService(TrainingRepository trainingRepository, TrainingPlanRepository trainingPlanRepository,
-			PeriodizationRepository periodizationRepository, TrainingOwnershipGuard ownershipGuard) {
+			PeriodizationRepository periodizationRepository, TrainingOwnershipGuard ownershipGuard,
+			ExerciseApplicationService exerciseService) {
+		this.exerciseService = exerciseService;
 		this.trainingRepository = trainingRepository;
 		this.trainingPlanRepository = trainingPlanRepository;
 		this.periodizationRepository = periodizationRepository;
@@ -143,6 +148,20 @@ public class TrainingQueryService {
 			.filter(p -> !athleteView || p.getStatus() == PeriodizationStatus.ACTIVE
 					|| p.getStatus() == PeriodizationStatus.FINISHED)
 			.toList();
+	}
+
+	/**
+	 * Status de versão dos exercícios da biblioteca prescritos nos treinos informados, por id do
+	 * exercício (T-066). Exercício personalizado do coach não tem versão e fica de fora.
+	 */
+	public java.util.Map<UUID, ExerciseApplicationService.ExerciseVersionStatus> exerciseVersionStatuses(
+			java.util.Collection<Training> trainings) {
+		List<UUID> exerciseIds = trainings.stream()
+			.flatMap(t -> t.getExercises().stream())
+			.filter(e -> !e.isCustomExercise() && e.getExerciseId() != null)
+			.map(e -> e.getExerciseId())
+			.toList();
+		return exerciseIds.isEmpty() ? java.util.Map.of() : this.exerciseService.versionStatuses(exerciseIds);
 	}
 
 	public List<Periodization> findPeriodizationsByAthlete(UUID athleteId) {
