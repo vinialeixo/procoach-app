@@ -1,0 +1,48 @@
+.athlete-form {
+  max-width: 560px;
+}
+
+.athlete-form__back {
+  display: inline-block;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  margin-bottom: var(--space-4);
+}
+
+.athlete-form__back:hover {
+  color: var(--color-ink);
+}
+
+.athlete-form__title {
+  font-size: var(--text-xl);
+  color: var(--color-ink);
+  margin: 0 0 var(--space-5);
+}
+
+.athlete-form__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-6);
+}
+
+.athlete-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.athlete-form__error {
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+  margin: 0;
+}
+
+.athlete-form__actions .pc-button {
+  width: auto;
+}

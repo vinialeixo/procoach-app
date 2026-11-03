@@ -1,0 +1,61 @@
+/*
+  ProCoach — Design Tokens
+  Conceito: "ledger clínico" — o produto é sobre evidência, versionamento e
+  auditoria; a estética reflete isso (precisão, dados reais, nada decorativo
+  sem função) em vez do padrão genérico de app de academia/consumer SaaS.
+*/
+
+:root {
+  /* Cor */
+  --color-bg: #eef1f4;
+  --color-surface: #ffffff;
+  --color-surface-dark: #121826;
+  --color-surface-dark-raised: #1a2233;
+
+  --color-ink: #121826;
+  --color-ink-muted: #5b6472;
+  --color-ink-on-dark: #e9ecf1;
+  --color-ink-on-dark-muted: #8891a3;
+
+  --color-primary: #1f3b57;
+  --color-primary-hover: #16293d;
+  --color-accent: #c97a2b;
+  --color-accent-soft: #f3e3d1;
+
+  --color-border: #d9dee4;
+  --color-border-on-dark: #2a3346;
+
+  --color-success: #2f6e4c;
+  --color-danger: #a23b3b;
+  --color-danger-soft: #f6e4e4;
+
+  /* Tipografia */
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+
+  /* Espaçamento */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+  --space-10: 64px;
+
+  /* Forma */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --shadow-card: 0 1px 2px rgba(18, 24, 38, 0.06), 0 8px 24px rgba(18, 24, 38, 0.06);
+
+  --focus-ring: 0 0 0 3px rgba(31, 59, 87, 0.25);
+  --focus-ring-accent: 0 0 0 3px rgba(201, 122, 43, 0.3);
+}

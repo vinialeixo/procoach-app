@@ -1,0 +1,61 @@
+.athlete-list__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+.athlete-list__title {
+  font-size: var(--text-xl);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.athlete-list__new .pc-button {
+  width: auto;
+  height: 40px;
+}
+
+.athlete-list__toolbar {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.athlete-list__search {
+  flex: 1;
+  height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+}
+
+.athlete-list__search:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.athlete-list__filter {
+  height: 40px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+}
+
+.athlete-list__loading,
+.athlete-list__error {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-ink-muted);
+}
+
+.athlete-list__error {
+  color: var(--color-danger);
+}
