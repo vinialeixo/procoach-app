@@ -1,0 +1,152 @@
+.diets__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.diets__title {
+  font-size: var(--text-lg);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.diets__section-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin: var(--space-5) 0 var(--space-3);
+}
+
+.diets__meta {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+.diets__mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+/* Versão atual — card de ações (nunca sobrescreve; fluxo travado) */
+.diets__current {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+}
+
+.diets__current-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.diets__current-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.diets__current-actions .pc-button {
+  width: auto;
+  height: 40px;
+}
+
+.diets__flow-end {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+/* Chip de versão (ledger): mono, imutável quando congelada */
+.diets__ver {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  background: var(--color-surface);
+  white-space: nowrap;
+}
+
+.diets__ver--current {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  font-weight: 600;
+}
+
+.diets__ver--frozen {
+  opacity: 0.75;
+  text-decoration: line-through;
+  text-decoration-color: var(--color-border);
+}
+
+/* Auditoria (US-016): quando + quem + motivo de cada versão */
+.diets__audit {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-sm);
+}
+
+.diets__audit-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+.diets__audit-reason {
+  color: var(--color-ink);
+}
+
+/* Estados de carregamento/erro/vazio */
+.diets__loading {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-ink-muted);
+}
+
+.diets__error {
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.diets__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-5);
+  text-align: center;
+  color: var(--color-ink-muted);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.diets__empty-hint {
+  font-size: var(--text-sm);
+  max-width: 46ch;
+}
+
+.diets__empty .pc-button {
+  width: auto;
+}
+
+/* US-015, critério 3: destaque nos campos que divergem entre versões */
+.diets__diff {
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
+  font-weight: 600;
+}
