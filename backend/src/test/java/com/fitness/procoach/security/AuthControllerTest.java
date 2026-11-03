@@ -171,11 +171,12 @@ class AuthControllerTest {
 				.andReturn();
 		String challengeId = JsonPath.read(login.getResponse().getContentAsString(), "$.challengeId");
 
-		// O token de desafio NÃO é uma sessão: sem role, não passa no guard (403).
+		// O token de desafio NÃO é uma sessão: o resource server só aceita token de
+		// acesso (type=access), então ele é recusado como Bearer (401).
 		mockMvc.perform(get("/api/v1/assessments")
 				.param("athleteId", UUID.randomUUID().toString())
 				.header("Authorization", bearer(challengeId)))
-				.andExpect(status().isForbidden());
+				.andExpect(status().isUnauthorized());
 
 		// Código errado -> 400; código certo -> sessão completa.
 		mockMvc.perform(post("/api/v1/auth/mfa/verify").contentType(MediaType.APPLICATION_JSON)

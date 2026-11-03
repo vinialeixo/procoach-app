@@ -336,9 +336,9 @@ class TrainingAuthorizationTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
-								  "orderedPrescriptionIds": []
+								  "orderedPrescriptionIds": ["%s"]
 								}
-								"""))
+								""".formatted(java.util.UUID.randomUUID())))
 				.andExpect(status().isNotFound());
 	}
 

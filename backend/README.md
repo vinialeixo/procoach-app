@@ -163,6 +163,10 @@ RAG_GRPC_ENDPOINT=localhost:50051
 
 # RAG service tests
 cd rag-service && pytest
+
+# Sem Docker: testes de integração em H2 (modo PostgreSQL); o schema vem das entidades JPA
+# e as migrações Flyway não são exercitadas. Use o comando acima (Testcontainers) para validá-las.
+./mvnw test -Dspring.profiles.active=h2
 ```
 
 Testing focuses heavily on **auditability and non-overwriting versioning**, RBAC authorization,
