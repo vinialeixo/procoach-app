@@ -32,7 +32,7 @@
 		     ${spring-modulith.version} sem ela existir em lugar nenhum, o que
 		     quebraria o build com "must not be empty". Boot 4 -> Spring Framework 7
 		     exige Spring Modulith 2.x (a série 1.x é só para Boot 3). -->
-		<spring-modulith.version>2.1.0</spring-modulith.version>
+		<spring-modulith.version>2.1.2</spring-modulith.version>
 	</properties>
 	<dependencies>
 		<dependency>
