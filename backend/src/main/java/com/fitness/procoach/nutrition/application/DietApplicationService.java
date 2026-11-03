@@ -14,6 +14,7 @@ import com.fitness.procoach.nutrition.domain.DietRepository;
 import com.fitness.procoach.nutrition.domain.DietStatus;
 import com.fitness.procoach.nutrition.domain.Macronutrients;
 import java.util.List;
+import java.util.Comparator;
 import java.util.UUID;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,6 +76,36 @@ public class DietApplicationService {
 	 */
 	public List<Diet> historyByAthlete(UUID athleteId) {
 		return repository.findAllVersionsByAthleteId(AthleteId.of(athleteId));
+	}
+
+	/**
+	 * Versão corrente da dieta. Coach: a mais recente (rascunho, revisão ou
+	 * aprovada). Atleta: a versão APROVADA mais recente — o que o coach ainda está
+	 * montando ou revisando não aparece (US-038).
+	 */
+	public Diet latestByAthlete(UUID athleteId, boolean athleteView) {
+		if (!athleteView) {
+			return latestByAthlete(athleteId);
+		}
+		return historyByAthlete(athleteId, true).stream()
+				.filter(d -> d.status() == DietStatus.APPROVED)
+				.max(Comparator.comparingInt(Diet::version))
+				.orElseThrow(() -> new DietNotFoundException(athleteId));
+	}
+
+	/**
+	 * Histórico de versões. Atleta: só versões que já foram aprovadas (APPROVED ou
+	 * ARCHIVED, que só se alcança a partir de APPROVED) e não removidas.
+	 */
+	public List<Diet> historyByAthlete(UUID athleteId, boolean athleteView) {
+		List<Diet> all = historyByAthlete(athleteId);
+		if (!athleteView) {
+			return all;
+		}
+		return all.stream()
+				.filter(d -> !d.isDeleted())
+				.filter(d -> d.status() == DietStatus.APPROVED || d.status() == DietStatus.ARCHIVED)
+				.toList();
 	}
 
 	public Diet findById(DietId id) {
@@ -139,8 +170,8 @@ public class DietApplicationService {
 	 * coach). A posse/autorização do atleta deve ter sido validada pelo chamador
 	 * (guard do JWT e, para coach, a carteira). Atleta sem dieta resulta em 404.
 	 */
-	public DietEnergyBalance latestEnergyBalance(UUID athleteId) {
-		return balanceOf(latestByAthlete(athleteId));
+	public DietEnergyBalance latestEnergyBalance(UUID athleteId, boolean athleteView) {
+		return balanceOf(latestByAthlete(athleteId, athleteView));
 	}
 
 	private DietEnergyBalance balanceOf(Diet diet) {

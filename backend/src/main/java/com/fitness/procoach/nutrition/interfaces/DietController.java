@@ -135,7 +135,7 @@ public class DietController {
 	public EnergyBalanceResponse athleteEnergyBalance(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
 		requireCoachOwnsAthlete(jwt, athleteId);
-		return EnergyBalanceResponse.from(service.latestEnergyBalance(athleteId));
+		return EnergyBalanceResponse.from(service.latestEnergyBalance(athleteId, isAthlete(jwt)));
 	}
 
 	@Operation(summary = "Balanço energético da dieta",
@@ -188,7 +188,7 @@ public class DietController {
 	public DietResponse latest(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
 		requireCoachOwnsAthlete(jwt, athleteId);
-		return DietResponse.from(service.latestByAthlete(athleteId));
+		return DietResponse.from(service.latestByAthlete(athleteId, isAthlete(jwt)));
 	}
 
 	/**
@@ -205,7 +205,7 @@ public class DietController {
 	public List<DietResponse> history(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
 		requireCoachOwnsAthlete(jwt, athleteId);
-		return service.historyByAthlete(athleteId).stream().map(DietResponse::from).toList();
+		return service.historyByAthlete(athleteId, isAthlete(jwt)).stream().map(DietResponse::from).toList();
 	}
 
 	/**
@@ -219,5 +219,10 @@ public class DietController {
 		}
 		UUID coachId = coachService.requireCoachIdByUserId(UUID.fromString(jwt.getSubject())).value();
 		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
+	}
+
+	/** Chamada do próprio atleta (somente leitura, só conteúdo liberado pelo coach). */
+	private static boolean isAthlete(Jwt jwt) {
+		return jwt != null && "ATHLETE".equals(jwt.getClaimAsString("role"));
 	}
 }

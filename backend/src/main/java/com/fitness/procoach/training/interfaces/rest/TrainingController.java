@@ -150,9 +150,7 @@ public class TrainingController {
 			@Parameter(description = "Filtro opcional de status do treino", example = "ACTIVE")
 			@RequestParam(required = false) TrainingStatus status) {
 		requireCoachOwnsAthlete(jwt, athleteId);
-		List<Training> trainings = (status != null)
-				? this.queryService.findTrainingsByAthleteAndStatus(athleteId, status)
-				: this.queryService.findTrainingsByAthlete(athleteId);
+		List<Training> trainings = this.queryService.findTrainingsByAthlete(athleteId, status, isAthlete(jwt));
 		return ResponseEntity.ok(trainings.stream().map(TrainingResponse::from).toList());
 	}
 
@@ -249,4 +247,8 @@ public class TrainingController {
 		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
 	}
 
+	/** Chamada do próprio atleta (somente leitura, só conteúdo liberado pelo coach). */
+	private static boolean isAthlete(Jwt jwt) {
+		return jwt != null && "ATHLETE".equals(jwt.getClaimAsString("role"));
+	}
 }

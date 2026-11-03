@@ -1,10 +1,14 @@
 package com.fitness.procoach.training.application;
 
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import com.fitness.procoach.training.domain.model.Periodization;
+import com.fitness.procoach.training.domain.model.PeriodizationStatus;
 import com.fitness.procoach.training.domain.model.Training;
 import com.fitness.procoach.training.domain.model.TrainingPlan;
 import com.fitness.procoach.training.domain.model.TrainingStatus;
@@ -18,6 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class TrainingQueryService {
+
+	/** Status que o atleta enxerga: o coach já liberou o conteúdo. */
+	private static final Set<TrainingStatus> ATHLETE_VISIBLE = EnumSet.of(TrainingStatus.ACTIVE,
+			TrainingStatus.FINISHED);
 
 	private final TrainingRepository trainingRepository;
 
@@ -92,6 +100,49 @@ public class TrainingQueryService {
 			this.ownershipGuard.requireResourceOwnedByCoach(periodization.get().getAthleteId(), userId);
 		}
 		return periodization;
+	}
+
+	/**
+	 * Treinos do atleta sem os removidos (soft-delete). Na visão do próprio atleta
+	 * só aparece o que o coach já liberou: treinos ACTIVE ou FINISHED — rascunho e
+	 * em revisão ficam só com o coach.
+	 */
+	public List<Training> findTrainingsByAthlete(UUID athleteId, TrainingStatus status, boolean athleteView) {
+		List<Training> base = (status != null) ? findTrainingsByAthleteAndStatus(athleteId, status)
+				: findTrainingsByAthlete(athleteId);
+		return base.stream()
+			.filter(t -> !t.isDeleted())
+			.filter(t -> !athleteView || ATHLETE_VISIBLE.contains(t.getStatus()))
+			.toList();
+	}
+
+	/** Planos do atleta sem os removidos; o atleta vê só ACTIVE e FINISHED. */
+	public List<TrainingPlan> findTrainingPlansByAthlete(UUID athleteId, boolean athleteView) {
+		return findTrainingPlansByAthlete(athleteId).stream()
+			.filter(p -> !p.isDeleted())
+			.filter(p -> !athleteView || ATHLETE_VISIBLE.contains(p.getStatus()))
+			.toList();
+	}
+
+	/**
+	 * Plano corrente. Coach: a versão mais recente, seja qual for o status. Atleta:
+	 * a versão ACTIVE mais recente (o que o coach liberou), sem rascunhos.
+	 */
+	public Optional<TrainingPlan> findLatestPlanVersion(UUID athleteId, boolean athleteView) {
+		if (!athleteView) {
+			return findLatestPlanVersion(athleteId);
+		}
+		return findTrainingPlansByAthlete(athleteId, true).stream()
+			.filter(p -> p.getStatus() == TrainingStatus.ACTIVE)
+			.max(Comparator.comparingInt(TrainingPlan::getVersion));
+	}
+
+	/** Periodizações do atleta; o atleta vê só as ACTIVE e FINISHED. */
+	public List<Periodization> findPeriodizationsByAthlete(UUID athleteId, boolean athleteView) {
+		return findPeriodizationsByAthlete(athleteId).stream()
+			.filter(p -> !athleteView || p.getStatus() == PeriodizationStatus.ACTIVE
+					|| p.getStatus() == PeriodizationStatus.FINISHED)
+			.toList();
 	}
 
 	public List<Periodization> findPeriodizationsByAthlete(UUID athleteId) {

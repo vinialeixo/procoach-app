@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fitness.procoach.ProcoachApplication;
@@ -418,5 +419,96 @@ class TrainingAuthorizationTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{}"))
 				.andExpect(status().isBadRequest());
+	}
+
+	// ---- visão do atleta: só o que o coach liberou ----
+
+	@Autowired
+	private com.fitness.procoach.security.application.AuthService authService;
+
+	private String athleteToken(String athleteId) {
+		return authService.registerAthleteCredential(uniqueEmail("atleta"), "senha-Forte-123",
+				java.util.UUID.fromString(athleteId)).tokens().accessToken();
+	}
+
+	private void transition(String coach, String path, String id, String target) throws Exception {
+		mockMvc.perform(post(path + "/{id}/transition", id)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{ \"targetStatus\": \"%s\" }".formatted(target)))
+				.andExpect(status().isOk());
+	}
+
+	private void activate(String coach, String path, String id) throws Exception {
+		transition(coach, path, id, "IN_REVIEW");
+		transition(coach, path, id, "ACTIVE");
+	}
+
+	@Test
+	void atletaSoVeOPlanoDepoisQueOCoachAtiva() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		String athleteToken = athleteToken(athleteId);
+		String planId = createPlan(coach, athleteId, createPeriodization(coach, athleteId));
+
+		// Rascunho: o coach vê, o atleta não.
+		mockMvc.perform(get("/api/training/plans/athlete/{id}", athleteId).header("Authorization", bearer(coach)))
+				.andExpect(jsonPath("$.length()").value(1));
+		mockMvc.perform(get("/api/training/plans/athlete/{id}", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$").isEmpty());
+		mockMvc.perform(get("/api/training/plans/athlete/{id}/latest", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(status().isNotFound());
+
+		activate(coach, "/api/training/plans", planId);
+
+		mockMvc.perform(get("/api/training/plans/athlete/{id}", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(jsonPath("$.length()").value(1));
+		mockMvc.perform(get("/api/training/plans/athlete/{id}/latest", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(planId));
+	}
+
+	@Test
+	void planoRemovidoDeixaDeAparecerParaCoachEAtleta() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		String athleteToken = athleteToken(athleteId);
+		String planId = createPlan(coach, athleteId, createPeriodization(coach, athleteId));
+		activate(coach, "/api/training/plans", planId);
+
+		mockMvc.perform(delete("/api/training/plans/{id}", planId).header("Authorization", bearer(coach)))
+				.andExpect(status().isNoContent());
+
+		mockMvc.perform(get("/api/training/plans/athlete/{id}", athleteId).header("Authorization", bearer(coach)))
+				.andExpect(jsonPath("$").isEmpty());
+		mockMvc.perform(get("/api/training/plans/athlete/{id}", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(jsonPath("$").isEmpty());
+	}
+
+	@Test
+	void atletaSoVeTreinoAtivo() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		String athleteToken = athleteToken(athleteId);
+		String trainingId = createTraining(coach, athleteId, createPeriodization(coach, athleteId));
+
+		mockMvc.perform(get("/api/training/trainings/athlete/{id}", athleteId)
+						.header("Authorization", bearer(coach)))
+				.andExpect(jsonPath("$.length()").value(1));
+		mockMvc.perform(get("/api/training/trainings/athlete/{id}", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(jsonPath("$").isEmpty());
+
+		activate(coach, "/api/training/trainings", trainingId);
+
+		mockMvc.perform(get("/api/training/trainings/athlete/{id}", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(jsonPath("$.length()").value(1));
 	}
 }

@@ -118,7 +118,7 @@ public class TrainingPlanController {
 	public ResponseEntity<List<TrainingPlanResponse>> findByAthlete(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @PathVariable UUID athleteId) {
 		requireCoachOwnsAthlete(jwt, athleteId);
-		List<TrainingPlanResponse> result = this.queryService.findTrainingPlansByAthlete(athleteId)
+		List<TrainingPlanResponse> result = this.queryService.findTrainingPlansByAthlete(athleteId, isAthlete(jwt))
 			.stream()
 			.map(TrainingPlanResponse::from)
 			.toList();
@@ -138,7 +138,7 @@ public class TrainingPlanController {
 	public ResponseEntity<TrainingPlanResponse> findLatestVersion(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @PathVariable UUID athleteId) {
 		requireCoachOwnsAthlete(jwt, athleteId);
-		return this.queryService.findLatestPlanVersion(athleteId)
+		return this.queryService.findLatestPlanVersion(athleteId, isAthlete(jwt))
 			.map(tp -> ResponseEntity.ok(TrainingPlanResponse.from(tp)))
 			.orElse(ResponseEntity.notFound().build());
 	}
@@ -215,4 +215,8 @@ public class TrainingPlanController {
 		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
 	}
 
+	/** Chamada do próprio atleta (somente leitura, só conteúdo liberado pelo coach). */
+	private static boolean isAthlete(Jwt jwt) {
+		return jwt != null && "ATHLETE".equals(jwt.getClaimAsString("role"));
+	}
 }

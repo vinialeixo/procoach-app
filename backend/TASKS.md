@@ -114,6 +114,7 @@
 | [ ] | **T-061** | E2 | US-05 | Backend: nível de atividade do atleta (fator do GET) — hoje a T-025 usa fator sedentário 1,2 fixo; guardar o fator por atleta/avaliação e usá-lo no cálculo do GET (e reaproveitar na T-030) | Dev | Should (sugerido) | 2 | T-025 |
 | [x] | **T-062** | E9 | US-20 | Backend: convite do atleta (primeira credencial) — coach gera link de uso único (7 dias, só o hash do token é guardado); atleta consulta e aceita sem autenticação, define a senha e abre a sessão; um acesso por atleta | Dev | Must (sugerido) | 3 | T-008, T-017 |
 | [ ] | **T-064** | E9 | US-20 | Backend: envio do convite do atleta por e-mail (hoje o coach copia o link e repassa) e reenvio | Dev | Should (sugerido) | 2 | T-062 |
+| [x] | **T-065** | E1/E3/E4 | US-38 | Backend da área do atleta (T-054/T-055): leitura somente leitura filtrada — atleta só vê a dieta APROVADA (versão aprovada mais recente), planos/treinos/periodizações ACTIVE ou FINISHED e o balanço da dieta aprovada; registros removidos não aparecem para ninguém; avaliações com `metrics` já eram acessíveis ao atleta | Dev | Must (sugerido) | 2 | T-062 |
 
 > `T-057`/`T-058` identificadas em 2026-09-02: nenhuma task original cria o agregado
 > `Coach` (`com.procoach.core.coach`), apesar do UML exigir `User "1" --> "1" Coach` e

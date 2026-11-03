@@ -82,6 +82,8 @@
 > (guardar o último passo aceito); segredo TOTP cifrado no banco (AES-GCM, chave via ambiente);
 > códigos de recuperação.
 
+> `T-054`/`T-055` — o backend já está pronto (backlog `T-065`): o atleta autenticado consulta `GET /api/v1/diets` e `/diets/history`, `GET /api/v1/diets/energy-balance?athleteId=`, `GET /api/training/plans/athlete/{id}[/latest]`, `GET /api/training/trainings/athlete/{id}`, `GET /api/v1/assessments?athleteId=` (com `metrics`). O atleta só recebe conteúdo liberado pelo coach (dieta aprovada, plano e treino ativos); sem dieta aprovada o `GET /diets` responde 404.
+
 > `T-056` identificada em 2026-09-02 durante a implementação da `T-011`: `npm run lint`
 > quebrado por falta de `.eslintrc`/`eslint.config.*` na raiz do frontend — lacuna da
 > `T-006` original, não de quem implementou `T-011`. Resolver antes da Etapa 2 para não

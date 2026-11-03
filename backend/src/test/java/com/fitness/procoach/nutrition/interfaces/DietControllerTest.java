@@ -332,7 +332,8 @@ class DietControllerTest {
 	void atletaVeOProprioBalancoEnergetico() throws Exception {
 		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
 		String athleteId = registerAthlete(mockMvc, coach);
-		createDiet(coach, athleteId);
+		// O atleta só vê o balanço da dieta que o coach aprovou.
+		approve(coach, createDiet(coach, athleteId));
 		registerAssessment(coach, athleteId);
 
 		mockMvc.perform(get("/api/v1/diets/energy-balance").param("athleteId", athleteId)
@@ -370,5 +371,97 @@ class DietControllerTest {
 		mockMvc.perform(get("/api/v1/diets/energy-balance").param("athleteId", athleteId)
 						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
+	}
+
+	// ---- visão do atleta: só a dieta que o coach aprovou ----
+
+	private void changeDietStatus(String coach, String dietId, String status) throws Exception {
+		mockMvc.perform(post("/api/v1/diets/{id}/status", dietId)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{ \"status\": \"%s\" }".formatted(status)))
+				.andExpect(status().isOk());
+	}
+
+	private void approve(String coach, String dietId) throws Exception {
+		changeDietStatus(coach, dietId, "IN_REVIEW");
+		changeDietStatus(coach, dietId, "APPROVED");
+	}
+
+	@Test
+	void atletaSoVeADietaDepoisDeAprovada() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		String athleteToken = athleteToken(athleteId);
+		String dietId = createDiet(coach, athleteId);
+
+		// Rascunho: o coach vê, o atleta não.
+		mockMvc.perform(get("/api/v1/diets").param("athleteId", athleteId).header("Authorization", bearer(coach)))
+				.andExpect(status().isOk());
+		mockMvc.perform(get("/api/v1/diets").param("athleteId", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(status().isNotFound());
+		mockMvc.perform(get("/api/v1/diets/history").param("athleteId", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$").isEmpty());
+
+		approve(coach, dietId);
+
+		mockMvc.perform(get("/api/v1/diets").param("athleteId", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("APPROVED"));
+		mockMvc.perform(get("/api/v1/diets/history").param("athleteId", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(jsonPath("$.length()").value(1));
+	}
+
+	@Test
+	void atletaContinuaVendoAAprovadaEnquantoOCoachEditaNovaVersao() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		String athleteToken = athleteToken(athleteId);
+		String v1 = createDiet(coach, athleteId);
+		approve(coach, v1);
+
+		mockMvc.perform(post("/api/v1/diets/{id}/versions", v1)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{ "objective": "HYPERTROPHY", "calories": 2600, "protein": 180,
+								  "carbohydrates": 260, "fat": 80, "changeReason": "ajuste" }
+								"""))
+				.andExpect(status().isCreated());
+
+		// Coach vê a v2 em rascunho; o atleta segue com a v1 aprovada.
+		mockMvc.perform(get("/api/v1/diets").param("athleteId", athleteId).header("Authorization", bearer(coach)))
+				.andExpect(jsonPath("$.version").value(2));
+		mockMvc.perform(get("/api/v1/diets").param("athleteId", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(jsonPath("$.version").value(1));
+	}
+
+	@Test
+	void balancoDoAtletaIgnoraDietaEmRascunho() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		String athleteToken = athleteToken(athleteId);
+		String dietId = createDiet(coach, athleteId);
+		registerAssessment(coach, athleteId);
+
+		mockMvc.perform(get("/api/v1/diets/energy-balance").param("athleteId", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(status().isNotFound());
+		mockMvc.perform(get("/api/v1/diets/energy-balance").param("athleteId", athleteId)
+						.header("Authorization", bearer(coach)))
+				.andExpect(status().isOk());
+
+		approve(coach, dietId);
+
+		mockMvc.perform(get("/api/v1/diets/energy-balance").param("athleteId", athleteId)
+						.header("Authorization", bearer(athleteToken)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.classification").value("SURPLUS"));
 	}
 }

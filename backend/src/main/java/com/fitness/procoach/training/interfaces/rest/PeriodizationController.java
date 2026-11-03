@@ -101,7 +101,7 @@ public class PeriodizationController {
 	public ResponseEntity<List<PeriodizationResponse>> findByAthlete(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @PathVariable UUID athleteId) {
 		requireCoachOwnsAthlete(jwt, athleteId);
-		List<PeriodizationResponse> result = this.queryService.findPeriodizationsByAthlete(athleteId)
+		List<PeriodizationResponse> result = this.queryService.findPeriodizationsByAthlete(athleteId, isAthlete(jwt))
 			.stream()
 			.map(PeriodizationResponse::from)
 			.toList();
@@ -121,4 +121,8 @@ public class PeriodizationController {
 		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
 	}
 
+	/** Chamada do próprio atleta (somente leitura, só conteúdo liberado pelo coach). */
+	private static boolean isAthlete(Jwt jwt) {
+		return jwt != null && "ATHLETE".equals(jwt.getClaimAsString("role"));
+	}
 }
