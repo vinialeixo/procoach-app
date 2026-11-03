@@ -71,6 +71,7 @@
 | [ ] | **T-055** | E2 | US-38 | Front: área do atleta — histórico de avaliações (somente leitura) | Dev | Should (sugerido) | 2 | T-025 |
 | [x] | **T-056** | E0 | Fundação | Front: configurar ESLint (config ausente desde T-006) | Dev | Must (sugerido) | 0.5 | T-006 |
 | [ ] | **T-060** | E9 | US-20 | Front: reintroduzir MFA — etapa 2 no login e tela de ativação com QR Code (recuperar `MfaSetupPage`, `useVerifyMfa`, `useStartMfaSetup`, `useConfirmMfaSetup` e a etapa de código do `LoginPage` do histórico do git; `qrcode` segue no `package.json`) | Dev | Should | 2 | T-059 |
+| [x] | **T-063** | E9 | US-20 | Front: convite do atleta — botão "Convidar para o app" na ficha (gera e copia o link) e tela pública /convite/:token para o atleta definir a senha | Dev | Must (sugerido) | 2 | T-062 |
 
 > **MFA/TOTP desligado em 2026-11-03** (decisão do time, backlog `T-059`/`T-060`): o login passa a
 > exigir só e-mail e senha. No front foram removidos a etapa de código do login, a tela `/registro/mfa` e os hooks de MFA; o cadastro agora vai direto para a área do coach.

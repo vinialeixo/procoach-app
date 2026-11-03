@@ -4,12 +4,8 @@ import { AppShell } from "@/layouts/AppShell";
 // leitura: quem monta/aprova dieta e treino é sempre o coach; o atleta só
 // visualiza os próprios dados e envia check-in.
 //
-// PENDENTE NO BACKEND: o mecanismo de PRIMEIRA CREDENCIAL do atleta ainda
-// não está definido (como o atleta recebe e-mail/senha + MFA na 1ª vez).
-// Não travamos essas telas por causa disso: enquanto o endpoint não existe,
-// assumimos um usuário atleta já autenticado (mesmo padrão de "contrato
-// assumido" usado nos outros endpoints em src/lib/auth.ts). Ajustar quando
-// o fluxo de convite/1º acesso for definido no núcleo.
+// Primeira credencial: o coach gera um convite (link de uso único) na ficha do
+// atleta e o atleta define a senha em /convite/:token (AcceptInvitePage).
 const ATHLETE_NAV = [
   { label: "Dieta", href: "/athlete/dieta" },          // T-054 (somente leitura)
   { label: "Treino", href: "/athlete/treino" },        // T-054 (somente leitura)

@@ -12,7 +12,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.fitness.procoach.athlete.application.AthleteNotFoundException;
+import com.fitness.procoach.security.application.AthleteAlreadyHasCredentialException;
 import com.fitness.procoach.security.application.EmailAlreadyRegisteredException;
+import com.fitness.procoach.security.application.InvalidInviteException;
 import com.fitness.procoach.security.application.InvalidCredentialsException;
 import com.fitness.procoach.security.application.InvalidMfaCodeException;
 import com.fitness.procoach.security.application.InvalidTokenException;
@@ -22,7 +25,7 @@ import com.fitness.procoach.security.application.MfaSetupException;
  * Tradução das exceções de autenticação para HTTP (T-008), no mesmo formato de
  * erro dos demais módulos ({@code message} + {@code fields} quando aplicável).
  */
-@RestControllerAdvice(assignableTypes = AuthController.class)
+@RestControllerAdvice(assignableTypes = { AuthController.class, AthleteInviteController.class })
 public class SecurityExceptionHandler {
 
 	@ExceptionHandler(InvalidCredentialsException.class)
@@ -40,7 +43,13 @@ public class SecurityExceptionHandler {
 		return error(HttpStatus.BAD_REQUEST, ex.getMessage());
 	}
 
-	@ExceptionHandler({ EmailAlreadyRegisteredException.class, MfaSetupException.class })
+	@ExceptionHandler({ InvalidInviteException.class, AthleteNotFoundException.class })
+	public ResponseEntity<Map<String, Object>> inviteNotFound(RuntimeException ex) {
+		return error(HttpStatus.NOT_FOUND, ex.getMessage());
+	}
+
+	@ExceptionHandler({ EmailAlreadyRegisteredException.class, MfaSetupException.class,
+			AthleteAlreadyHasCredentialException.class })
 	public ResponseEntity<Map<String, Object>> conflict(RuntimeException ex) {
 		return error(HttpStatus.CONFLICT, ex.getMessage());
 	}

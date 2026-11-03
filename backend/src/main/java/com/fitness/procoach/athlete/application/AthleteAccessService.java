@@ -36,7 +36,7 @@ public class AthleteAccessService {
 	}
 
 	/** Dados do atleta de que outros módulos precisam para cálculos (ex.: assessment, T-025). */
-	public record AthleteProfile(boolean male, LocalDate birthDate) {
+	public record AthleteProfile(String name, boolean male, LocalDate birthDate) {
 	}
 
 	/**
@@ -48,7 +48,7 @@ public class AthleteAccessService {
 		Athlete athlete = repository.findById(AthleteId.of(athleteId))
 				.filter(a -> !a.isDeleted())
 				.orElseThrow(() -> new AthleteNotFoundException(athleteId));
-		return new AthleteProfile(athlete.sex() == Sex.MALE, athlete.birthDate());
+		return new AthleteProfile(athlete.name().value(), athlete.sex() == Sex.MALE, athlete.birthDate());
 	}
 
 	/**

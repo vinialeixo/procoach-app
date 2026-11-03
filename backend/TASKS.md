@@ -112,6 +112,8 @@
 | [x] | **T-058** | E0/E1 | Fundação | Backend: criar agregado Coach (com.procoach.core.coach) — id, userId, name, status, addAthlete()/removeAthlete(); migrar coachId em Athlete/Assessment/Diet/TrainingPlan de User.id para Coach.id | Dev | Must (confirmado) | 3 | T-057
 | [ ] | **T-059** | E9 | US-20 | Backend: reintroduzir MFA/TOTP endurecido — religar `procoach.security.mfa.enabled`; limite de tentativas + rate limit; anti-replay do código TOTP; segredo TOTP cifrado; códigos de recuperação | Dev | Should | 4 | T-008 |
 | [ ] | **T-061** | E2 | US-05 | Backend: nível de atividade do atleta (fator do GET) — hoje a T-025 usa fator sedentário 1,2 fixo; guardar o fator por atleta/avaliação e usá-lo no cálculo do GET (e reaproveitar na T-030) | Dev | Should (sugerido) | 2 | T-025 |
+| [x] | **T-062** | E9 | US-20 | Backend: convite do atleta (primeira credencial) — coach gera link de uso único (7 dias, só o hash do token é guardado); atleta consulta e aceita sem autenticação, define a senha e abre a sessão; um acesso por atleta | Dev | Must (sugerido) | 3 | T-008, T-017 |
+| [ ] | **T-064** | E9 | US-20 | Backend: envio do convite do atleta por e-mail (hoje o coach copia o link e repassa) e reenvio | Dev | Should (sugerido) | 2 | T-062 |
 
 > `T-057`/`T-058` identificadas em 2026-09-02: nenhuma task original cria o agregado
 > `Coach` (`com.procoach.core.coach`), apesar do UML exigir `User "1" --> "1" Coach` e

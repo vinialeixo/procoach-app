@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { GOAL_LABEL, SEX_LABEL, useAthlete, useChangeAthleteStatus } from "@/lib/athletes";
 import { AthleteAssessmentsPanel } from "./AthleteAssessmentsPanel";
 import { AthleteDietsPanel } from "./AthleteDietsPanel";
+import { InviteAthleteModal } from "./InviteAthleteModal";
 import "./AthleteDetail.css";
 
 // T-022 — Detalhe do atleta + troca de status (US-003, US-005, US-006).
@@ -55,6 +56,7 @@ export function AthleteDetailPage() {
   const changeStatus = useChangeAthleteStatus(id);
 
   const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   // Aba ativa derivada da URL (?tab=): quem volta do editor de dieta cai
   // direto na aba Dietas, sem estado efêmero entre rotas.
@@ -138,6 +140,9 @@ export function AthleteDetailPage() {
           </div>
           <div className="athlete-detail__status">
             <StatusBadge status={athlete.status} />
+            <Button variant="ghost" onClick={() => setInviteModalOpen(true)}>
+              Convidar para o app
+            </Button>
             <Button variant="ghost" onClick={() => setStatusModalOpen(true)}>
               Alterar status
             </Button>
@@ -185,6 +190,13 @@ export function AthleteDetailPage() {
           )}
         </section>
       </div>
+
+      <InviteAthleteModal
+        open={inviteModalOpen}
+        athleteId={athlete.id}
+        athleteName={athlete.name}
+        onClose={() => setInviteModalOpen(false)}
+      />
 
       <Modal
         open={statusModalOpen}

@@ -15,4 +15,7 @@ public interface UserRepository {
 	Optional<User> findByEmail(String email);
 
 	List<User> findAll();
+
+	/** Já existe credencial vinculada a este atleta? */
+	boolean existsByAthleteId(UUID athleteId);
 }

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
+import { AcceptInvitePage } from "@/pages/AcceptInvitePage";
 import { CoachHomePage } from "@/pages/CoachHomePage";
 import { AthleteHomePage } from "@/pages/AthleteHomePage";
 import { AthleteListPage } from "@/pages/AthleteListPage";
@@ -17,6 +18,8 @@ export function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
+        {/* Convite do atleta (primeira credencial) — público: o token é a credencial */}
+        <Route path="/convite/:token" element={<AcceptInvitePage />} />
 
         {/* Área do coach — RF-01..RF-42 em geral, RN-01 (ownership) */}
         <Route element={<ProtectedRoute allow={["COACH"]} />}>
