@@ -22,7 +22,7 @@
 | Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
 |---|---|---|---|---|---|---|---|---|
 | [x] | **T-019** | E1 | US-01 | Front: formulário de cadastro de atleta | Dev | Must | 2 | T-018 |
-| [ ] | **T-022** | E1 | US-03 | Front: listagem/detalhe do atleta + troca de status | Dev | Must | 2 | T-021 |
+| [x] | **T-022** | E1 | US-03 | Front: listagem/detalhe do atleta + troca de status | Dev | Must | 2 | T-021 |
 
 ## S3
 
@@ -40,7 +40,7 @@
 
 | Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
 |---|---|---|---|---|---|---|---|---|
-| [ ] | **T-040** | E4/E8 | US-10/11/19 | Front: biblioteca + montagem de treino/periodização | Dev | Must | 4 | T-037 |
+| [x] | **T-040** | E4/E8 | US-10/11/19 | Front: biblioteca + montagem de treino/periodização | Dev | Must | 4 | T-037 |
 
 ### Resumo por Sprint — MVP
 
