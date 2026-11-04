@@ -7,11 +7,17 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.app-shell__header .pc-button {
+.app-shell__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.app-shell__actions .pc-button {
   width: auto;
   height: 36px;
   padding: 0 var(--space-4);
-  margin-left: auto;
 }
 
 .app-shell__wordmark {
