@@ -1,5 +1,4 @@
-import { AppShell } from "@/layouts/AppShell";
-import { ATHLETE_NAV } from "@/lib/athlete-nav";
+import { AthleteShell } from "@/layouts/AthleteShell";
 
 // Área do atleta (persona ATHLETE, RF-11 / US-038). Nav reduzida e somente
 // leitura: quem monta/aprova dieta e treino é sempre o coach; o atleta só
@@ -9,13 +8,13 @@ import { ATHLETE_NAV } from "@/lib/athlete-nav";
 // atleta e o atleta define a senha em /convite/:token (AcceptInvitePage).
 export function AthleteHomePage() {
   return (
-    <AppShell navItems={ATHLETE_NAV}>
+    <AthleteShell>
       <h1>Minha área</h1>
       <p>
         Aqui entram a dieta e o treino atuais do atleta (somente leitura —
         quem monta e aprova é sempre o coach), o histórico de avaliações e o
         envio de check-ins. Ver tasks T-054/T-055 e M2-021 no backlog.
       </p>
-    </AppShell>
+    </AthleteShell>
   );
 }

@@ -8,9 +8,11 @@ type NavItem = { label: string; href: string };
 
 export function AppShell({
   navItems,
+  headerActions,
   children,
 }: {
   navItems: NavItem[];
+  headerActions?: ReactNode;
   children: ReactNode;
 }) {
   const navigate = useNavigate();
@@ -28,15 +30,18 @@ export function AppShell({
             ))}
           </nav>
         )}
-        <Button
-          variant="ghost"
-          onClick={() => {
-            logout();
-            navigate("/login", { replace: true });
-          }}
-        >
-          Sair
-        </Button>
+        <div className="app-shell__actions">
+          {headerActions}
+          <Button
+            variant="ghost"
+            onClick={() => {
+              logout();
+              navigate("/login", { replace: true });
+            }}
+          >
+            Sair
+          </Button>
+        </div>
       </header>
       <main className="app-shell__content">{children}</main>
     </div>
