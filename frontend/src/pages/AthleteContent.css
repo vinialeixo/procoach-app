@@ -1,0 +1,17 @@
+.athlete-content { display: grid; gap: 1rem; }
+.athlete-content h1, .athlete-content h2, .athlete-content p { margin: 0; }
+.athlete-content__card {
+  display: grid; gap: 0.85rem; padding: 1.25rem;
+  border: 1px solid var(--color-border, #d9dee7); border-radius: 0.75rem;
+  background: var(--color-surface, #fff);
+}
+.athlete-content__eyebrow, .athlete-content__metrics dt, .athlete-content__exercise-list span {
+  color: var(--color-text-muted, #5c6675); font-size: 0.9rem;
+}
+.athlete-content__metrics {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 1rem; margin: 0;
+}
+.athlete-content__metrics div, .athlete-content__exercise-list li { display: grid; gap: 0.3rem; }
+.athlete-content__metrics dd { margin: 0; font-weight: 600; }
+.athlete-content__sessions { display: grid; gap: 1rem; }
+.athlete-content__exercise-list { display: grid; gap: 0.9rem; padding-left: 1.25rem; }
