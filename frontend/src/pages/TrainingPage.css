@@ -1,0 +1,306 @@
+.training-page {
+  display: grid;
+  gap: var(--space-5);
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.training-page__header,
+.training-page__section-heading,
+.training-page__plan-summary,
+.training-page__session,
+.training-page__prescription,
+.training-page__exercise-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.training-page__header {
+  align-items: flex-start;
+  padding: var(--space-5) 0;
+}
+
+.training-page__header h1 {
+  font-size: var(--text-2xl);
+}
+
+.training-page__intro,
+.training-page__muted {
+  color: var(--color-ink-muted);
+}
+
+.training-page__intro {
+  max-width: 660px;
+  margin-top: var(--space-2);
+}
+
+.training-page__eyebrow,
+.training-page__mono,
+.training-page__week {
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.training-page__section {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.training-page__section-heading {
+  align-items: flex-start;
+}
+
+.training-page__section-heading h2 {
+  font-size: var(--text-xl);
+}
+
+.training-page__section-heading--split {
+  align-items: center;
+}
+
+.training-page__selectors,
+.training-page__form-grid,
+.training-page__search {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.training-page__form {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.training-page__form h3,
+.training-page__add-prescription h3,
+.training-page__plan-summary h3 {
+  font-size: var(--text-lg);
+}
+
+.training-page__form--inline {
+  border-left: 3px solid var(--color-accent);
+}
+
+.training-page__form-grid--session {
+  grid-template-columns: 2fr 2fr 1fr 1fr;
+}
+
+.training-page__form-grid--prescription {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.training-page__plan-summary {
+  align-items: flex-start;
+  padding: var(--space-4);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-bg);
+}
+
+.training-page__plan-summary p {
+  margin-top: var(--space-1);
+  color: var(--color-ink-muted);
+}
+
+.training-page__plan-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.training-page__schedule,
+.training-page__prescriptions {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.training-page__session {
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.training-page__session--selected {
+  border-color: var(--color-primary);
+  box-shadow: inset 3px 0 var(--color-primary);
+}
+
+.training-page__week {
+  min-width: 58px;
+  color: var(--color-accent);
+}
+
+.training-page__session-name {
+  display: grid;
+  flex: 1;
+}
+
+.training-page__session-name small,
+.training-page__exercise-select small {
+  color: var(--color-ink-muted);
+}
+
+.training-page__prescription {
+  justify-content: flex-start;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.training-page__prescription-order {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.training-page__prescription-main {
+  display: grid;
+  flex: 1;
+}
+
+.training-page__prescription-main span {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+.training-page__reorder {
+  display: flex;
+}
+
+.training-page__reorder .pc-button {
+  min-width: 36px;
+  padding: var(--space-1);
+}
+
+.training-page__add-prescription {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.training-page__search {
+  grid-template-columns: 2fr 2fr auto;
+  align-items: end;
+}
+
+.training-page__exercise-list {
+  display: grid;
+  gap: var(--space-2);
+  max-height: 360px;
+  overflow: auto;
+}
+
+.training-page__exercise {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+}
+
+.training-page__exercise--selected {
+  border-color: var(--color-primary);
+  background: #f7f9fb;
+}
+
+.training-page__exercise-select {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.training-page__exercise-select > span:first-child {
+  display: grid;
+}
+
+.training-page__exercise-details {
+  margin-top: var(--space-2);
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+.training-page__exercise-details summary {
+  cursor: pointer;
+}
+
+.training-page__exercise-details p,
+.training-page__exercise-details ul {
+  margin-top: var(--space-2);
+}
+
+.training-page__selected-exercise {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.training-page__selected-exercise p {
+  color: var(--color-ink-muted);
+}
+
+.training-page__field-label {
+  display: block;
+}
+
+.training-page__alert {
+  padding: var(--space-3);
+  border-left: 3px solid var(--color-danger);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.training-page__notice {
+  padding: var(--space-3);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-ink);
+}
+
+@media (max-width: 760px) {
+  .training-page__section {
+    padding: var(--space-3);
+  }
+
+  .training-page__selectors,
+  .training-page__form-grid,
+  .training-page__form-grid--session,
+  .training-page__form-grid--prescription,
+  .training-page__search {
+    grid-template-columns: 1fr;
+  }
+
+  .training-page__plan-summary,
+  .training-page__section-heading--split {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .training-page__session {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

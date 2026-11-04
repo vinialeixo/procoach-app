@@ -10,6 +10,7 @@ import { AthleteCreatePage } from "@/pages/AthleteCreatePage";
 import { AthleteDetailPage } from "@/pages/AthleteDetailPage";
 import { AssessmentCreatePage } from "@/pages/AssessmentCreatePage";
 import { DietEditorPage } from "@/pages/DietEditorPage";
+import { TrainingPage } from "@/pages/TrainingPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleRedirect } from "@/components/RoleRedirect";
 
@@ -25,6 +26,7 @@ export function App() {
         {/* Área do coach — RF-01..RF-42 em geral, RN-01 (ownership) */}
         <Route element={<ProtectedRoute allow={["COACH"]} />}>
           <Route path="/coach" element={<CoachHomePage />} />
+          <Route path="/coach/training" element={<TrainingPage />} />
           {/* Gestão de atletas — T-019 (cadastro) e T-022 (listagem/detalhe/status) */}
           <Route path="/coach/athletes" element={<AthleteListPage />} />
           <Route path="/coach/athletes/new" element={<AthleteCreatePage />} />

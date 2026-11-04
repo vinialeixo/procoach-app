@@ -2,7 +2,7 @@ import { AppShell } from "@/layouts/AppShell";
 
 const COACH_NAV = [
   { label: "Atletas", href: "/coach/athletes" },
-  { label: "Biblioteca", href: "/coach/library" },
+  { label: "Treinos e biblioteca", href: "/coach/training" },
 ];
 
 export function CoachHomePage() {
