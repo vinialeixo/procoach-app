@@ -8,7 +8,7 @@ Atualizado em 2026-11-04, a pedido do usuário para pausar a implementação.
 - Branch independente: `feat/frontend-vitest`, criada a partir de `origin/main`.
 - Worktree: `.worktrees/frontend-vitest`.
 - Commit atual: `37d8883` (`test(frontend): bootstrap Vitest unit testing`), enviado para `origin`.
-- PR será mantido em draft até a compatibilidade com Node 20 ser resolvida.
+- PR [#23](https://github.com/vinialeixo/procoach-app/pull/23) aberto em draft; manter assim até a compatibilidade com Node 20 ser resolvida.
 - A instalação de alinhamento de versões foi interrompida a pedido do usuário. Não há processo npm em execução.
 
 ## Implementado e validado
