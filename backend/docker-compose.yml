@@ -1,0 +1,24 @@
+# Postgres 16 com pgvector para desenvolvimento local (SPEC.md / AGENTS.md).
+# O pgvector/pgvector:pg16 é um Postgres 16 superset do 16 (mesma versão dos
+# testes com Testcontainers postgres:16-alpine), já com pgvector pronto para
+# o serviço de RAG (MVP2).
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: procoach-postgres
+    environment:
+      POSTGRES_USER: procoach
+      POSTGRES_PASSWORD: procoach
+      POSTGRES_DB: procoach
+    ports:
+      - "5432:5432"
+    volumes:
+      - procoach-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U procoach -d procoach"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  procoach-pgdata:

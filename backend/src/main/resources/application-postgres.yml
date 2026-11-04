@@ -1,0 +1,26 @@
+# Profile "postgres": roda com o Postgres real local (docker compose up -d),
+# igual a SPEC.md/AGENT.md pedem.-flyway executa as migrations de verdade
+# (Postgres-only: TIMESTAMPTZ etc.) e o Hibernate só valida o schema.
+#
+# Requer o container do backend/docker-compose.yml no ar:
+#   docker compose up -d
+#   ./mvnw spring-boot:run -Dspring-boot.run.profiles=postgres
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/procoach
+    driver-class-name: org.postgresql.Driver
+    username: procoach
+    password: procoach
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      # O schema é governado pelo Flyway; Hibernate apenas valida.
+      ddl-auto: validate
+
+# Mesma chave de dev do application-local.yml — somente desenvolvimento local.
+# Nunca use em outros ambientes (o default application.properties exige
+# PROCOACH_JWT_SECRET externo).
+procoach:
+  security:
+    jwt:
+      secret: procoach-dev-jwt-secret-01234567
