@@ -1,6 +1,5 @@
 import { getAthleteId } from "@/lib/auth";
-import { ATHLETE_NAV } from "@/lib/athlete-nav";
-import { AppShell } from "@/layouts/AppShell";
+import { AthleteShell } from "@/layouts/AthleteShell";
 import { TrainingSession, useAthleteTrainingSessions, useTrainingPlans } from "@/lib/training";
 import "./AthleteContent.css";
 
@@ -25,7 +24,7 @@ export function AthleteTrainingPage() {
     ? (error as { response?: { status?: number } }).response?.status : undefined;
 
   return (
-    <AppShell navItems={ATHLETE_NAV}>
+    <AthleteShell>
       <section className="athlete-content">
         <h1>Meu treino</h1>
         {!athleteId ? <p role="alert">Não foi possível identificar sua conta. Entre novamente.</p>
@@ -63,6 +62,6 @@ export function AthleteTrainingPage() {
               </div>
             </>}
       </section>
-    </AppShell>
+    </AthleteShell>
   );
 }
