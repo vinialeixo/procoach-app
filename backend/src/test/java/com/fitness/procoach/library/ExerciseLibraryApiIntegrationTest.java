@@ -20,12 +20,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Contrato HTTP da biblioteca consumido pelo workspace de treino T-040. */
 @SpringBootTest(classes = ProcoachApplication.class)
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 @ActiveProfiles("h2")
+@Transactional
 class ExerciseLibraryApiIntegrationTest {
 
 	@Autowired
