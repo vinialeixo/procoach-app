@@ -144,6 +144,21 @@ async function listDiets(athleteId: string): Promise<DietVersion[]> {
   return data.map(toDietVersion);
 }
 
+async function getCurrentAthleteDiet(athleteId: string): Promise<DietVersion | null> {
+  try {
+    const { data } = await apiClient.get<ApiDiet>("/diets", { params: { athleteId } });
+    return toDietVersion(data);
+  } catch (error) {
+    // For an athlete, this endpoint returns 404 when no approved diet exists.
+    // Keep authorization and session errors visible to the page.
+    if (error && typeof error === "object" && "response" in error) {
+      const response = (error as { response?: { status?: number } }).response;
+      if (response?.status === 404) return null;
+    }
+    throw error;
+  }
+}
+
 async function createDiet(
   athleteId: string,
   payload: CreateDietPayload
@@ -227,6 +242,15 @@ export function useDiets(athleteId: string) {
     queryKey: ["diets", athleteId],
     queryFn: () => listDiets(athleteId),
     enabled: Boolean(athleteId),
+  });
+}
+
+export function useCurrentAthleteDiet(athleteId: string) {
+  return useQuery({
+    queryKey: ["diets", "current-athlete", athleteId],
+    queryFn: () => getCurrentAthleteDiet(athleteId),
+    enabled: Boolean(athleteId),
+    retry: false,
   });
 }
 

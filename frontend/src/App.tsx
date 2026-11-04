@@ -5,6 +5,8 @@ import { AcceptInvitePage } from "@/pages/AcceptInvitePage";
 import { CoachHomePage } from "@/pages/CoachHomePage";
 import { AthleteHomePage } from "@/pages/AthleteHomePage";
 import { AthleteAssessmentHistoryPage } from "@/pages/AthleteAssessmentHistoryPage";
+import { AthleteDietPage } from "@/pages/AthleteDietPage";
+import { AthleteTrainingPage } from "@/pages/AthleteTrainingPage";
 import { AthleteListPage } from "@/pages/AthleteListPage";
 import { AthleteCreatePage } from "@/pages/AthleteCreatePage";
 import { AthleteDetailPage } from "@/pages/AthleteDetailPage";
@@ -51,6 +53,8 @@ export function App() {
         {/* Área do atleta — RF-11 (só os próprios dados) */}
         <Route element={<ProtectedRoute allow={["ATHLETE"]} />}>
           <Route path="/athlete" element={<AthleteHomePage />} />
+          <Route path="/athlete/dieta" element={<AthleteDietPage />} />
+          <Route path="/athlete/treino" element={<AthleteTrainingPage />} />
           <Route
             path="/athlete/avaliacoes"
             element={<AthleteAssessmentHistoryPage />}

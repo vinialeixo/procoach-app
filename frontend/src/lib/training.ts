@@ -160,6 +160,8 @@ const keys = {
   periodizations: (athleteId: string) => ["training", "periodizations", athleteId],
   plans: (athleteId: string) => ["training", "plans", athleteId],
   sessions: (periodizationId: string) => ["training", "sessions", periodizationId],
+  athleteSessions: (athleteId: string, planId: string) =>
+    ["training", "athlete-sessions", athleteId, planId],
   exercises: (name: string, muscleGroup: MuscleGroup | "") =>
     ["training", "exercises", name, muscleGroup],
 };
@@ -203,6 +205,17 @@ async function listSessions(periodizationId: string): Promise<TrainingSession[]>
   return data.filter((session) => !session.deleted);
 }
 
+async function listAthleteSessions(
+  athleteId: string,
+  planId: string
+): Promise<TrainingSession[]> {
+  const { data } = await apiClient.get<TrainingSession[]>(
+    `/api/training/trainings/athlete/${athleteId}`,
+    { ...rootRequestConfig(), params: { planId } }
+  );
+  return data.filter((session) => !session.deleted);
+}
+
 export function useExercises(
   name: string,
   muscleGroup: MuscleGroup | "",
@@ -236,6 +249,14 @@ export function useTrainingSessions(periodizationId: string) {
     queryKey: keys.sessions(periodizationId),
     queryFn: () => listSessions(periodizationId),
     enabled: Boolean(periodizationId),
+  });
+}
+
+export function useAthleteTrainingSessions(athleteId: string, planId: string) {
+  return useQuery({
+    queryKey: keys.athleteSessions(athleteId, planId),
+    queryFn: () => listAthleteSessions(athleteId, planId),
+    enabled: Boolean(athleteId && planId),
   });
 }
 
