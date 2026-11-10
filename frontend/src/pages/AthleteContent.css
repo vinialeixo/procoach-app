@@ -32,3 +32,27 @@
   border-top: 1px solid var(--color-border, #d9dee7);
 }
 .athlete-content__history-exercises { display: grid; gap: 0.35rem; margin: 0; padding-left: 1.25rem; }
+
+/* T-075 — preferências de aviso e dispositivos de push */
+.athlete-content__preferences { align-content: start; }
+.athlete-content__hint {
+  display: block; color: var(--color-text-muted, #5c6675); font-size: 0.9rem; line-height: 1.5;
+}
+.athlete-content__channels { display: grid; gap: 0.75rem; }
+.athlete-content__channel {
+  display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.9rem 1rem;
+  border: 1px solid var(--color-border, #d9dee7); border-radius: 0.65rem;
+  background: var(--color-surface, #fff); cursor: pointer;
+}
+.athlete-content__channel input {
+  width: 1.15rem; height: 1.15rem; margin: 0.15rem 0 0; flex: none;
+  accent-color: var(--color-primary, #1f3b57);
+}
+.athlete-content__channel > span { display: grid; gap: 0.25rem; }
+.athlete-content__device { display: grid; gap: 0.75rem; }
+.athlete-content__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.athlete-content__actions .pc-button { width: auto; min-width: 12rem; }
+.athlete-content__feedback { font-size: 0.9rem; font-weight: 500; }
+.athlete-content__feedback--success { color: var(--color-success, #2f6e4c); }
+.athlete-content__feedback--error { color: var(--color-danger, #a23b3b); }
+.athlete-content__channel:focus-within { outline: var(--focus-ring); outline-offset: 2px; }
