@@ -120,7 +120,43 @@ Mobile app (API reuse), advanced analytics/reports, expansion to other sports/ni
 
 ## Getting Started
 
-> Prerequisites: JDK 17, Maven/Gradle, Docker, Python 3.11+ (for the RAG service).
+> Prerequisites: JDK 21, Maven (via `mvnw`), Docker. Python 3.11+ only for the RAG service (MVP2).
+
+### Rodando o backend localmente (Windows / PowerShell)
+
+O profile correto para dev local é o **`postgres`** — ele aponta para o Postgres
+real do `docker-compose.yml` e aplica as migrations Flyway (que são Postgres-only:
+`TIMESTAMPTZ` etc.).
+
+```powershell
+# 1. Infra local (Postgres 16 + pgvector, porta 5432)
+docker compose up -d
+
+# 2. Backend com o profile certo
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=postgres"
+```
+
+Swagger: http://localhost:8080/swagger-ui.html • API docs: /v3/api-docs
+
+Alternativa sem flag toda vez: defina a variável de ambiente
+`SPRING_PROFILES_ACTIVE=postgres`.
+
+### Rodando no IntelliJ IDEA
+
+1. Suba o Docker primeiro (uma vez por sessão): abra o `docker-compose.yml` na IDE
+   e clique no ícone ▶ na gutter (Ultimate), ou `docker compose up -d` no terminal.
+2. `Run` → `Edit Configurations…` → `+` → **Spring Boot**:
+   - **Main class:** `com.fitness.procoach.ProcoachApplication`
+   - **Active profiles:** `postgres` (equivalente ao `-Dspring-boot.run.profiles=postgres`)
+   - **JRE:** 21 · **Working directory:** `backend/`
+3. Run ▶ — mesmo aviso de antes: sem o profile ativo na config, o erro de
+   `TIMESTAMPTZ` reaparece.
+
+> ⚠️ **Não rode `./mvnw spring-boot:run` sem profile.** Sem profile ativo o Spring
+> usa um H2 em memória e o Flyway quebra com `Unknown data type: "TIMESTAMPTZ"`,
+> pois as migrations são PostgreSQL-only por design.
+> O profile `local` (também H2) não roda as migrations (`flyway.enabled=false`) e
+> serve apenas para experimentos rápidos, não para o fluxo normal de desenvolvimento.
 
 ```bash
 # 1. Clone the repository
@@ -134,7 +170,7 @@ docker compose up -d
 ./mvnw flyway:migrate
 
 # 4. Start the transactional core
-./mvnw spring-boot:run
+./mvnw spring-boot:run -Dspring-boot.run.profiles=postgres
 
 # 5. (MVP2) Start the RAG service
 cd rag-service
