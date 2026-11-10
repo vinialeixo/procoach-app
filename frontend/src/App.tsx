@@ -7,6 +7,7 @@ import { AthleteHomePage } from "@/pages/AthleteHomePage";
 import { AthleteAssessmentHistoryPage } from "@/pages/AthleteAssessmentHistoryPage";
 import { AthleteDietPage } from "@/pages/AthleteDietPage";
 import { AthleteTrainingPage } from "@/pages/AthleteTrainingPage";
+import { AthleteNotificationSettingsPage } from "@/pages/AthleteNotificationSettingsPage";
 import { AthleteListPage } from "@/pages/AthleteListPage";
 import { AthleteCreatePage } from "@/pages/AthleteCreatePage";
 import { AthleteDetailPage } from "@/pages/AthleteDetailPage";
@@ -55,6 +56,8 @@ export function App() {
           <Route path="/athlete" element={<AthleteHomePage />} />
           <Route path="/athlete/dieta" element={<AthleteDietPage />} />
           <Route path="/athlete/treino" element={<AthleteTrainingPage />} />
+          {/* T-075 — preferências de aviso e dispositivos de push */}
+          <Route path="/athlete/avisos" element={<AthleteNotificationSettingsPage />} />
           <Route
             path="/athlete/avaliacoes"
             element={<AthleteAssessmentHistoryPage />}

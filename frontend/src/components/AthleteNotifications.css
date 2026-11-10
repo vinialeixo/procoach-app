@@ -94,8 +94,17 @@
   cursor: pointer;
 }
 
+.athlete-notifications__settings {
+  display: inline-block;
+  margin-top: 0.9rem;
+  color: var(--color-primary, #2457c5);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .athlete-notifications__trigger:focus-visible,
-.athlete-notifications__item-action:focus-visible {
+.athlete-notifications__item-action:focus-visible,
+.athlete-notifications__settings:focus-visible {
   outline: 2px solid var(--color-primary, #2457c5);
   outline-offset: 2px;
 }

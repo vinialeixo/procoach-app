@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   AthleteNotification,
   useAthleteNotifications,
@@ -110,6 +111,14 @@ export function AthleteNotifications({ athleteId }: { athleteId: string | null }
           {(markRead.isError || markAllRead.isError) && (
             <p role="alert">Não foi possível atualizar o status do aviso. Tente novamente.</p>
           )}
+          {/* T-075 — preferências de e-mail/push e dispositivos de push */}
+          <Link
+            className="athlete-notifications__settings"
+            to="/athlete/avisos"
+            onClick={() => setIsOpen(false)}
+          >
+            Preferências de aviso
+          </Link>
         </section>
       )}
     </div>
