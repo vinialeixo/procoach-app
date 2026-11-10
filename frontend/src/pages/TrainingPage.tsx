@@ -2,27 +2,34 @@ import { FormEvent, useMemo, useState } from "react";
 import { AppShell } from "@/layouts/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
+import { Modal } from "@/components/ui/Modal";
 import { SelectField } from "@/components/ui/SelectField";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { TextareaField } from "@/components/ui/TextareaField";
 import { useAthletes } from "@/lib/athletes";
 import {
   AddExercisePayload,
   Exercise,
+  ExercisePrescription,
   IntensityType,
   MUSCLE_GROUPS,
   MuscleGroup,
   TrainingStatus,
+  UpdateExercisePrescriptionPayload,
   useAddExerciseToSession,
+  useApplyCurrentExerciseVersion,
   useCreatePeriodization,
   useCreateTrainingPlan,
   useCreateTrainingSession,
   useExercises,
   usePeriodizations,
+  useRemoveExercisePrescription,
   useReorderSessionExercises,
   useTrainingPlans,
   useTrainingSessions,
   useTransitionTrainingPlan,
   useTransitionTrainingSession,
+  useUpdateExercisePrescription,
 } from "@/lib/training";
 import "./TrainingPage.css";
 
@@ -128,6 +135,10 @@ export function TrainingPage() {
   const [submittedMuscle, setSubmittedMuscle] = useState<MuscleGroup | "">("");
   const [exerciseId, setExerciseId] = useState("");
   const [periodizationDateError, setPeriodizationDateError] = useState(false);
+  const [editingPrescription, setEditingPrescription] =
+    useState<ExercisePrescription | null>(null);
+  const [removingPrescription, setRemovingPrescription] =
+    useState<ExercisePrescription | null>(null);
 
   const athletesQuery = useAthletes();
   const periodizationsQuery = usePeriodizations(athleteId);
@@ -140,6 +151,9 @@ export function TrainingPage() {
   const createSession = useCreateTrainingSession(athleteId, periodizationId);
   const addExercise = useAddExerciseToSession(periodizationId, sessionId);
   const reorderExercises = useReorderSessionExercises(periodizationId, sessionId);
+  const updatePrescription = useUpdateExercisePrescription(periodizationId, sessionId);
+  const removePrescription = useRemoveExercisePrescription(periodizationId, sessionId);
+  const applyCurrentVersion = useApplyCurrentExerciseVersion(periodizationId, sessionId);
   const transitionPlan = useTransitionTrainingPlan(athleteId, periodizationId);
   const transitionSession = useTransitionTrainingSession(periodizationId, sessionId);
 
@@ -244,6 +258,42 @@ export function TrainingPage() {
       formElement.reset();
     } catch {
       // A mensagem da mutação aparece junto ao formulário.
+    }
+  }
+
+  async function onUpdatePrescription(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingPrescription) return;
+    const form = new FormData(event.currentTarget);
+    const payload: UpdateExercisePrescriptionPayload = {
+      exerciseId: editingPrescription.exerciseId,
+      exerciseName: String(form.get("exerciseName")),
+      sets: Number(form.get("sets")),
+      repetitions: Number(form.get("repetitions")),
+      load: Number(form.get("load")),
+      intensityType: String(form.get("intensityType")) as IntensityType,
+      intensityValue: Number(form.get("intensityValue")),
+      restSeconds: Number(form.get("restSeconds")),
+      notes: String(form.get("notes") ?? "").trim() || null,
+    };
+    try {
+      await updatePrescription.mutateAsync({
+        prescriptionId: editingPrescription.id,
+        payload,
+      });
+      setEditingPrescription(null);
+    } catch {
+      // A mensagem da mutação aparece dentro do modal.
+    }
+  }
+
+  async function onRemovePrescription() {
+    if (!removingPrescription) return;
+    try {
+      await removePrescription.mutateAsync(removingPrescription.id);
+      setRemovingPrescription(null);
+    } catch {
+      // A mensagem da mutação aparece dentro do modal.
     }
   }
 
@@ -408,7 +458,11 @@ export function TrainingPage() {
                     <button
                       type="button"
                       className={session.id === sessionId ? "training-page__session training-page__session--selected" : "training-page__session"}
-                      onClick={() => setSessionId(session.id)}
+                      onClick={() => {
+                        setSessionId(session.id);
+                        setEditingPrescription(null);
+                        setRemovingPrescription(null);
+                      }}
                     >
                       <span className="training-page__week">SEM {session.weekNumber}</span>
                       <span className="training-page__session-name">
@@ -483,27 +537,67 @@ export function TrainingPage() {
                     <div className="training-page__prescription-main">
                       <strong>{exercise.exerciseName}</strong>
                       <span>{exercise.sets} séries × {exercise.repetitions} reps · {exercise.load} kg · {exercise.intensityType}{exercise.intensityValue !== null ? ` ${exercise.intensityValue}` : ""} · descanso {exercise.restSeconds}s</span>
+                      {exercise.notes && <small>Observações: {exercise.notes}</small>}
+                      {exercise.newerVersionAvailable && exercise.currentExerciseId && (
+                        <div className="training-page__version-warning">
+                          <span>
+                            Há uma versão mais nova deste exercício na biblioteca
+                            {exercise.exerciseVersion !== null ? ` (prescrita: v${exercise.exerciseVersion})` : ""}.
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            disabled={
+                              selectedSession.status === "FINISHED" ||
+                              applyCurrentVersion.isPending ||
+                              exercise.intensityValue === null
+                            }
+                            onClick={() => applyCurrentVersion.mutate(exercise)}
+                          >
+                            Trocar pela versão atual
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    <div className="training-page__reorder" aria-label={`Reordenar ${exercise.exerciseName}`}>
+                    <div className="training-page__prescription-actions">
                       <Button
                         type="button"
                         variant="ghost"
-                        disabled={index === 0 || reorderExercises.isPending || selectedSession.status === "FINISHED"}
-                        aria-label={`Mover ${exercise.exerciseName} para cima`}
-                        onClick={() => reorderExercises.mutate(movePrescription(ordered.map((item) => item.id), index, -1))}
-                      >↑</Button>
+                        disabled={selectedSession.status === "FINISHED"}
+                        onClick={() => setEditingPrescription(exercise)}
+                      >
+                        Editar
+                      </Button>
                       <Button
                         type="button"
                         variant="ghost"
-                        disabled={index === ordered.length - 1 || reorderExercises.isPending || selectedSession.status === "FINISHED"}
-                        aria-label={`Mover ${exercise.exerciseName} para baixo`}
-                        onClick={() => reorderExercises.mutate(movePrescription(ordered.map((item) => item.id), index, 1))}
-                      >↓</Button>
+                        disabled={selectedSession.status === "FINISHED"}
+                        onClick={() => setRemovingPrescription(exercise)}
+                      >
+                        Remover
+                      </Button>
+                      <div className="training-page__reorder" aria-label={`Reordenar ${exercise.exerciseName}`}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={index === 0 || reorderExercises.isPending || selectedSession.status === "FINISHED"}
+                          aria-label={`Mover ${exercise.exerciseName} para cima`}
+                          onClick={() => reorderExercises.mutate(movePrescription(ordered.map((item) => item.id), index, -1))}
+                        >↑</Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={index === ordered.length - 1 || reorderExercises.isPending || selectedSession.status === "FINISHED"}
+                          aria-label={`Mover ${exercise.exerciseName} para baixo`}
+                          onClick={() => reorderExercises.mutate(movePrescription(ordered.map((item) => item.id), index, 1))}
+                        >↓</Button>
+                      </div>
                     </div>
                   </li>
                 ))}
             </ol>
             {reorderExercises.isError && <p className="training-page__alert" role="alert">{errorMessage(reorderExercises.error, "Não foi possível reordenar os exercícios.")}</p>}
+            {applyCurrentVersion.isError && <p className="training-page__alert" role="alert">{errorMessage(applyCurrentVersion.error, "Não foi possível trocar pela versão atual do exercício.")}</p>}
 
             {selectedSession.status !== "FINISHED" && (
             <div className="training-page__add-prescription">
@@ -574,6 +668,152 @@ export function TrainingPage() {
             )}
           </section>
         )}
+
+        {/* T-073 — editar prescrição, inclusive em treino ativo */}
+        <Modal
+          open={editingPrescription !== null}
+          title="Editar prescrição"
+          onClose={() => setEditingPrescription(null)}
+        >
+          {editingPrescription && (
+            <form
+              key={editingPrescription.id}
+              className="training-page__form"
+              onSubmit={onUpdatePrescription}
+            >
+              <Field
+                name="exerciseName"
+                label="Nome do exercício"
+                defaultValue={editingPrescription.exerciseName}
+                required
+              />
+              <div className="training-page__form-grid training-page__form-grid--prescription">
+                <Field
+                  name="sets"
+                  label="Séries"
+                  type="number"
+                  min="1"
+                  step="1"
+                  defaultValue={editingPrescription.sets}
+                  required
+                />
+                <Field
+                  name="repetitions"
+                  label="Repetições"
+                  type="number"
+                  min="1"
+                  step="1"
+                  defaultValue={editingPrescription.repetitions}
+                  required
+                />
+                <Field
+                  name="load"
+                  label="Carga (kg)"
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  defaultValue={editingPrescription.load}
+                  required
+                />
+                <SelectField
+                  name="intensityType"
+                  label="Intensidade"
+                  options={INTENSITY_OPTIONS}
+                  defaultValue={editingPrescription.intensityType}
+                  required
+                />
+                <Field
+                  name="intensityValue"
+                  label="Valor da intensidade"
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  defaultValue={editingPrescription.intensityValue ?? ""}
+                  required
+                />
+                <Field
+                  name="restSeconds"
+                  label="Descanso (segundos)"
+                  type="number"
+                  min="1"
+                  step="1"
+                  defaultValue={editingPrescription.restSeconds}
+                  required
+                />
+              </div>
+              <TextareaField
+                name="notes"
+                label="Observações"
+                defaultValue={editingPrescription.notes ?? ""}
+              />
+              {updatePrescription.isError && (
+                <p className="training-page__alert" role="alert">
+                  {errorMessage(
+                    updatePrescription.error,
+                    "Não foi possível salvar a prescrição."
+                  )}
+                </p>
+              )}
+              <div className="training-page__plan-actions">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setEditingPrescription(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" loading={updatePrescription.isPending}>
+                  Salvar alterações
+                </Button>
+              </div>
+            </form>
+          )}
+        </Modal>
+
+        {/* T-073 — remover prescrição */}
+        <Modal
+          open={removingPrescription !== null}
+          title="Remover prescrição"
+          onClose={() => setRemovingPrescription(null)}
+        >
+          {removingPrescription && (
+            <div className="training-page__confirm">
+              <p>
+                Remover <strong>{removingPrescription.exerciseName}</strong> deste
+                treino?
+              </p>
+              {selectedSession?.status === "ACTIVE" && (
+                <p className="training-page__muted">
+                  O treino está ativo: o atleta receberá um aviso da alteração.
+                </p>
+              )}
+              {removePrescription.isError && (
+                <p className="training-page__alert" role="alert">
+                  {errorMessage(
+                    removePrescription.error,
+                    "Não foi possível remover a prescrição."
+                  )}
+                </p>
+              )}
+              <div className="training-page__plan-actions">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setRemovingPrescription(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  loading={removePrescription.isPending}
+                  onClick={onRemovePrescription}
+                >
+                  Remover
+                </Button>
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     </AppShell>
   );

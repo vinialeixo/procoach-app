@@ -3,7 +3,7 @@
 > Tasks da SPA (`frontend/`): telas, design system e tooling do front.
 > Backlog completo, convenções de status e contexto: [`TASKS.md` na raiz](../TASKS.md).
 > Os IDs (`T-xxx`, `M2-xxx`) são globais — a coluna "Depende de" pode apontar para task de outro arquivo (`backend/TASKS.md` ou o `TASKS.md` da raiz).
-> Total neste arquivo: **13** tasks.
+> Total neste arquivo: **19** tasks.
 
 ---
 
@@ -28,13 +28,13 @@
 
 | Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
 |---|---|---|---|---|---|---|---|---|
-| [ ] | **T-027** | E2 | US-04/05/06 | Front: avaliação física + gráficos de evolução + comparação | Dev | Must | 3 | T-025, T-026 (comparação lado a lado — **pronta no backend**: `GET /api/v1/assessments/compare?athleteId=&from=&to=`) |
+| [x] | **T-027** | E2 | US-04/05/06 | Front: avaliação física + gráficos de evolução + comparação | Dev | Must | 3 | T-025, T-026 (comparação lado a lado — **pronta no backend**: `GET /api/v1/assessments/compare?athleteId=&from=&to=`) |
 
 ## S4
 
 | Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
 |---|---|---|---|---|---|---|---|---|
-| [ ] | **T-034** | E3 | US-07/08/09 | Front: editor de dieta + versões + aprovação | Dev | Must | 4 | T-033 |
+| [x] | **T-034** | E3 | US-07/08/09 | Front: editor de dieta + versões + aprovação | Dev | Must | 4 | T-033 |
 
 ## S5
 
@@ -72,7 +72,7 @@
 | [x] | **T-056** | E0 | Fundação | Front: configurar ESLint (config ausente desde T-006) | Dev | Must (sugerido) | 0.5 | T-006 |
 | [ ] | **T-060** | E9 | US-20 | Front: reintroduzir MFA — etapa 2 no login e tela de ativação com QR Code (recuperar `MfaSetupPage`, `useVerifyMfa`, `useStartMfaSetup`, `useConfirmMfaSetup` e a etapa de código do `LoginPage` do histórico do git; `qrcode` segue no `package.json`) | Dev | Should | 2 | T-059 |
 | [x] | **T-072** | E4/E3 | US-38 | Front: avisos do atleta — sino com contagem de não lidos, lista de avisos e marcar como lido (`/api/v1/notifications`; só o atleta acessa) | Dev | Should (sugerido) | 3 | T-070, T-054 |
-| [ ] | **T-073** | E4 | US-10 | Front: coach edita e remove prescrições do treino (inclusive ativo), com o aviso "há versão mais nova" do exercício e botão para trocar pela versão corrente | Dev | Should (sugerido) | 3 | T-068, T-069, T-040 |
+| [x] | **T-073** | E4 | US-10 | Front: coach edita e remove prescrições do treino (inclusive ativo), com o aviso "há versão mais nova" do exercício e botão para trocar pela versão corrente | Dev | Should (sugerido) | 3 | T-068, T-069, T-040 |
 | [ ] | **T-074** | E4 | US-10/US-12 | Front: versões do plano de treino — o coach cria a nova versão (que copia as sessões), compara e publica; o atleta vê as sessões da versão corrente e o histórico das anteriores (`planId` nas sessões; `?planId=` na listagem) | Dev | Should (sugerido) | 4 | T-067, T-040 |
 | [ ] | **T-075** | E4/E3 | US-38 | Front: preferências de aviso do atleta (e-mail e push) e registro do dispositivo para push (`GET/PUT /api/v1/notifications/preferences`, `POST/DELETE /api/v1/notifications/devices`) | Dev | Should (sugerido) | 2 | T-071, T-072 |
 | [x] | **T-063** | E9 | US-20 | Front: convite do atleta — botão "Convidar para o app" na ficha (gera e copia o link) e tela pública /convite/:token para o atleta definir a senha | Dev | Must (sugerido) | 2 | T-062 |
@@ -133,3 +133,32 @@
 | S9 | IA assistiva (query + citações) | 1 | 4 | 0 |
 | S10 | Check-ins + análise por IA | 1 | 3 | 0 |
 | TOTAL |  | 3 | 10 | 0 |
+
+---
+
+## Changelog de status — revisão Dev/QA (2026-11-10)
+
+- **T-027 → `[x]`**: painel de avaliações entregue em `AthleteAssessmentsPanel.tsx`
+  (lista cronológica, gráfico de evolução com Recharts e comparação lado a lado de 2+
+  avaliações com destaque das diferenças) + formulário em `AssessmentCreatePage.tsx` e
+  contrato em `src/lib/assessments.ts`. `T-025`/`T-026` concluídas no backend. *Observação
+  do QA:* a comparação é montada no front a partir da listagem, e não pela chamada a
+  `GET /assessments/compare`; os critérios de US-009 são atendidos, mas vale avaliar a troca
+  para o endpoint em uma melhoria futura (evita divergência de cálculo).
+- **T-034 → `[x]`**: editor de dieta (`DietEditorPage.tsx`), painel de versões
+  (`AthleteDietsPanel.tsx`), criação de v1/nova versão com motivo obrigatório e fluxo de
+  status/aprovação (`DIET_STATUS_FLOW` + `useChangeDietStatus`) entregues; `T-033` concluída.
+- **T-073 → `[x]`**: `TrainingPage` agora edita (modal com série, reps, carga,
+  intensidade, descanso, nome e observações) e remove prescrições, inclusive em sessão
+  **ACTIVE**; em `FINISHED` as ações ficam desabilitadas, como no backend (409). O aviso
+  "há versão mais nova" aparece por prescrição e o botão "Trocar pela versão atual" busca
+  o exercício corrente (`currentExerciseId`) e reenvia a prescrição. Hooks em
+  `src/lib/training.ts` cobrem `PUT/DELETE /api/training/trainings/{id}/exercises/{prescriptionId}`.
+  Testes novos em `src/lib/training.test.ts` (payload de edição/troca de versão).
+- **Correção de contagem**: o cabeçalho dizia 13 tasks; o arquivo tem 19 (7 MVP + 9 do
+  adendo + 3 MVP2), alinhado ao `TASKS.md` da raiz.
+- **Mantidas em `[ ]`**: `T-060` (depende de `T-059`, backend ainda aberto e MFA desligado
+  por decisão do time), `T-074` (não há criação, comparação e publicação de versão do plano
+  no front) e `T-075` (não há telas/hooks de preferências e dispositivos de push).
+  `M2-004`, `M2-017` e `M2-021` seguem bloqueadas pelas dependências de backend abertas
+  (`M2-003`, `M2-014`, `M2-020`).

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { apiClient } from "./api-client";
 
 /**
@@ -155,6 +155,46 @@ export type AddExercisePayload = {
   intensityValue: number | null;
   restSeconds: number;
 };
+
+/** Corpo do PUT /trainings/{id}/exercises/{prescriptionId} (T-068/T-073). */
+export type UpdateExercisePrescriptionPayload = {
+  exerciseId: string | null;
+  exerciseName: string;
+  sets: number;
+  repetitions: number;
+  load: number;
+  intensityType: IntensityType;
+  intensityValue: number;
+  restSeconds: number;
+  notes: string | null;
+};
+
+/**
+ * Converte a prescrição atual no corpo de edição. Quando `currentExercise` é
+ * informado, a prescrição passa a apontar para a versão corrente da biblioteca
+ * (T-069) preservando séries, repetições, carga, intensidade e descanso.
+ */
+export function prescriptionUpdatePayload(
+  prescription: ExercisePrescription,
+  currentExercise?: Pick<Exercise, "id" | "name">
+): UpdateExercisePrescriptionPayload {
+  if (prescription.intensityValue === null) {
+    throw new Error(
+      "Preencha o valor da intensidade antes de trocar a versão do exercício."
+    );
+  }
+  return {
+    exerciseId: currentExercise?.id ?? prescription.exerciseId,
+    exerciseName: currentExercise?.name ?? prescription.exerciseName,
+    sets: prescription.sets,
+    repetitions: prescription.repetitions,
+    load: prescription.load,
+    intensityType: prescription.intensityType,
+    intensityValue: prescription.intensityValue,
+    restSeconds: prescription.restSeconds,
+    notes: prescription.notes,
+  };
+}
 
 const keys = {
   periodizations: (athleteId: string) => ["training", "periodizations", athleteId],
@@ -339,6 +379,98 @@ export function useReorderSessionExercises(periodizationId: string, sessionId: s
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.sessions(periodizationId) }),
+  });
+}
+
+async function updatePrescription(
+  sessionId: string,
+  prescriptionId: string,
+  payload: UpdateExercisePrescriptionPayload
+): Promise<TrainingSession> {
+  const { data } = await apiClient.put<TrainingSession>(
+    `/api/training/trainings/${sessionId}/exercises/${prescriptionId}`,
+    payload,
+    rootRequestConfig()
+  );
+  return data;
+}
+
+async function removePrescription(
+  sessionId: string,
+  prescriptionId: string
+): Promise<TrainingSession> {
+  const { data } = await apiClient.delete<TrainingSession>(
+    `/api/training/trainings/${sessionId}/exercises/${prescriptionId}`,
+    rootRequestConfig()
+  );
+  return data;
+}
+
+function invalidateSessionCaches(
+  queryClient: QueryClient,
+  periodizationId: string
+) {
+  queryClient.invalidateQueries({ queryKey: keys.sessions(periodizationId) });
+  queryClient.invalidateQueries({ queryKey: ["training", "athlete-sessions"] });
+}
+
+/** T-073 — edita uma prescrição já criada, inclusive em treino ativo. */
+export function useUpdateExercisePrescription(
+  periodizationId: string,
+  sessionId: string
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      prescriptionId,
+      payload,
+    }: {
+      prescriptionId: string;
+      payload: UpdateExercisePrescriptionPayload;
+    }) => updatePrescription(sessionId, prescriptionId, payload),
+    onSuccess: () => invalidateSessionCaches(queryClient, periodizationId),
+  });
+}
+
+/** T-073 — remove uma prescrição do treino (inclusive ativo). */
+export function useRemoveExercisePrescription(
+  periodizationId: string,
+  sessionId: string
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (prescriptionId: string) =>
+      removePrescription(sessionId, prescriptionId),
+    onSuccess: () => invalidateSessionCaches(queryClient, periodizationId),
+  });
+}
+
+/**
+ * T-073 — troca a prescrição pela versão corrente do exercício da biblioteca.
+ * Busca o exercício corrente (T-069) e reenvia a prescrição com o novo
+ * `exerciseId`/nome, mantendo os demais parâmetros.
+ */
+export function useApplyCurrentExerciseVersion(
+  periodizationId: string,
+  sessionId: string
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (prescription: ExercisePrescription) => {
+      if (!prescription.currentExerciseId) {
+        throw new Error("Este exercício não tem uma versão mais nova.");
+      }
+      const { data: currentExercise } = await apiClient.get<Exercise>(
+        `/api/library/exercises/${prescription.currentExerciseId}`,
+        rootRequestConfig()
+      );
+      return updatePrescription(
+        sessionId,
+        prescription.id,
+        prescriptionUpdatePayload(prescription, currentExercise)
+      );
+    },
+    onSuccess: () => invalidateSessionCaches(queryClient, periodizationId),
   });
 }
 
