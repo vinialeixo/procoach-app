@@ -242,6 +242,7 @@ export function TrainingPage() {
     const form = new FormData(formElement);
     const payload: AddExercisePayload = {
       exerciseId: selectedExercise.id,
+      exerciseName: selectedExercise.name,
       orderIndex:
         Math.max(-1, ...selectedSession.exercises.map((exercise) => exercise.orderIndex)) + 1,
       sets: Number(form.get("sets")),

@@ -147,6 +147,7 @@ type CreateSessionPayload = {
 
 export type AddExercisePayload = {
   exerciseId: string;
+  exerciseName: string;
   orderIndex: number;
   sets: number;
   repetitions: number;
@@ -353,7 +354,6 @@ export function useAddExerciseToSession(periodizationId: string, sessionId: stri
         `/api/training/trainings/${sessionId}/exercises`,
         {
           ...payload,
-          exerciseName: null,
           customExercise: false,
           notes: null,
         },
