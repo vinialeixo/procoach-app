@@ -5,13 +5,14 @@ type ModalProps = {
   open: boolean;
   title: string;
   onClose: () => void;
+  className?: string;
   children: ReactNode;
 };
 
 // Modal simples e acessível. Usado para confirmações que exigem motivo
 // (mudança de status, recusa de sugestão, arquivamento) — tudo que alimenta
 // o AuditLog.
-export function Modal({ open, title, onClose, children }: ModalProps) {
+export function Modal({ open, title, onClose, className, children }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     function onKeyDown(event: KeyboardEvent) {
@@ -26,7 +27,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
   return (
     <div className="pc-modal__backdrop" onClick={onClose}>
       <div
-        className="pc-modal"
+        className={className ? `pc-modal ${className}` : "pc-modal"}
         role="dialog"
         aria-modal="true"
         aria-label={title}
