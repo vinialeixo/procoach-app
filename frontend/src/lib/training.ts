@@ -85,6 +85,8 @@ export type TrainingPlan = {
   version: number;
   previousVersionId: string | null;
   status: TrainingStatus;
+  createdAt: string;
+  updatedAt: string;
   deleted: boolean;
 };
 
@@ -194,6 +196,216 @@ export function prescriptionUpdatePayload(
     intensityValue: prescription.intensityValue,
     restSeconds: prescription.restSeconds,
     notes: prescription.notes,
+  };
+}
+
+/** T-074 — versões visíveis do plano, da mais recente para a mais antiga. */
+export function sortPlanVersions(plans: TrainingPlan[]): TrainingPlan[] {
+  return plans
+    .filter((plan) => !plan.deleted)
+    .slice()
+    .sort(
+      (a, b) =>
+        b.version - a.version ||
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+}
+
+/**
+ * T-074 — versão corrente para o atleta: a ACTIVE mais recente liberada pelo
+ * coach. Rascunhos e versões em revisão nunca aparecem para o atleta (o
+ * backend já filtra, mas repetimos a regra para manter a UI previsível).
+ */
+export function currentPlanVersion(plans: TrainingPlan[]): TrainingPlan | undefined {
+  return sortPlanVersions(plans).find((plan) => plan.status === "ACTIVE");
+}
+
+/**
+ * T-074 — histórico de versões anteriores à corrente. Inclui versões ACTIVE
+ * antigas (quando o coach publicou uma nova sem finalizar a anterior) e
+ * FINISHED, sempre da mais recente para a mais antiga.
+ */
+export function previousPlanVersions(
+  plans: TrainingPlan[],
+  current?: TrainingPlan
+): TrainingPlan[] {
+  const sorted = sortPlanVersions(plans);
+  if (!current) return sorted;
+  return sorted.filter(
+    (plan) => plan.id !== current.id && plan.version < current.version
+  );
+}
+
+export type PlanContentChange = "ADDED" | "REMOVED" | "CHANGED" | "UNCHANGED";
+
+export type PrescriptionComparison = {
+  exerciseName: string;
+  change: PlanContentChange;
+  previousSummary: string | null;
+  currentSummary: string | null;
+};
+
+export type SessionComparison = {
+  key: string;
+  name: string;
+  weekNumber: number;
+  dayOfWeek: number;
+  change: PlanContentChange;
+  previous: TrainingSession | null;
+  current: TrainingSession | null;
+  exerciseChanges: PrescriptionComparison[];
+};
+
+export type PlanComparison = {
+  previous: TrainingPlan;
+  current: TrainingPlan;
+  sessions: SessionComparison[];
+  summary: {
+    added: number;
+    removed: number;
+    changed: number;
+    unchanged: number;
+    previousExerciseCount: number;
+    currentExerciseCount: number;
+  };
+};
+
+function prescriptionSummary(prescription: ExercisePrescription): string {
+  const intensity =
+    prescription.intensityValue !== null
+      ? ` · ${prescription.intensityType} ${prescription.intensityValue}`
+      : ` · ${prescription.intensityType}`;
+  return (
+    `${prescription.sets}×${prescription.repetitions} · ${prescription.load} kg` +
+    `${intensity} · descanso ${prescription.restSeconds}s` +
+    (prescription.notes ? ` · ${prescription.notes}` : "")
+  );
+}
+
+function compareExercises(
+  previous: TrainingSession | null,
+  current: TrainingSession | null
+): PrescriptionComparison[] {
+  const previousOrdered = (previous?.exercises ?? [])
+    .slice()
+    .sort((a, b) => a.orderIndex - b.orderIndex);
+  const currentOrdered = (current?.exercises ?? [])
+    .slice()
+    .sort((a, b) => a.orderIndex - b.orderIndex);
+  const length = Math.max(previousOrdered.length, currentOrdered.length);
+  const changes: PrescriptionComparison[] = [];
+
+  for (let index = 0; index < length; index += 1) {
+    const before = previousOrdered[index];
+    const after = currentOrdered[index];
+    const beforeSummary = before ? prescriptionSummary(before) : null;
+    const afterSummary = after ? prescriptionSummary(after) : null;
+    let change: PlanContentChange = "UNCHANGED";
+    if (!before) change = "ADDED";
+    else if (!after) change = "REMOVED";
+    else if (
+      before.exerciseName !== after.exerciseName ||
+      beforeSummary !== afterSummary
+    ) {
+      change = "CHANGED";
+    }
+    changes.push({
+      exerciseName: after?.exerciseName ?? before?.exerciseName ?? "Exercício",
+      change,
+      previousSummary: beforeSummary,
+      currentSummary: afterSummary,
+    });
+  }
+
+  return changes;
+}
+
+function sessionComparisonKey(
+  session: TrainingSession,
+  seen: Map<string, number>
+): string {
+  const base = `${session.weekNumber}|${session.dayOfWeek}|${session.name
+    .trim()
+    .toLowerCase()}`;
+  const occurrence = seen.get(base) ?? 0;
+  seen.set(base, occurrence + 1);
+  return occurrence === 0 ? base : `${base}#${occurrence}`;
+}
+
+/**
+ * T-074 — compara a versão anterior com a corrente. Sessões são identificadas
+ * por semana + dia + nome (a cópia da nova versão preserva esses campos) e os
+ * exercícios por posição, para destacar inclusões, remoções e edições.
+ */
+export function comparePlanVersions(
+  previous: TrainingPlan,
+  current: TrainingPlan,
+  previousSessions: TrainingSession[],
+  currentSessions: TrainingSession[]
+): PlanComparison {
+  const seen = new Map<string, number>();
+  const previousByKey = new Map<string, TrainingSession>();
+  const currentByKey = new Map<string, TrainingSession>();
+
+  previousSessions
+    .filter((session) => !session.deleted)
+    .forEach((session) =>
+      previousByKey.set(sessionComparisonKey(session, seen), session)
+    );
+  seen.clear();
+  currentSessions
+    .filter((session) => !session.deleted)
+    .forEach((session) =>
+      currentByKey.set(sessionComparisonKey(session, seen), session)
+    );
+
+  const keys = new Set([...currentByKey.keys(), ...previousByKey.keys()]);
+  const sessions: SessionComparison[] = [...keys].map((key) => {
+    const before = previousByKey.get(key) ?? null;
+    const after = currentByKey.get(key) ?? null;
+    const exerciseChanges = compareExercises(before, after);
+    let change: PlanContentChange = "UNCHANGED";
+    if (!before) change = "ADDED";
+    else if (!after) change = "REMOVED";
+    else if (exerciseChanges.some((item) => item.change !== "UNCHANGED"))
+      change = "CHANGED";
+    const reference = after ?? before;
+    return {
+      key,
+      name: reference?.name ?? "Sessão",
+      weekNumber: reference?.weekNumber ?? 0,
+      dayOfWeek: reference?.dayOfWeek ?? 0,
+      change,
+      previous: before,
+      current: after,
+      exerciseChanges,
+    };
+  });
+
+  sessions.sort(
+    (a, b) =>
+      a.weekNumber - b.weekNumber ||
+      a.dayOfWeek - b.dayOfWeek ||
+      a.name.localeCompare(b.name)
+  );
+
+  return {
+    previous,
+    current,
+    sessions,
+    summary: {
+      added: sessions.filter((session) => session.change === "ADDED").length,
+      removed: sessions.filter((session) => session.change === "REMOVED").length,
+      changed: sessions.filter((session) => session.change === "CHANGED").length,
+      unchanged: sessions.filter((session) => session.change === "UNCHANGED")
+        .length,
+      previousExerciseCount: previousSessions
+        .filter((session) => !session.deleted)
+        .reduce((total, session) => total + session.exercises.length, 0),
+      currentExerciseCount: currentSessions
+        .filter((session) => !session.deleted)
+        .reduce((total, session) => total + session.exercises.length, 0),
+    },
   };
 }
 
@@ -471,6 +683,42 @@ export function useApplyCurrentExerciseVersion(
       );
     },
     onSuccess: () => invalidateSessionCaches(queryClient, periodizationId),
+  });
+}
+
+/**
+ * T-074 — cria a nova versão do plano. O backend copia as sessões da versão de
+ * origem e a nova versão nasce em DRAFT; a origem permanece intacta.
+ */
+export function useCreateTrainingPlanVersion(
+  athleteId: string,
+  periodizationId: string
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      planId,
+      newName,
+      newDescription,
+    }: {
+      planId: string;
+      newName: string;
+      newDescription: string;
+    }) => {
+      const { data } = await apiClient.post<TrainingPlan>(
+        `/api/training/plans/${planId}/versions`,
+        { newName, newDescription },
+        rootRequestConfig()
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.plans(athleteId) });
+      queryClient.invalidateQueries({ queryKey: keys.sessions(periodizationId) });
+      queryClient.invalidateQueries({
+        queryKey: ["training", "athlete-sessions"],
+      });
+    },
   });
 }
 

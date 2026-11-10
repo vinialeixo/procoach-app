@@ -15,3 +15,20 @@
 .athlete-content__metrics dd { margin: 0; font-weight: 600; }
 .athlete-content__sessions { display: grid; gap: 1rem; }
 .athlete-content__exercise-list { display: grid; gap: 0.9rem; padding-left: 1.25rem; }
+.athlete-content__history { display: grid; gap: 0.75rem; margin-top: 0.5rem; }
+.athlete-content__history-item {
+  border: 1px solid var(--color-border, #d9dee7); border-radius: 0.75rem;
+  background: var(--color-surface, #fff);
+}
+.athlete-content__history-item > summary {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; justify-content: space-between;
+  padding: 1rem 1.25rem; cursor: pointer;
+}
+.athlete-content__history-body {
+  display: grid; gap: 1rem; padding: 0 1.25rem 1.25rem;
+}
+.athlete-content__history-session {
+  display: grid; gap: 0.4rem; padding-top: 1rem;
+  border-top: 1px solid var(--color-border, #d9dee7);
+}
+.athlete-content__history-exercises { display: grid; gap: 0.35rem; margin: 0; padding-left: 1.25rem; }

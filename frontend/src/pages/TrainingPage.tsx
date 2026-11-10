@@ -14,12 +14,15 @@ import {
   IntensityType,
   MUSCLE_GROUPS,
   MuscleGroup,
+  PlanContentChange,
   TrainingStatus,
   UpdateExercisePrescriptionPayload,
+  comparePlanVersions,
   useAddExerciseToSession,
   useApplyCurrentExerciseVersion,
   useCreatePeriodization,
   useCreateTrainingPlan,
+  useCreateTrainingPlanVersion,
   useCreateTrainingSession,
   useExercises,
   usePeriodizations,
@@ -97,6 +100,20 @@ const STATUS_ACTION: Record<TrainingStatus, string> = {
   FINISHED: "Finalizado",
 };
 
+const PLAN_STATUS_ACTION: Record<TrainingStatus, string> = {
+  DRAFT: "Enviar para revisão",
+  IN_REVIEW: "Publicar versão",
+  ACTIVE: "Finalizar versão",
+  FINISHED: "Finalizada",
+};
+
+const CHANGE_LABEL: Record<PlanContentChange, string> = {
+  ADDED: "Nova",
+  REMOVED: "Removida",
+  CHANGED: "Alterada",
+  UNCHANGED: "Sem mudanças",
+};
+
 const DAY_LABELS = Object.fromEntries(DAY_OPTIONS.map((day) => [day.value, day.label]));
 
 function formatDate(date: string | null) {
@@ -139,6 +156,8 @@ export function TrainingPage() {
     useState<ExercisePrescription | null>(null);
   const [removingPrescription, setRemovingPrescription] =
     useState<ExercisePrescription | null>(null);
+  const [versioningPlan, setVersioningPlan] = useState(false);
+  const [comparingPlan, setComparingPlan] = useState(false);
 
   const athletesQuery = useAthletes();
   const periodizationsQuery = usePeriodizations(athleteId);
@@ -148,6 +167,7 @@ export function TrainingPage() {
 
   const createPeriodization = useCreatePeriodization(athleteId);
   const createPlan = useCreateTrainingPlan(athleteId);
+  const createPlanVersion = useCreateTrainingPlanVersion(athleteId, periodizationId);
   const createSession = useCreateTrainingSession(athleteId, periodizationId);
   const addExercise = useAddExerciseToSession(periodizationId, sessionId);
   const reorderExercises = useReorderSessionExercises(periodizationId, sessionId);
@@ -170,6 +190,21 @@ export function TrainingPage() {
   const selectedPlan = plans.find((item) => item.id === planId);
   const selectedSession = sessions.find((item) => item.id === sessionId);
   const selectedExercise = exercisesQuery.data?.find((exercise) => exercise.id === exerciseId);
+  const previousPlan = selectedPlan?.previousVersionId
+    ? plans.find((plan) => plan.id === selectedPlan.previousVersionId)
+    : undefined;
+  const previousPlanSessions = (sessionsQuery.data ?? []).filter(
+    (session) => session.planId === previousPlan?.id
+  );
+  const planComparison =
+    selectedPlan && previousPlan
+      ? comparePlanVersions(
+          previousPlan,
+          selectedPlan,
+          previousPlanSessions,
+          sessions
+        )
+      : null;
 
   async function onCreatePeriodization(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -213,6 +248,27 @@ export function TrainingPage() {
       formElement.reset();
     } catch {
       // A mensagem da mutação aparece junto ao formulário.
+    }
+  }
+
+  async function onCreatePlanVersion(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedPlan) return;
+    const form = new FormData(event.currentTarget);
+    try {
+      const created = await createPlanVersion.mutateAsync({
+        planId: selectedPlan.id,
+        newName: String(form.get("newName") ?? "").trim(),
+        newDescription: String(form.get("newDescription") ?? "").trim(),
+      });
+      setPlanId(created.id);
+      setSessionId("");
+      setEditingPrescription(null);
+      setRemovingPrescription(null);
+      setVersioningPlan(false);
+      setComparingPlan(false);
+    } catch {
+      // A mensagem da mutação aparece dentro do modal.
     }
   }
 
@@ -425,16 +481,42 @@ export function TrainingPage() {
               </div>
               <div className="training-page__plan-actions">
                 <StatusBadge status={selectedPlan.status} />
+                {previousPlan && (
+                  <Button
+                    variant="ghost"
+                    disabled={!planComparison}
+                    onClick={() => setComparingPlan(true)}
+                  >
+                    Comparar com v{previousPlan.version}
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  disabled={createPlanVersion.isPending}
+                  onClick={() => setVersioningPlan(true)}
+                >
+                  Criar nova versão
+                </Button>
                 {STATUS_NEXT[selectedPlan.status] && (
                   <Button
                     variant="ghost"
                     loading={transitionPlan.isPending}
                     onClick={() => transitionPlan.mutate({ planId: selectedPlan.id, targetStatus: STATUS_NEXT[selectedPlan.status]! })}
                   >
-                    {STATUS_ACTION[STATUS_NEXT[selectedPlan.status]!]}
+                    {PLAN_STATUS_ACTION[STATUS_NEXT[selectedPlan.status]!]}
                   </Button>
                 )}
               </div>
+              {selectedPlan.status === "DRAFT" && (
+                <p className="training-page__notice" role="status">
+                  Rascunho: o atleta ainda não vê esta versão. Envie para revisão e publique para liberar as sessões.
+                </p>
+              )}
+              {selectedPlan.status === "IN_REVIEW" && (
+                <p className="training-page__notice" role="status">
+                  Em revisão: ao publicar, esta passa a ser a versão corrente do atleta. A versão anterior continua no histórico.
+                </p>
+              )}
               {transitionPlan.isError && <p className="training-page__alert" role="alert">{errorMessage(transitionPlan.error, "Não foi possível alterar o status do plano.")}</p>}
             </div>
           )}
@@ -810,6 +892,172 @@ export function TrainingPage() {
                   onClick={onRemovePrescription}
                 >
                   Remover
+                </Button>
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* T-074 — criar nova versão do plano (copia as sessões da origem) */}
+        <Modal
+          open={versioningPlan && selectedPlan !== undefined}
+          title="Criar nova versão do plano"
+          onClose={() => setVersioningPlan(false)}
+        >
+          {selectedPlan && (
+            <form
+              key={`version-${selectedPlan.id}`}
+              className="training-page__form"
+              onSubmit={onCreatePlanVersion}
+            >
+              <p className="training-page__muted">
+                A versão v{selectedPlan.version} permanece intacta. A nova versão
+                v{selectedPlan.version + 1} nasce como rascunho com uma cópia das
+                {sessions.length === 1 ? " sessão atual" : " sessões atuais"}.
+              </p>
+              <Field
+                name="newName"
+                label="Nome da nova versão"
+                defaultValue={selectedPlan.name}
+                required
+              />
+              <TextareaField
+                name="newDescription"
+                label="Descrição da nova versão"
+                defaultValue={selectedPlan.description ?? ""}
+              />
+              {createPlanVersion.isError && (
+                <p className="training-page__alert" role="alert">
+                  {errorMessage(
+                    createPlanVersion.error,
+                    "Não foi possível criar a nova versão do plano."
+                  )}
+                </p>
+              )}
+              <div className="training-page__plan-actions">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setVersioningPlan(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" loading={createPlanVersion.isPending}>
+                  Criar versão
+                </Button>
+              </div>
+            </form>
+          )}
+        </Modal>
+
+        {/* T-074 — comparar versão anterior x corrente */}
+        <Modal
+          open={comparingPlan && planComparison !== null}
+          title="Comparar versões do plano"
+          className="training-page__compare-modal"
+          onClose={() => setComparingPlan(false)}
+        >
+          {planComparison && (
+            <div className="training-page__compare">
+              <div className="training-page__compare-summary">
+                <div className="training-page__compare-card">
+                  <span className="training-page__mono">
+                    ANTERIOR · V{planComparison.previous.version}
+                  </span>
+                  <strong>{planComparison.previous.name}</strong>
+                  <small>
+                    {planComparison.summary.previousExerciseCount} exercícios
+                  </small>
+                </div>
+                <div className="training-page__compare-card training-page__compare-card--current">
+                  <span className="training-page__mono">
+                    CORRENTE · V{planComparison.current.version}
+                  </span>
+                  <strong>{planComparison.current.name}</strong>
+                  <small>
+                    {planComparison.summary.currentExerciseCount} exercícios
+                  </small>
+                </div>
+              </div>
+
+              <p className="training-page__muted">
+                {planComparison.summary.added} nova(s) ·{" "}
+                {planComparison.summary.removed} removida(s) ·{" "}
+                {planComparison.summary.changed} alterada(s) ·{" "}
+                {planComparison.summary.unchanged} sem mudanças
+              </p>
+
+              {planComparison.sessions.length === 0 ? (
+                <p className="training-page__muted">
+                  Nenhuma sessão nas duas versões.
+                </p>
+              ) : (
+                <ol className="training-page__compare-list">
+                  {planComparison.sessions.map((session) => {
+                    const changedExercises = session.exerciseChanges.filter(
+                      (exercise) => exercise.change !== "UNCHANGED"
+                    );
+                    return (
+                      <li
+                        key={session.key}
+                        className={`training-page__compare-session training-page__compare-session--${session.change.toLowerCase()}`}
+                      >
+                        <div className="training-page__compare-session-heading">
+                          <div>
+                            <span className="training-page__mono">
+                              SEM {session.weekNumber} ·{" "}
+                              {DAY_LABELS[String(session.dayOfWeek)]}
+                            </span>
+                            <strong>{session.name}</strong>
+                          </div>
+                          <span
+                            className={`training-page__compare-badge training-page__compare-badge--${session.change.toLowerCase()}`}
+                          >
+                            {CHANGE_LABEL[session.change]}
+                          </span>
+                        </div>
+
+                        {changedExercises.length === 0 ? (
+                          <p className="training-page__muted">
+                            Nenhuma alteração nos exercícios desta sessão.
+                          </p>
+                        ) : (
+                          <ul className="training-page__compare-exercises">
+                            {changedExercises.map((exercise, index) => (
+                              <li key={`${session.key}-${exercise.exerciseName}-${index}`}>
+                                <span className="training-page__compare-badge training-page__compare-badge--small">
+                                  {CHANGE_LABEL[exercise.change]}
+                                </span>
+                                <strong>{exercise.exerciseName}</strong>
+                                {exercise.change !== "ADDED" &&
+                                  exercise.previousSummary && (
+                                    <span className="training-page__compare-before">
+                                      Antes: {exercise.previousSummary}
+                                    </span>
+                                  )}
+                                {exercise.change !== "REMOVED" &&
+                                  exercise.currentSummary && (
+                                    <span className="training-page__compare-after">
+                                      Depois: {exercise.currentSummary}
+                                    </span>
+                                  )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+
+              <div className="training-page__plan-actions">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setComparingPlan(false)}
+                >
+                  Fechar
                 </Button>
               </div>
             </div>

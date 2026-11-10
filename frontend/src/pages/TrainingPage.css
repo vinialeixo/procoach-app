@@ -104,9 +104,148 @@
 
 .training-page__plan-summary {
   align-items: flex-start;
+  flex-wrap: wrap;
   padding: var(--space-4);
   border-left: 3px solid var(--color-accent);
   background: var(--color-bg);
+}
+
+.training-page__plan-summary .training-page__notice,
+.training-page__plan-summary .training-page__alert {
+  flex-basis: 100%;
+}
+
+.training-page__compare-modal {
+  max-width: 820px;
+  max-height: calc(100vh - 2 * var(--space-4));
+  overflow: auto;
+}
+
+.training-page__compare {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.training-page__compare-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.training-page__compare-card {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-ink-muted);
+  background: var(--color-bg);
+}
+
+.training-page__compare-card--current {
+  border-top-color: var(--color-primary);
+}
+
+.training-page__compare-card small {
+  color: var(--color-ink-muted);
+}
+
+.training-page__compare-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.training-page__compare-session {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-ink-muted);
+}
+
+.training-page__compare-session--added {
+  border-left-color: var(--color-success, #2f8f5b);
+}
+
+.training-page__compare-session--removed {
+  border-left-color: var(--color-danger);
+}
+
+.training-page__compare-session--changed {
+  border-left-color: var(--color-accent);
+}
+
+.training-page__compare-session-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.training-page__compare-session-heading > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.training-page__compare-badge {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.training-page__compare-badge--added {
+  border-color: var(--color-success, #2f8f5b);
+  color: var(--color-success, #2f8f5b);
+}
+
+.training-page__compare-badge--removed {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.training-page__compare-badge--changed {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.training-page__compare-badge--small {
+  font-size: 0.65rem;
+}
+
+.training-page__compare-exercises {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.training-page__compare-exercises li {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) 0;
+  border-top: 1px dashed var(--color-border);
+}
+
+.training-page__compare-exercises li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.training-page__compare-before,
+.training-page__compare-after {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+.training-page__compare-after {
+  color: var(--color-ink);
 }
 
 .training-page__plan-summary p {
@@ -118,6 +257,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .training-page__schedule,
@@ -321,7 +461,8 @@
   .training-page__form-grid,
   .training-page__form-grid--session,
   .training-page__form-grid--prescription,
-  .training-page__search {
+  .training-page__search,
+  .training-page__compare-summary {
     grid-template-columns: 1fr;
   }
 

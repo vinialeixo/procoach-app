@@ -73,7 +73,7 @@
 | [ ] | **T-060** | E9 | US-20 | Front: reintroduzir MFA — etapa 2 no login e tela de ativação com QR Code (recuperar `MfaSetupPage`, `useVerifyMfa`, `useStartMfaSetup`, `useConfirmMfaSetup` e a etapa de código do `LoginPage` do histórico do git; `qrcode` segue no `package.json`) | Dev | Should | 2 | T-059 |
 | [x] | **T-072** | E4/E3 | US-38 | Front: avisos do atleta — sino com contagem de não lidos, lista de avisos e marcar como lido (`/api/v1/notifications`; só o atleta acessa) | Dev | Should (sugerido) | 3 | T-070, T-054 |
 | [x] | **T-073** | E4 | US-10 | Front: coach edita e remove prescrições do treino (inclusive ativo), com o aviso "há versão mais nova" do exercício e botão para trocar pela versão corrente | Dev | Should (sugerido) | 3 | T-068, T-069, T-040 |
-| [ ] | **T-074** | E4 | US-10/US-12 | Front: versões do plano de treino — o coach cria a nova versão (que copia as sessões), compara e publica; o atleta vê as sessões da versão corrente e o histórico das anteriores (`planId` nas sessões; `?planId=` na listagem) | Dev | Should (sugerido) | 4 | T-067, T-040 |
+| [x] | **T-074** | E4 | US-10/US-12 | Front: versões do plano de treino — o coach cria a nova versão (que copia as sessões), compara e publica; o atleta vê as sessões da versão corrente e o histórico das anteriores (`planId` nas sessões; `?planId=` na listagem) | Dev | Should (sugerido) | 4 | T-067, T-040 |
 | [ ] | **T-075** | E4/E3 | US-38 | Front: preferências de aviso do atleta (e-mail e push) e registro do dispositivo para push (`GET/PUT /api/v1/notifications/preferences`, `POST/DELETE /api/v1/notifications/devices`) | Dev | Should (sugerido) | 2 | T-071, T-072 |
 | [x] | **T-063** | E9 | US-20 | Front: convite do atleta — botão "Convidar para o app" na ficha (gera e copia o link) e tela pública /convite/:token para o atleta definir a senha | Dev | Must (sugerido) | 2 | T-062 |
 
@@ -155,10 +155,18 @@
   o exercício corrente (`currentExerciseId`) e reenvia a prescrição. Hooks em
   `src/lib/training.ts` cobrem `PUT/DELETE /api/training/trainings/{id}/exercises/{prescriptionId}`.
   Testes novos em `src/lib/training.test.ts` (payload de edição/troca de versão).
+- **T-074 → `[x]`**: `TrainingPage` ganhou "Criar nova versão" (modal com nome/descrição,
+  aviso de que as sessões são copiadas e a versão nasce em rascunho), "Comparar com vN"
+  (modal lado a lado com sessões e exercícios adicionados/removidos/alterados) e o fluxo de
+  publicação (`DRAFT → IN_REVIEW → ACTIVE`, com textos específicos de versão). A versão de
+  origem permanece intacta, conforme a regra de nunca sobrescrever. `AthleteTrainingPage`
+  passou a exibir a versão corrente e o histórico das anteriores (somente leitura, sessões
+  carregadas por `planId`). Helpers em `src/lib/training.ts`: `sortPlanVersions`,
+  `currentPlanVersion`, `previousPlanVersions` e `comparePlanVersions`, com testes em
+  `src/lib/training.test.ts`.
 - **Correção de contagem**: o cabeçalho dizia 13 tasks; o arquivo tem 19 (7 MVP + 9 do
   adendo + 3 MVP2), alinhado ao `TASKS.md` da raiz.
 - **Mantidas em `[ ]`**: `T-060` (depende de `T-059`, backend ainda aberto e MFA desligado
-  por decisão do time), `T-074` (não há criação, comparação e publicação de versão do plano
-  no front) e `T-075` (não há telas/hooks de preferências e dispositivos de push).
+  por decisão do time) e `T-075` (não há telas/hooks de preferências e dispositivos de push).
   `M2-004`, `M2-017` e `M2-021` seguem bloqueadas pelas dependências de backend abertas
   (`M2-003`, `M2-014`, `M2-020`).
