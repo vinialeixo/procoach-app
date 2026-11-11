@@ -39,8 +39,13 @@
   text-decoration: none;
 }
 
-.app-shell__nav-link:hover {
+.app-shell__nav-link:hover,
+.app-shell__nav-link--active {
   color: var(--color-ink);
+}
+
+.app-shell__nav-link--active {
+  box-shadow: 0 2px 0 var(--color-accent);
 }
 
 .app-shell__content {
@@ -58,4 +63,32 @@
   margin-top: var(--space-3);
   color: var(--color-ink-muted);
   line-height: 1.6;
+}
+
+/* Breakpoint padrão mobile: 640px */
+@media (max-width: 640px) {
+  .app-shell__header {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .app-shell__nav {
+    order: 3;
+    width: 100%;
+    gap: var(--space-4);
+    overflow-x: auto;
+  }
+
+  .app-shell__nav-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    white-space: nowrap;
+  }
+
+  .app-shell__content {
+    margin: var(--space-5) auto;
+    padding: 0 var(--space-4);
+  }
 }

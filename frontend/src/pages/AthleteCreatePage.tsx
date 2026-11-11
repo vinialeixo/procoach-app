@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate, Link } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
+import { COACH_NAV } from "@/lib/coach-nav";
 import { Field } from "@/components/ui/Field";
 import { SelectField } from "@/components/ui/SelectField";
 import { Button } from "@/components/ui/Button";
@@ -55,7 +56,7 @@ export function AthleteCreatePage() {
   }
 
   return (
-    <AppShell navItems={[{ label: "Atletas", href: "/coach/athletes" }]}>
+    <AppShell navItems={COACH_NAV}>
       <div className="athlete-form">
         <Link to="/coach/athletes" className="athlete-form__back">
           &larr; Voltar para a listagem

@@ -15,6 +15,8 @@
   box-shadow: var(--shadow-card);
   width: 100%;
   max-width: 440px;
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
   padding: var(--space-6);
 }
 
@@ -34,5 +36,7 @@
 .pc-modal__actions {
   display: flex;
   gap: var(--space-3);
+  justify-content: flex-end;
+  flex-wrap: wrap;
   margin-top: var(--space-2);
 }

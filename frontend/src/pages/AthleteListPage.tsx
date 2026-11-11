@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
+import { COACH_NAV } from "@/lib/coach-nav";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
@@ -38,7 +39,7 @@ export function AthleteListPage() {
   );
 
   return (
-    <AppShell navItems={[{ label: "Atletas", href: "/coach/athletes" }]}>
+    <AppShell navItems={COACH_NAV}>
       <div className="athlete-list">
         <div className="athlete-list__header">
           <h1 className="athlete-list__title">Atletas</h1>

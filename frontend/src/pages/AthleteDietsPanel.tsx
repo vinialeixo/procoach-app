@@ -75,7 +75,7 @@ const TRANSITION_COPY: Record<DietStatus, TransitionCopy> = {
   DRAFT: {
     title: "Enviar para revisão",
     body: (n) =>
-      `A v${n} sai de Rascunho e vai para Em Revisão. O fluxo é travado (US-017): depois disso só é possível aprovar — qualquer correção gera uma nova versão e congela a v${n}.`,
+      `A v${n} sai de Rascunho e vai para Em Revisão. O fluxo é travado: depois disso só é possível aprovar — qualquer correção gera uma nova versão e congela a v${n}.`,
   },
   IN_REVIEW: {
     title: "Aprovar dieta",
@@ -85,7 +85,7 @@ const TRANSITION_COPY: Record<DietStatus, TransitionCopy> = {
   APPROVED: {
     title: "Arquivar dieta",
     body: (n) =>
-      `A v${n} sai de Aprovada e vai para Arquivada — estado terminal do fluxo de aprovação (US-017). Um novo ciclo para o atleta começa como nova versão.`,
+      `A v${n} sai de Aprovada e vai para Arquivada — estado terminal do fluxo de aprovação. Um novo ciclo para o atleta começa como nova versão.`,
   },
   ARCHIVED: {
     title: "",
@@ -321,7 +321,7 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
               {nextTransition && (
                 <p className="diets__meta">
                   Próxima transição permitida: {STATUS_LABEL[current.status]} →{" "}
-                  {STATUS_LABEL[nextTransition]} (fluxo travado — ver US-017).
+                  {STATUS_LABEL[nextTransition]} (o fluxo de status é travado).
                 </p>
               )}
               <div className="diets__current-actions">
@@ -389,7 +389,7 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
             <p>{TRANSITION_COPY[pendingTransition].body(current.version)}</p>
             {transitionError && (
               <p className="diets__error" role="alert">
-                Transição recusada pelo núcleo. Verifique o estado atual da
+                Não foi possível concluir a transição. Verifique o estado atual da
                 versão.
               </p>
             )}

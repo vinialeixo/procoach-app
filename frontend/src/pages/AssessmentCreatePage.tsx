@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
+import { COACH_NAV } from "@/lib/coach-nav";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { useAthlete } from "@/lib/athletes";
@@ -85,7 +86,7 @@ export function AssessmentCreatePage() {
   }
 
   return (
-    <AppShell navItems={[{ label: "Atletas", href: "/coach/athletes" }]}>
+    <AppShell navItems={COACH_NAV}>
       <div className="athlete-form">
         <Link to={`/coach/athletes/${athleteId}`} className="athlete-form__back">
           &larr; Voltar para a ficha

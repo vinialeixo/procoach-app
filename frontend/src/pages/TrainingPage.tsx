@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { AppShell } from "@/layouts/AppShell";
+import { COACH_NAV } from "@/lib/coach-nav";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
@@ -372,13 +373,8 @@ export function TrainingPage() {
     setSessionId("");
   }
 
-  const navItems = [
-    { label: "Atletas", href: "/coach/athletes" },
-    { label: "Treinos e biblioteca", href: "/coach/training" },
-  ];
-
   return (
-    <AppShell navItems={navItems}>
+    <AppShell navItems={COACH_NAV}>
       <div className="training-page">
         <header className="training-page__header">
           <div>

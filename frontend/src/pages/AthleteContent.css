@@ -2,11 +2,11 @@
 .athlete-content h1, .athlete-content h2, .athlete-content p { margin: 0; }
 .athlete-content__card {
   display: grid; gap: 0.85rem; padding: 1.25rem;
-  border: 1px solid var(--color-border, #d9dee7); border-radius: 0.75rem;
-  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border); border-radius: 0.75rem;
+  background: var(--color-surface);
 }
 .athlete-content__eyebrow, .athlete-content__metrics dt, .athlete-content__exercise-list span {
-  color: var(--color-text-muted, #5c6675); font-size: 0.9rem;
+  color: var(--color-ink-muted); font-size: 0.9rem;
 }
 .athlete-content__metrics {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 1rem; margin: 0;
@@ -17,8 +17,8 @@
 .athlete-content__exercise-list { display: grid; gap: 0.9rem; padding-left: 1.25rem; }
 .athlete-content__history { display: grid; gap: 0.75rem; margin-top: 0.5rem; }
 .athlete-content__history-item {
-  border: 1px solid var(--color-border, #d9dee7); border-radius: 0.75rem;
-  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border); border-radius: 0.75rem;
+  background: var(--color-surface);
 }
 .athlete-content__history-item > summary {
   display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; justify-content: space-between;
@@ -29,30 +29,30 @@
 }
 .athlete-content__history-session {
   display: grid; gap: 0.4rem; padding-top: 1rem;
-  border-top: 1px solid var(--color-border, #d9dee7);
+  border-top: 1px solid var(--color-border);
 }
 .athlete-content__history-exercises { display: grid; gap: 0.35rem; margin: 0; padding-left: 1.25rem; }
 
 /* T-075 — preferências de aviso e dispositivos de push */
 .athlete-content__preferences { align-content: start; }
 .athlete-content__hint {
-  display: block; color: var(--color-text-muted, #5c6675); font-size: 0.9rem; line-height: 1.5;
+  display: block; color: var(--color-ink-muted); font-size: 0.9rem; line-height: 1.5;
 }
 .athlete-content__channels { display: grid; gap: 0.75rem; }
 .athlete-content__channel {
   display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.9rem 1rem;
-  border: 1px solid var(--color-border, #d9dee7); border-radius: 0.65rem;
-  background: var(--color-surface, #fff); cursor: pointer;
+  border: 1px solid var(--color-border); border-radius: 0.65rem;
+  background: var(--color-surface); cursor: pointer;
 }
 .athlete-content__channel input {
   width: 1.15rem; height: 1.15rem; margin: 0.15rem 0 0; flex: none;
-  accent-color: var(--color-primary, #1f3b57);
+  accent-color: var(--color-primary);
 }
 .athlete-content__channel > span { display: grid; gap: 0.25rem; }
 .athlete-content__device { display: grid; gap: 0.75rem; }
 .athlete-content__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .athlete-content__actions .pc-button { width: auto; min-width: 12rem; }
 .athlete-content__feedback { font-size: 0.9rem; font-weight: 500; }
-.athlete-content__feedback--success { color: var(--color-success, #2f6e4c); }
-.athlete-content__feedback--error { color: var(--color-danger, #a23b3b); }
-.athlete-content__channel:focus-within { outline: var(--focus-ring); outline-offset: 2px; }
+.athlete-content__feedback--success { color: var(--color-success); }
+.athlete-content__feedback--error { color: var(--color-danger); }
+.athlete-content__channel:focus-within { outline: 2px solid var(--color-primary); outline-offset: 2px; }

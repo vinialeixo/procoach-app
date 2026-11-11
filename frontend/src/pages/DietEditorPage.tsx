@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
+import { COACH_NAV } from "@/lib/coach-nav";
 import { Field } from "@/components/ui/Field";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextareaField } from "@/components/ui/TextareaField";
@@ -112,7 +113,7 @@ export function DietEditorPage() {
       setError("changeReason", {
         type: "manual",
         message:
-          "Informe o motivo da alteração — ele entra no histórico de auditoria (US-016).",
+          "Informe o motivo da alteração — ele entra no histórico de auditoria.",
       });
       return;
     }
@@ -152,7 +153,7 @@ export function DietEditorPage() {
   const saving = createDiet.isPending || createVersion.isPending;
 
   return (
-    <AppShell navItems={[{ label: "Atletas", href: "/coach/athletes" }]}>
+    <AppShell navItems={COACH_NAV}>
       <div className="athlete-form">
         <Link
           to={`/coach/athletes/${athleteId}?tab=dietas`}
