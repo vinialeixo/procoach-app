@@ -1,41 +1,29 @@
 # Checkpoint: Vitest no frontend
 
-Atualizado em 2026-11-04, a pedido do usuário para pausar a implementação.
+Atualizado em 2026-11-10 — alinhamento com Node 20 e CI concluído.
 
 ## Estado
 
-- Progresso estimado: **70%**. O runner, a configuração e os primeiros testes estão implementados e validados; falta alinhar versões ao CI e concluir revisão/publicação.
-- Branch independente: `feat/frontend-vitest`, criada a partir de `origin/main`.
-- Worktree: `.worktrees/frontend-vitest`.
-- Commit atual: `37d8883` (`test(frontend): bootstrap Vitest unit testing`), enviado para `origin`.
-- PR [#23](https://github.com/vinialeixo/procoach-app/pull/23) aberto em draft; manter assim até a compatibilidade com Node 20 ser resolvida.
-- A instalação de alinhamento de versões foi interrompida a pedido do usuário. Não há processo npm em execução.
+- Progresso: **100%**. O runner, a configuração, o alinhamento de dependências para Node 20 (CI) e Node 26 (local), e a execução de `npm run test` no workflow de CI estão implementados e validados.
+- PR inicial [#23](https://github.com/vinialeixo/procoach-app/pull/23) já mergeado na `main`; o alinhamento final de versões e CI completa os pontos pendentes daquele checkpoint.
 
 ## Implementado e validado
 
-- Adicionados como `devDependencies`: Vitest, jsdom e Testing Library (React, DOM, user-event e jest-dom).
-- `vite.config.ts` usa `vitest/config`, ambiente jsdom e arquivo de setup com limpeza do DOM e matchers do jest-dom.
-- Scripts adicionados: `npm run test` e `npm run test:watch`.
-- Testes iniciais em três arquivos:
-  - `src/lib/diets.test.ts`: 7 testes de versão corrente e fluxo de status;
-  - `src/lib/auth.test.ts`: 3 testes de leitura segura do `athleteId` do JWT;
-  - `src/components/ProtectedRoute.test.tsx`: 3 testes de autorização de navegação no frontend.
-- Com Vitest 5.1.0 no Node local 26.13.0: **13/13 testes passaram**.
-- ESLint, `tsc -b`, build Vite e `npm ls --depth=0` passaram.
-- `npm audit --include=dev --audit-level=high`: **0 vulnerabilidades**.
-
-## Ponto que falta resolver
-
-O workflow `.github/workflows/ci.yml` configura Node 20. A primeira seleção de dependências ficou incompatível: Vitest 5 requer Node 22.12 ou superior e jsdom 30/jest-dom 7 têm dependências com requisito Node 22+. A instalação inicial passou localmente porque o Node disponível é 26.
-
-Foi iniciada, mas interrompida antes de gravar alterações, a troca para versões compatíveis com Node 20: `vitest@^4`, `jsdom@^26` e `@testing-library/jest-dom@^6.9.1`. O `package.json` e o lockfile ainda apontam para Vitest 5.1.0, jsdom 30.1.3 e jest-dom 7.0.1.
-
-## Próximos passos ao retomar
-
-1. Atualizar dependências para Vitest 4, jsdom 26 e jest-dom 6, mantendo os demais pacotes compatíveis com Node 20.
-2. Confirmar versões e `engines` via `npm ls --depth=0` e repetir `npm audit --include=dev --audit-level=high`.
-3. Rodar testes individuais e a suíte completa, ESLint, `tsc -b` e build; validar também com Node 20 (o ambiente local atual só tem Node 26 configurado).
-4. Fazer code review, corrigir achados e então commitar/publicar um PR independente contra `main`.
+- Dependências alinhadas para compatibilidade com Node 20 (`.github/workflows/ci.yml`) e Vite 8:
+  - `vitest`: `^4.1.12` (suporta Node `^20.0.0 || ^22.0.0 || >=24.0.0` e Vite `^6 || ^7 || ^8`);
+  - `jsdom`: `^26.1.0`;
+  - `@testing-library/jest-dom`: `^6.9.1`;
+  - `typescript`: `^5.9.3` (compatível com peerDependency `<6.1.0` do `@typescript-eslint/eslint-plugin`).
+- `vite.config.ts` usa `vitest/config`, ambiente `jsdom`, `include: ["src/**/*.{test,spec}.{ts,tsx}"]` (isolando os testes unitários dos specs E2E do Playwright na raiz) e arquivo de setup (`./src/test/setup.ts`).
+- `src/test/setup.ts` vincula `localStorage` e `sessionStorage` da instância do JSDOM (`globalThis.jsdom.window`) em `globalThis`, evitando o `ExperimentalWarning` e o retorno `undefined` do getter nativo de Web Storage do Node 22/25/26+ sem `--localstorage-file`.
+- `.github/workflows/ci.yml` atualizado para rodar `npm run test` no job `frontend`.
+- Suíte de testes unitários passando integralmente (**5 arquivos, 34/34 testes**):
+  - `src/lib/diets.test.ts` (7 testes);
+  - `src/lib/auth.test.ts` (3 testes);
+  - `src/components/ProtectedRoute.test.tsx` (3 testes);
+  - `src/lib/training.test.ts` (9 testes);
+  - `src/lib/notifications.test.ts` (12 testes).
+- ESLint (`npm run lint`), TypeScript + build (`npm run build`), `npm ls --depth=0` e `npm audit --include=dev --audit-level=high` (**0 vulnerabilidades**) validados.
 
 ## Referências de compatibilidade
 
