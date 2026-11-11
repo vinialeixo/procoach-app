@@ -4,6 +4,7 @@
 > Ver `USER_STORIES.md` para os critérios de aceite completos por épico.
 > **Nota de correção**: na planilha original, as tasks do MVP2 usavam prefixos de dependência inconsistentes (`KB-xxx`, `RAG-xxx`, `CHK-xxx`, `MVP2-xxx`) que não existem como Task ID real — só existe `M2-xxx`. Normalizei todas para `M2-xxx` pelo número (ex.: `RAG-012` → `M2-012`), preservando a ordem lógica original. Confirme com o time se essa reconciliação bate com a intenção original antes de seguir cegamente a ordem.
 > **Lacuna encontrada (2026-09-02)**: a planilha original não tinha nenhuma task de front para o atleta visualizar sua própria dieta/treino (só leitura) — apesar de `US-038`/RF-11 exigirem isso e o C4 do UML mostrar `Athlete -->|visualiza planos| SPA`. Adicionei `T-054` e `T-055` abaixo (fora da numeração/sprints originais) para cobrir isso. Confirme com o time se faz sentido antes de tratar como backlog oficial.
+> **Análise PO + Nutrição Esportiva (2026-11-11)**: o fluxo de dietas hoje modela apenas um orçamento de 4 macros (sem refeições, alimentos, gramaturas, suplementos ou balanço energético visível). A análise completa, as regras de negócio e o contrato JSON v1 do plano alimentar estão em [`docs/nutricao-plano-alimentar.md`](docs/nutricao-plano-alimentar.md). Backlog gerado: `T-085`–`T-090` no [`backend/TASKS.md`](backend/TASKS.md) (GitHub #56–#61) e `T-091`–`T-095` no [`frontend/TASKS.md`](frontend/TASKS.md) (GitHub #62–#66).
 
 ## Convenção de status
 
@@ -15,8 +16,8 @@ O backlog é dividido por ambiente. Os IDs são globais e não foram renumerados
 
 | Arquivo | Escopo | Tasks |
 |---|---|---|
-| [`backend/TASKS.md`](backend/TASKS.md) | Núcleo Java, RAG (Python), infra, segurança, testes de regra de negócio | 77 |
-| [`frontend/TASKS.md`](frontend/TASKS.md) | SPA: telas, design system, tooling | 19 |
+| [`backend/TASKS.md`](backend/TASKS.md) | Núcleo Java, RAG (Python), infra, segurança, testes de regra de negócio | 88 |
+| [`frontend/TASKS.md`](frontend/TASKS.md) | SPA: telas, design system, tooling | 27 |
 | este arquivo | Transversais: estratégia de QA, E2E integrado, UAT | 6 |
 
 Critério: a task entra em `frontend/` se o entregável é código da SPA (tasks "Front: ..." e setup do front). Entra aqui se só faz sentido com front e back juntos (E2E, UAT, plano de QA). O resto fica em `backend/`, inclusive testes de QA de regra de negócio e hardening.
