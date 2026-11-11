@@ -78,6 +78,12 @@ export function AthleteDetailPage() {
     formState: { errors },
   } = useForm<StatusForm>({ resolver: zodResolver(statusSchema) });
 
+  // Ao fechar sem salvar, descarta o que foi digitado e o erro anterior.
+  function closeStatusModal() {
+    setStatusModalOpen(false);
+    reset();
+  }
+
   async function onChangeStatus(values: StatusForm) {
     try {
       await changeStatus.mutateAsync(values);
@@ -226,7 +232,7 @@ export function AthleteDetailPage() {
       <Modal
         open={statusModalOpen}
         title="Alterar status do atleta"
-        onClose={() => setStatusModalOpen(false)}
+        onClose={closeStatusModal}
       >
         <form onSubmit={handleSubmit(onChangeStatus)} noValidate>
           <SelectField
@@ -254,7 +260,7 @@ export function AthleteDetailPage() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setStatusModalOpen(false)}
+              onClick={closeStatusModal}
             >
               Cancelar
             </Button>

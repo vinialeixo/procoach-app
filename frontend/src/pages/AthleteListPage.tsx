@@ -5,6 +5,7 @@ import { COACH_NAV } from "@/lib/coach-nav";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
+import { StateMessage } from "@/components/ui/StateMessage";
 import { GOAL_LABEL, useAthletes, Athlete, AthleteStatus } from "@/lib/athletes";
 import "./AthleteList.css";
 
@@ -30,10 +31,11 @@ export function AthleteListPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<"" | AthleteStatus>("");
   const [search, setSearch] = useState("");
-  const { data: athletes, isLoading, isError } = useAthletes(
+  const { data: athletes, isLoading, isError, refetch } = useAthletes(
     statusFilter || undefined
   );
 
+  const hasFilters = search.trim() !== "" || statusFilter !== "";
   const filtered = (athletes ?? []).filter((a) =>
     a.name.toLowerCase().includes(search.trim().toLowerCase())
   );
@@ -71,19 +73,40 @@ export function AthleteListPage() {
           </select>
         </div>
 
-        {isError && (
-          <p className="athlete-list__error" role="alert">
-            Não foi possível carregar os atletas. Tente novamente.
-          </p>
-        )}
-        {isLoading ? (
-          <p className="athlete-list__loading">Carregando atletas…</p>
+        {isError ? (
+          <StateMessage variant="error" onRetry={() => refetch()}>
+            Não foi possível carregar os atletas.
+          </StateMessage>
+        ) : isLoading ? (
+          <StateMessage variant="loading">Carregando atletas…</StateMessage>
         ) : (
           <DataTable
             columns={columns}
             rows={filtered}
             rowKey={(a) => a.id}
-            emptyMessage="Nenhum atleta encontrado."
+            caption="Atletas"
+            empty={
+              hasFilters ? (
+                <>
+                  <p>Nenhum atleta encontrado para este filtro.</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setSearch("");
+                      setStatusFilter("");
+                    }}
+                  >
+                    Limpar filtros
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p>Você ainda não cadastrou nenhum atleta.</p>
+                  <Link to="/coach/athletes/new">Cadastrar primeiro atleta</Link>
+                </>
+              )
+            }
             onRowClick={(a) => navigate(`/coach/athletes/${a.id}`)}
           />
         )}

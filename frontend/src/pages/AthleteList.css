@@ -2,6 +2,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
   margin-bottom: var(--space-5);
 }
 
@@ -39,6 +41,10 @@
   box-shadow: var(--focus-ring);
 }
 
+.athlete-list__filter:focus-visible {
+  border-color: var(--color-primary);
+}
+
 .athlete-list__filter {
   height: 40px;
   padding: 0 var(--space-3);
@@ -58,4 +64,10 @@
 
 .athlete-list__error {
   color: var(--color-danger);
+}
+
+@media (max-width: 640px) {
+  .athlete-list__toolbar {
+    flex-direction: column;
+  }
 }

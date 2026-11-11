@@ -46,3 +46,13 @@
 .athlete-form__actions .pc-button {
   width: auto;
 }
+
+@media (max-width: 480px) {
+  .athlete-form__row {
+    grid-template-columns: 1fr;
+  }
+
+  .athlete-form__form {
+    padding: var(--space-4);
+  }
+}

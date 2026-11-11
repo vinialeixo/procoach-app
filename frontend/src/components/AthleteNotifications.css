@@ -6,7 +6,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 0.5rem);
@@ -107,4 +107,18 @@
 .athlete-notifications__settings:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+.athlete-notifications__item-action {
+  min-height: 44px;
+}
+
+@media (max-width: 640px) {
+  .athlete-notifications__panel {
+    position: fixed;
+    top: 4rem;
+    right: 1rem;
+    left: 1rem;
+    width: auto;
+  }
 }

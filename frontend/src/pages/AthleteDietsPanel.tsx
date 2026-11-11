@@ -111,6 +111,11 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
     null
   );
   const [transitionError, setTransitionError] = useState(false);
+  // Fecha o modal de confirmação e limpa o erro da tentativa anterior.
+  function closeTransitionModal() {
+    setPendingTransition(null);
+    setTransitionError(false);
+  }
 
   // soft-delete (regra inegociável 5): versões deletadas nunca aparecem.
   const active = (versions ?? [])
@@ -378,7 +383,7 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
       <Modal
         open={pendingTransition !== null}
         title={pendingTransition ? TRANSITION_COPY[pendingTransition].title : ""}
-        onClose={() => setPendingTransition(null)}
+        onClose={closeTransitionModal}
       >
         {pendingTransition && current && (
           <>
@@ -397,7 +402,7 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setPendingTransition(null)}
+                onClick={closeTransitionModal}
               >
                 Cancelar
               </Button>
