@@ -36,3 +36,9 @@
 .pc-button--ghost:hover:not(:disabled) {
   border-color: var(--color-primary);
 }
+
+/* ButtonLink: <a> com aparência de botão, largura pelo conteúdo */
+a.pc-button {
+  width: auto;
+  text-decoration: none;
+}

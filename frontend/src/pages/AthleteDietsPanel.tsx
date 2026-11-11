@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import {
   DietStatus,
   DietVersion,
@@ -305,9 +305,7 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
             Dietas são versionadas: nenhuma alteração sobrescreve — toda edição
             cria uma nova versão (v1 → v2 → v3…), com motivo registrado.
           </p>
-          <Link to={`/coach/athletes/${athleteId}/diets/new`}>
-            <Button>Criar dieta</Button>
-          </Link>
+          <ButtonLink to={`/coach/athletes/${athleteId}/diets/new`}>Criar dieta</ButtonLink>
         </div>
       ) : (
         <>
@@ -330,11 +328,8 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
                 </p>
               )}
               <div className="diets__current-actions">
-                <Link
-                  to={`/coach/athletes/${athleteId}/diets/${current.id}/new-version`}
-                >
-                  <Button variant="ghost">Nova versão (não sobrescreve)</Button>
-                </Link>
+                <ButtonLink
+                  to={`/coach/athletes/${athleteId}/diets/${current.id}/new-version`} variant="ghost">Nova versão (não sobrescreve)</ButtonLink>
                 {nextTransition ? (
                   <Button onClick={() => setPendingTransition(nextTransition)}>
                     {TRANSITION_ACTION[nextTransition]}

@@ -5,6 +5,7 @@ import { COACH_NAV } from "@/lib/coach-nav";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { GOAL_LABEL, useAthletes, Athlete, AthleteStatus } from "@/lib/athletes";
 import "./AthleteList.css";
@@ -45,9 +46,7 @@ export function AthleteListPage() {
       <div className="athlete-list">
         <div className="athlete-list__header">
           <h1 className="athlete-list__title">Atletas</h1>
-          <Link to="/coach/athletes/new" className="athlete-list__new">
-            <Button>Novo atleta</Button>
-          </Link>
+          <ButtonLink to="/coach/athletes/new" className="athlete-list__new">Novo atleta</ButtonLink>
         </div>
 
         <div className="athlete-list__toolbar">

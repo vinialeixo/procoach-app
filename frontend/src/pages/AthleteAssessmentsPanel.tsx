@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import {
   CartesianGrid,
   Line,
@@ -10,7 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import { DataTable, Column } from "@/components/ui/DataTable";
-import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Assessment, useAssessments } from "@/lib/assessments";
 import "./AthleteAssessments.css";
 
@@ -245,12 +244,9 @@ export function AthleteAssessmentsPanel({
       <div className="assessments__header">
         <h2 className="assessments__title">Avaliações físicas</h2>
         {allowCreate && (
-          <Link
+          <ButtonLink
             to={`/coach/athletes/${athleteId}/assessments/new`}
-            className="assessments__new"
-          >
-            <Button>Nova avaliação</Button>
-          </Link>
+            className="assessments__new">Nova avaliação</ButtonLink>
         )}
       </div>
 
