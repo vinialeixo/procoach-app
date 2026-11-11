@@ -8,6 +8,7 @@ import { Field } from "@/components/ui/Field";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextareaField } from "@/components/ui/TextareaField";
 import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useAthlete } from "@/lib/athletes";
 import {
@@ -173,9 +174,7 @@ export function DietEditorPage() {
         ) : loadFailed ? (
           <div className="diet-editor__blocked" role="alert">
             <p>Não foi possível carregar os dados. Tente novamente.</p>
-            <Link to={`/coach/athletes/${athleteId}?tab=dietas`}>
-              <Button variant="ghost">Voltar para a ficha</Button>
-            </Link>
+            <ButtonLink to={`/coach/athletes/${athleteId}?tab=dietas`} variant="ghost">Voltar para a ficha</ButtonLink>
           </div>
         ) : blockedByExistingChain ? (
           <div className="diet-editor__blocked" role="status">
@@ -188,19 +187,14 @@ export function DietEditorPage() {
               versão a partir da atual.
             </p>
             {current && (
-              <Link
-                to={`/coach/athletes/${athleteId}/diets/${current.id}/new-version`}
-              >
-                <Button variant="ghost">Nova versão a partir da v{current.version}</Button>
-              </Link>
+              <ButtonLink
+                to={`/coach/athletes/${athleteId}/diets/${current.id}/new-version`} variant="ghost">Nova versão a partir da v{current.version}</ButtonLink>
             )}
           </div>
         ) : versionNotFound ? (
           <div className="diet-editor__blocked" role="alert">
             <p>Versão não encontrada para este atleta. O link pode estar desatualizado.</p>
-            <Link to={`/coach/athletes/${athleteId}?tab=dietas`}>
-              <Button variant="ghost">Voltar para a ficha</Button>
-            </Link>
+            <ButtonLink to={`/coach/athletes/${athleteId}?tab=dietas`} variant="ghost">Voltar para a ficha</ButtonLink>
           </div>
         ) : staleVersion ? (
           <div className="diet-editor__blocked" role="alert">
@@ -211,11 +205,8 @@ export function DietEditorPage() {
               partir da versão atual.
             </p>
             {current && (
-              <Link
-                to={`/coach/athletes/${athleteId}/diets/${current.id}/new-version`}
-              >
-                <Button variant="ghost">Criar a partir da v{current.version}</Button>
-              </Link>
+              <ButtonLink
+                to={`/coach/athletes/${athleteId}/diets/${current.id}/new-version`} variant="ghost">Criar a partir da v{current.version}</ButtonLink>
             )}
           </div>
         ) : (
@@ -352,14 +343,9 @@ export function DietEditorPage() {
             )}
 
             <div className="athlete-form__actions">
-              <Link
+              <ButtonLink
                 to={`/coach/athletes/${athleteId}?tab=dietas`}
-                className="athlete-form__cancel"
-              >
-                <Button type="button" variant="ghost">
-                  Cancelar
-                </Button>
-              </Link>
+                className="athlete-form__cancel" variant="ghost">Cancelar</ButtonLink>
               <Button type="submit" loading={saving}>
                 {submitLabel}
               </Button>
