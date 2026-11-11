@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AthleteNotification,
@@ -49,6 +49,8 @@ function NotificationItem({
 
 export function AthleteNotifications({ athleteId }: { athleteId: string | null }) {
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const query = useAthleteNotifications(athleteId ?? "");
   const markRead = useMarkNotificationRead(athleteId ?? "");
   const markAllRead = useMarkAllNotificationsRead(athleteId ?? "");
@@ -56,11 +58,32 @@ export function AthleteNotifications({ athleteId }: { athleteId: string | null }
   const unreadCount = notifications.reduce((count, notification) => count + Number(!notification.read), 0);
   const queryStatus = errorStatus(query.error);
 
+  // Fecha com Esc (devolvendo o foco ao sino) e com clique fora do painel.
+  useEffect(() => {
+    if (!isOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+    function onPointerDown(event: MouseEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("mousedown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("mousedown", onPointerDown);
+    };
+  }, [isOpen]);
+
   if (!athleteId) return null;
 
   return (
-    <div className="athlete-notifications">
+    <div className="athlete-notifications" ref={containerRef}>
       <button
+        ref={triggerRef}
         className="athlete-notifications__trigger"
         type="button"
         aria-expanded={isOpen}
@@ -104,7 +127,7 @@ export function AthleteNotifications({ athleteId }: { athleteId: string | null }
                     key={notification.id}
                     notification={notification}
                     onMarkRead={(id) => markRead.mutate(id)}
-                    isMarkingRead={markRead.isPending}
+                    isMarkingRead={markRead.isPending && markRead.variables === notification.id}
                   />
                 ))}
               </ul>}

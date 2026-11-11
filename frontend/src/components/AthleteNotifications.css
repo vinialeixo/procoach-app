@@ -6,7 +6,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 0.5rem);
@@ -23,8 +23,8 @@
   padding: 0 0.25rem;
   place-items: center;
   border-radius: 999px;
-  background: var(--color-danger, #b42318);
-  color: #fff;
+  background: var(--color-danger);
+  color: var(--color-surface);
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -74,7 +74,7 @@
 }
 
 .athlete-notifications__item--unread {
-  border-left: 3px solid var(--color-primary, #2457c5);
+  border-left: 3px solid var(--color-primary);
 }
 
 .athlete-notifications__item time {
@@ -87,7 +87,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--color-primary, #2457c5);
+  color: var(--color-primary);
   font: inherit;
   font-size: 0.875rem;
   text-decoration: underline;
@@ -97,7 +97,7 @@
 .athlete-notifications__settings {
   display: inline-block;
   margin-top: 0.9rem;
-  color: var(--color-primary, #2457c5);
+  color: var(--color-primary);
   font-size: 0.875rem;
   font-weight: 500;
 }
@@ -105,6 +105,20 @@
 .athlete-notifications__trigger:focus-visible,
 .athlete-notifications__item-action:focus-visible,
 .athlete-notifications__settings:focus-visible {
-  outline: 2px solid var(--color-primary, #2457c5);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+.athlete-notifications__item-action {
+  min-height: 44px;
+}
+
+@media (max-width: 640px) {
+  .athlete-notifications__panel {
+    position: fixed;
+    top: 4rem;
+    right: 1rem;
+    left: 1rem;
+    width: auto;
+  }
 }

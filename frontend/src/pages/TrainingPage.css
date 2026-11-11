@@ -166,7 +166,7 @@
 }
 
 .training-page__compare-session--added {
-  border-left-color: var(--color-success, #2f8f5b);
+  border-left-color: var(--color-success);
 }
 
 .training-page__compare-session--removed {
@@ -200,8 +200,8 @@
 }
 
 .training-page__compare-badge--added {
-  border-color: var(--color-success, #2f8f5b);
-  color: var(--color-success, #2f8f5b);
+  border-color: var(--color-success);
+  color: var(--color-success);
 }
 
 .training-page__compare-badge--removed {
@@ -393,7 +393,7 @@
 
 .training-page__exercise--selected {
   border-color: var(--color-primary);
-  background: #f7f9fb;
+  background: var(--color-bg);
 }
 
 .training-page__exercise-select {

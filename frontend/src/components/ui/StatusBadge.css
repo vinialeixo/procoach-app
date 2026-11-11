@@ -10,13 +10,13 @@
 
 .pc-badge--success {
   background: var(--color-success);
-  color: #ffffff;
+  color: var(--color-surface);
 }
 
 .pc-badge--muted {
   background: var(--color-accent-soft);
-  color: var(--color-accent);
-  border-color: var(--color-accent);
+  color: var(--color-accent-ink);
+  border-color: var(--color-accent-ink);
 }
 
 .pc-badge--neutral {

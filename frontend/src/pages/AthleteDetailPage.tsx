@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AppShell } from "@/layouts/AppShell";
+import { COACH_NAV } from "@/lib/coach-nav";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { SelectField } from "@/components/ui/SelectField";
@@ -30,11 +31,11 @@ const statusSchema = z.object({
 });
 type StatusForm = z.infer<typeof statusSchema>;
 
-const TABS: { id: string; label: string; hint?: string }[] = [
+const TABS: { id: string; label: string }[] = [
   { id: "avaliacoes", label: "Avaliações" }, // T-027 — conteúdo real
   { id: "dietas", label: "Dietas" }, // T-034 — conteúdo real
-  { id: "treinos", label: "Treinos", hint: "T-040" },
-  { id: "checkins", label: "Check-ins", hint: "M2-021" },
+  { id: "treinos", label: "Treinos" },
+  { id: "checkins", label: "Check-ins" },
 ];
 
 export function AthleteDetailPage() {
@@ -77,6 +78,12 @@ export function AthleteDetailPage() {
     formState: { errors },
   } = useForm<StatusForm>({ resolver: zodResolver(statusSchema) });
 
+  // Ao fechar sem salvar, descarta o que foi digitado e o erro anterior.
+  function closeStatusModal() {
+    setStatusModalOpen(false);
+    reset();
+  }
+
   async function onChangeStatus(values: StatusForm) {
     try {
       await changeStatus.mutateAsync(values);
@@ -91,7 +98,7 @@ export function AthleteDetailPage() {
 
   if (isError) {
     return (
-      <AppShell navItems={[{ label: "Atletas", href: "/coach/athletes" }]}>
+      <AppShell navItems={COACH_NAV}>
         <p className="athlete-detail__error" role="alert">
           Não foi possível carregar o atleta.
         </p>
@@ -101,14 +108,14 @@ export function AthleteDetailPage() {
 
   if (isLoading || !athlete) {
     return (
-      <AppShell navItems={[{ label: "Atletas", href: "/coach/athletes" }]}>
+      <AppShell navItems={COACH_NAV}>
         <p className="athlete-detail__loading">Carregando ficha…</p>
       </AppShell>
     );
   }
 
   return (
-    <AppShell navItems={[{ label: "Atletas", href: "/coach/athletes" }]}>
+    <AppShell navItems={COACH_NAV}>
       <div className="athlete-detail">
         <Link to="/coach/athletes" className="athlete-detail__back">
           &larr; Voltar para a listagem
@@ -157,36 +164,60 @@ export function AthleteDetailPage() {
           <div className="athlete-detail__goal"><dt>Objetivo</dt><dd>{GOAL_LABEL[athlete.goal]}</dd></div>
         </dl>
 
-        <nav className="athlete-detail__tabs" aria-label="Seções do atleta">
+        <div
+          className="athlete-detail__tabs"
+          role="tablist"
+          aria-label="Seções do atleta"
+        >
           {TABS.map((tab) => (
             <button
               key={tab.id}
+              type="button"
+              role="tab"
+              id={`tab-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              aria-controls="athlete-detail-panel"
+              tabIndex={activeTab === tab.id ? 0 : -1}
               className={
                 "athlete-detail__tab" +
                 (activeTab === tab.id ? " athlete-detail__tab--active" : "")
               }
               onClick={() => selectTab(tab.id)}
+              onKeyDown={(event) => {
+                const step =
+                  event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+                if (!step) return;
+                event.preventDefault();
+                const index = TABS.findIndex((t) => t.id === activeTab);
+                const next = TABS[(index + step + TABS.length) % TABS.length];
+                selectTab(next.id);
+                document.getElementById(`tab-${next.id}`)?.focus();
+              }}
             >
               {tab.label}
             </button>
           ))}
-        </nav>
+        </div>
 
-        <section className="athlete-detail__panel">
+        <section
+          className="athlete-detail__panel"
+          role="tabpanel"
+          id="athlete-detail-panel"
+          aria-labelledby={`tab-${activeTab}`}
+        >
           {activeTab === "avaliacoes" ? (
             <AthleteAssessmentsPanel athleteId={athlete.id} />
           ) : activeTab === "dietas" ? (
             <AthleteDietsPanel athleteId={athlete.id} />
+          ) : activeTab === "treinos" ? (
+            <p className="athlete-detail__placeholder">
+              Monte e acompanhe os treinos deste atleta em{" "}
+              <Link to="/coach/training">Treinos e biblioteca</Link>.
+            </p>
           ) : (
-            TABS.filter((tab) => tab.hint).map(
-              (tab) =>
-                activeTab === tab.id && (
-                  <p key={tab.id} className="athlete-detail__placeholder">
-                    A seção <strong>{tab.label}</strong> será implementada na
-                    task {tab.hint}.
-                  </p>
-                )
-            )
+            <p className="athlete-detail__placeholder">
+              Os check-ins do atleta estarão disponíveis em breve.
+            </p>
           )}
         </section>
       </div>
@@ -201,7 +232,7 @@ export function AthleteDetailPage() {
       <Modal
         open={statusModalOpen}
         title="Alterar status do atleta"
-        onClose={() => setStatusModalOpen(false)}
+        onClose={closeStatusModal}
       >
         <form onSubmit={handleSubmit(onChangeStatus)} noValidate>
           <SelectField
@@ -229,7 +260,7 @@ export function AthleteDetailPage() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setStatusModalOpen(false)}
+              onClick={closeStatusModal}
             >
               Cancelar
             </Button>

@@ -58,7 +58,7 @@ export function RegisterPage() {
     <AuthLayout>
       <h1 className="register-page__title">Criar conta</h1>
       <p className="register-page__subtitle">
-        Cadastro de coach. Em seguida você ativa a verificação em duas etapas.
+        Crie sua conta de coach para começar a gerenciar seus atletas.
       </p>
 
       <form

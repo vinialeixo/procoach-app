@@ -20,7 +20,7 @@
 
 .pc-button--primary {
   background: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-surface);
 }
 
 .pc-button--primary:hover:not(:disabled) {
