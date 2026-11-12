@@ -12,10 +12,15 @@ import com.fitness.procoach.athlete.domain.Name;
 import com.fitness.procoach.athlete.domain.Sex;
 import com.fitness.procoach.athlete.domain.Weight;
 import com.fitness.procoach.coach.application.CoachApplicationService;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -23,12 +28,13 @@ import org.springframework.transaction.annotation.Transactional;
  * de persistência. Framework-agnostic: registrado como bean pela configuração
  * da camada de infraestrutura.
  */
-public class AthleteApplicationService {
+public class AthleteApplicationService implements ApplicationContextAware {
 
 	private final AthleteRepository repository;
 	private final CoachApplicationService coachService;
 	private final AuditService auditService;
 	private final AthleteAccessInfoProvider accessInfo;
+	private ApplicationContext applicationContext;
 
 	public AthleteApplicationService(AthleteRepository repository, CoachApplicationService coachService,
 			AuditService auditService, AthleteAccessInfoProvider accessInfo) {
@@ -36,6 +42,58 @@ public class AthleteApplicationService {
 		this.repository = repository;
 		this.coachService = coachService;
 		this.accessInfo = accessInfo;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.applicationContext = applicationContext;
+	}
+
+	// Dynamic lookup helpers using reflection to avoid compile-time module dependencies (T-020/Modulith)
+	private Object getTrainingQueryService() {
+		return applicationContext.getBean("trainingQueryService");
+	}
+
+	private Object getDietApplicationService() {
+		return applicationContext.getBean("dietApplicationService");
+	}
+
+	private Object getAssessmentApplicationService() {
+		return applicationContext.getBean("assessmentApplicationService");
+	}
+
+	private static Object invokeMethod(Object target, String methodName, Object... args) {
+		try {
+			Method method = target.getClass().getMethod(methodName, getParameterTypes(args));
+			return method.invoke(target, args);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("Failed to invoke " + methodName, e);
+		}
+	}
+
+	private static Class<?>[] getParameterTypes(Object... args) {
+		Class<?>[] types = new Class<?>[args.length];
+		for (int i = 0; i < args.length; i++) {
+			types[i] = args[i] != null ? args[i].getClass() : Object.class;
+		}
+		return types;
+	}
+
+	private static boolean getBooleanField(Object target, String fieldName) {
+		try {
+			java.lang.reflect.Field field = target.getClass().getField(fieldName);
+			return field.getBoolean(target);
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("Failed to read field " + fieldName, e);
+		}
+	}
+
+	private static Object getEnumConstant(Class<?> enumClass, String constantName) {
+		try {
+			return Enum.valueOf((Class<Enum>) enumClass, constantName);
+		} catch (IllegalArgumentException e) {
+			throw new IllegalStateException("Enum constant not found: " + constantName, e);
+		}
 	}
 
 	/**
@@ -105,6 +163,72 @@ public class AthleteApplicationService {
 		return auditService.entriesByAthlete(athleteId);
 	}
 
+	/**
+	 * Resumo dos protocolos do atleta (T-020/US-004): TrainingPlans, Diets e Assessments.
+	 * Indica quais estão ativos (TrainingPlan: ACTIVE; Diet: APPROVED; Assessment: mais recente).
+	 * Usa reflexão para evitar dependências de compilação entre módulos (Spring Modulith).
+	 */
+	@Transactional(readOnly = true)
+	public ProtocolSummary protocolSummary(UUID userId, UUID athleteId) {
+		UUID coachId = coachService.requireCoachIdByUserId(userId).value();
+		requireOwned(athleteId, coachId);
+
+		// TrainingPlans via reflection
+		Object trainingQueryService = getTrainingQueryService();
+		List<?> trainingPlans = (List<?>) invokeMethod(trainingQueryService, "findTrainingPlansByAthlete", athleteId);
+		List<ProtocolSummary.TrainingPlanSummary> tpSummaries = new ArrayList<>();
+		for (Object tp : trainingPlans) {
+			boolean deleted = (Boolean) invokeMethod(tp, "isDeleted");
+			if (deleted) continue;
+			UUID id = (UUID) invokeMethod(tp, "getId");
+			String name = (String) invokeMethod(tp, "getName");
+			Object status = invokeMethod(tp, "getStatus");
+			String statusName = (String) invokeMethod(status, "name");
+			boolean active = status == getEnumConstant(status.getClass(), "ACTIVE");
+			UUID periodizationId = (UUID) invokeMethod(tp, "getPeriodizationId");
+			int version = (Integer) invokeMethod(tp, "getVersion");
+			tpSummaries.add(new ProtocolSummary.TrainingPlanSummary(id, name, statusName, active, periodizationId, version));
+		}
+
+		// Diets via reflection
+		Object dietApplicationService = getDietApplicationService();
+		List<?> diets = (List<?>) invokeMethod(dietApplicationService, "historyByAthlete", athleteId);
+		List<ProtocolSummary.DietSummary> dietSummaries = new ArrayList<>();
+		for (Object d : diets) {
+			boolean deleted = (Boolean) invokeMethod(d, "isDeleted");
+			if (deleted) continue;
+			Object idObj = invokeMethod(d, "id");
+			UUID id = (UUID) invokeMethod(idObj, "value");
+			Object objective = invokeMethod(d, "objective");
+			String objectiveName = (String) invokeMethod(objective, "name");
+			Object status = invokeMethod(d, "status");
+			String statusName = (String) invokeMethod(status, "name");
+			boolean active = status == getEnumConstant(status.getClass(), "APPROVED");
+			int version = (Integer) invokeMethod(d, "version");
+			dietSummaries.add(new ProtocolSummary.DietSummary(id, objectiveName, statusName, active, version));
+		}
+
+		// Assessments via reflection
+		Object assessmentApplicationService = getAssessmentApplicationService();
+		List<?> assessments = (List<?>) invokeMethod(assessmentApplicationService, "history", athleteId);
+		List<ProtocolSummary.AssessmentSummary> assessmentSummaries = new ArrayList<>();
+		for (Object a : assessments) {
+			Object idObj = invokeMethod(a, "id");
+			UUID id = (UUID) invokeMethod(idObj, "value");
+			Object dateObj = invokeMethod(a, "assessmentDate");
+			String dateStr = dateObj.toString();
+			assessmentSummaries.add(new ProtocolSummary.AssessmentSummary(id, dateStr, false));
+		}
+		// Marcar a mais recente
+		if (!assessmentSummaries.isEmpty()) {
+			int lastIdx = assessmentSummaries.size() - 1;
+			ProtocolSummary.AssessmentSummary last = assessmentSummaries.get(lastIdx);
+			assessmentSummaries.set(lastIdx, new ProtocolSummary.AssessmentSummary(last.id(), last.assessmentDate(), true));
+		}
+
+		return new ProtocolSummary(athleteId, tpSummaries, dietSummaries, assessmentSummaries);
+	}
+
 	/** Ficha de um atleta da carteira; 404 se inexistente, removido ou de outro coach. */
 	public Athlete get(UUID userId, UUID athleteId) {
 		UUID coachId = coachService.requireCoachIdByUserId(userId).value();
@@ -143,5 +267,26 @@ public class AthleteApplicationService {
 	}
 
 	public record RemoveAthleteCommand(UUID userId, UUID athleteId) {
+	}
+
+	/**
+	 * Resumo dos protocolos de um atleta (T-020/US-004).
+	 * Agrega TrainingPlans, Diets e Assessments com indicação de status ativo.
+	 */
+	public record ProtocolSummary(
+			UUID athleteId,
+			List<TrainingPlanSummary> trainingPlans,
+			List<DietSummary> diets,
+			List<AssessmentSummary> assessments
+	) {
+		public record TrainingPlanSummary(UUID id, String name, String status, boolean active,
+				UUID periodizationId, int version) {
+		}
+
+		public record DietSummary(UUID id, String objective, String status, boolean active, int version) {
+		}
+
+		public record AssessmentSummary(UUID id, String assessmentDate, boolean latest) {
+		}
 	}
 }

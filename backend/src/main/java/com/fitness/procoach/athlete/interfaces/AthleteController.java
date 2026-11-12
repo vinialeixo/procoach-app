@@ -2,9 +2,11 @@ package com.fitness.procoach.athlete.interfaces;
 
 import com.fitness.procoach.athlete.application.AthleteAccessInfoProvider;
 import com.fitness.procoach.athlete.application.AthleteApplicationService;
+import com.fitness.procoach.athlete.application.AthleteApplicationService.ProtocolSummary;
 import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.athlete.domain.Athlete;
 import com.fitness.procoach.athlete.domain.AthleteStatus;
+import com.fitness.procoach.athlete.interfaces.ProtocolSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -105,6 +107,33 @@ public class AthleteController {
 	@GetMapping("/{id}/history")
 	public List<AuditService.AuditEntry> history(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
 		return service.history(UUID.fromString(jwt.getSubject()), id);
+	}
+
+	@Operation(summary = "Listar protocolos do atleta",
+			description = "Retorna resumo de todos os protocolos (TrainingPlans, Diets, Assessments) do atleta, "
+					+ "indicando quais estão ativos. TrainingPlan ativo = status ACTIVE; Diet ativa = status APPROVED; "
+					+ "Assessment mais recente marcada como latest.")
+	@PreAuthorize("hasRole('COACH')")
+	@GetMapping("/{id}/protocols")
+	public ProtocolSummaryResponse protocols(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+		ProtocolSummary summary = service.protocolSummary(UUID.fromString(jwt.getSubject()), id);
+		return toResponse(summary);
+	}
+
+	private ProtocolSummaryResponse toResponse(ProtocolSummary summary) {
+		List<ProtocolSummaryResponse.TrainingPlanSummary> tpSummaries = summary.trainingPlans().stream()
+				.map(tp -> new ProtocolSummaryResponse.TrainingPlanSummary(
+						tp.id(), tp.name(), tp.status(), tp.active(), tp.periodizationId(), tp.version()))
+				.toList();
+		List<ProtocolSummaryResponse.DietSummary> dietSummaries = summary.diets().stream()
+				.map(d -> new ProtocolSummaryResponse.DietSummary(
+						d.id(), d.objective(), d.status(), d.active(), d.version()))
+				.toList();
+		List<ProtocolSummaryResponse.AssessmentSummary> assessmentSummaries = summary.assessments().stream()
+				.map(a -> new ProtocolSummaryResponse.AssessmentSummary(
+						a.id(), a.assessmentDate(), a.latest()))
+				.toList();
+		return new ProtocolSummaryResponse(summary.athleteId(), tpSummaries, dietSummaries, assessmentSummaries);
 	}
 
 	@Operation(summary = "Alterar status do atleta",
