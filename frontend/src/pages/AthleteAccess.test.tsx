@@ -260,3 +260,186 @@ describe("Athlete Access & Invites (Issue #98 / T-082)", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("T-098: UX do link de convite após recarregar (sem cache)", () => {
+  it("shows guidance when pending invite exists but no cached link (page reload)", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(apiClient.get).mockImplementation((url: string) => {
+      if (url === "/athletes/ath-no-cache") {
+        return Promise.resolve({
+          data: {
+            id: "ath-no-cache",
+            name: "João Silva",
+            email: "joao@exemplo.com",
+            sex: "MALE",
+            birthDate: "1990-01-01",
+            height: 180,
+            weight: 80,
+            goal: "HYPERTROPHY",
+            status: "ACTIVE",
+            createdAt: "2026-11-10T00:00:00Z",
+            hasCredential: false,
+            pendingInvite: {
+              id: "inv-no-cache",
+              email: "joao@exemplo.com",
+              expiresAt: "2026-11-18T10:00:00Z",
+            },
+          },
+        });
+      }
+      if (url === "/athletes/ath-no-cache/invites") {
+        return Promise.resolve({
+          data: [
+            {
+              id: "inv-no-cache",
+              athleteId: "ath-no-cache",
+              email: "joao@exemplo.com",
+              expiresAt: "2026-11-18T10:00:00Z",
+              createdAt: "2026-11-11T10:00:00Z",
+              status: "PENDING",
+            },
+          ],
+        });
+      }
+      if (url.includes("/assessments")) {
+        return Promise.resolve({ data: [] });
+      }
+      if (url.includes("/diets")) {
+        return Promise.resolve({ data: [] });
+      }
+      return Promise.reject(new Error(`Not found: ${url}`));
+    });
+
+    // NÃO chama rememberInviteLink — simula recarregar a página (sessionStorage limpo)
+
+    render(
+      <QueryClientProvider client={createClient()}>
+        <MemoryRouter initialEntries={["/coach/athletes/ath-no-cache"]}>
+          <Routes>
+            <Route path="/coach/athletes/:id" element={<AthleteDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("João Silva")).toBeInTheDocument();
+    });
+
+    // Deve exibir a orientação de que o link não está mais disponível
+    await waitFor(() => {
+      expect(screen.getByText(/Link do convite não disponível/)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/O link de convite só é exibido uma vez/)).toBeInTheDocument();
+    expect(screen.getByText(/Após recarregar a página ou trocar de sessão/)).toBeInTheDocument();
+    expect(screen.getByText(/revogará automaticamente o convite pendente atual/)).toBeInTheDocument();
+
+    // Botão "Copiar link" NÃO deve aparecer (sem cache)
+    expect(screen.queryByRole("button", { name: "Copiar link" })).not.toBeInTheDocument();
+    // Botão "Revogar convite" deve aparecer
+    expect(screen.getByRole("button", { name: "Revogar convite" })).toBeInTheDocument();
+
+    // Clicar em "Gerar novo convite" abre o modal de confirmação de reemissão
+    const reissueButton = screen.getByRole("button", { name: "Gerar novo convite" });
+    await user.click(reissueButton);
+
+    // Deve mostrar o modal de confirmação (StateMessage kind="warning")
+    await waitFor(() => {
+      expect(screen.getByText(/Gerar novo convite\?/)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/revogará o convite pendente atual/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sim, gerar novo convite" })).toBeInTheDocument();
+
+    // Cancelar fecha o modal de confirmação
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    await waitFor(() => {
+      expect(screen.queryByText(/Gerar novo convite\?/)).not.toBeInTheDocument();
+    });
+  });
+
+  it("proceeds with reissue when confirmed (opens InviteAthleteModal)", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(apiClient.get).mockImplementation((url: string) => {
+      if (url === "/athletes/ath-reissue") {
+        return Promise.resolve({
+          data: {
+            id: "ath-reissue",
+            name: "Maria Santos",
+            email: "maria@exemplo.com",
+            sex: "FEMALE",
+            birthDate: "1995-05-05",
+            height: 165,
+            weight: 58,
+            goal: "CUTTING",
+            status: "ACTIVE",
+            createdAt: "2026-11-10T00:00:00Z",
+            hasCredential: false,
+            pendingInvite: {
+              id: "inv-reissue",
+              email: "maria@exemplo.com",
+              expiresAt: "2026-11-18T10:00:00Z",
+            },
+          },
+        });
+      }
+      if (url === "/athletes/ath-reissue/invites") {
+        return Promise.resolve({
+          data: [
+            {
+              id: "inv-reissue",
+              athleteId: "ath-reissue",
+              email: "maria@exemplo.com",
+              expiresAt: "2026-11-18T10:00:00Z",
+              createdAt: "2026-11-11T10:00:00Z",
+              status: "PENDING",
+            },
+          ],
+        });
+      }
+      if (url.includes("/assessments")) {
+        return Promise.resolve({ data: [] });
+      }
+      if (url.includes("/diets")) {
+        return Promise.resolve({ data: [] });
+      }
+      return Promise.reject(new Error(`Not found: ${url}`));
+    });
+
+    render(
+      <QueryClientProvider client={createClient()}>
+        <MemoryRouter initialEntries={["/coach/athletes/ath-reissue"]}>
+          <Routes>
+            <Route path="/coach/athletes/:id" element={<AthleteDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Maria Santos")).toBeInTheDocument();
+    });
+
+    // Exibe orientação
+    await waitFor(() => {
+      expect(screen.getByText(/Link do convite não disponível/)).toBeInTheDocument();
+    });
+
+    // Clica em "Gerar novo convite" -> abre confirmação
+    await user.click(screen.getByRole("button", { name: "Gerar novo convite" }));
+    await waitFor(() => {
+      expect(screen.getByText(/Gerar novo convite\?/)).toBeInTheDocument();
+    });
+
+    // Confirma a reemissão
+    await user.click(screen.getByRole("button", { name: "Sim, gerar novo convite" }));
+
+    // Deve abrir o modal InviteAthleteModal
+    await waitFor(() => {
+      expect(screen.getByText(/Convidar Maria Santos para o app/)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/O atleta usa este e-mail para entrar/)).toBeInTheDocument();
+  });
+});

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { type Athlete } from "@/lib/athletes";
 import { AthleteAccessBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
+import { StateMessage } from "@/components/ui/StateMessage";
 import {
   getCachedInvitePath,
   inviteUrl,
@@ -21,6 +22,7 @@ export function AthleteInvitesSection({ athlete, onOpenInviteModal }: Props) {
   const revokeMutation = useRevokeAthleteInvite(athlete.id);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [revokeError, setRevokeError] = useState<string | null>(null);
+  const [showReissueConfirm, setShowReissueConfirm] = useState(false);
 
   // A listagem do backend (T-077) já inclui os convites pendentes com status
   // PENDING; sem fallback defensivo — o contrato é a fonte de verdade.
@@ -29,6 +31,7 @@ export function AthleteInvitesSection({ athlete, onOpenInviteModal }: Props) {
   );
 
   const cachedPath = getCachedInvitePath(athlete.id);
+  const hasPendingInviteButNoLink = pendingInvites.length > 0 && !cachedPath;
 
   async function handleCopy() {
     // O token nunca volta na listagem; o link só existe no momento da criação
@@ -53,6 +56,19 @@ export function AthleteInvitesSection({ athlete, onOpenInviteModal }: Props) {
     } catch {
       setRevokeError("Não foi possível revogar o convite. Tente novamente.");
     }
+  }
+
+  function handleReissueConfirm() {
+    setShowReissueConfirm(true);
+  }
+
+  function handleReissueCancel() {
+    setShowReissueConfirm(false);
+  }
+
+  function handleReissueProceed() {
+    setShowReissueConfirm(false);
+    onOpenInviteModal();
   }
 
   function formatExpiration(iso: string) {
@@ -81,7 +97,11 @@ export function AthleteInvitesSection({ athlete, onOpenInviteModal }: Props) {
           <AthleteAccessBadge athlete={athlete} />
         </div>
         {!athlete.hasCredential && (
-          <Button type="button" variant="ghost" onClick={onOpenInviteModal}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={hasPendingInviteButNoLink ? handleReissueConfirm : onOpenInviteModal}
+          >
             {pendingInvites.length > 0 ? "Gerar novo convite" : "Convidar para o app"}
           </Button>
         )}
@@ -96,6 +116,22 @@ export function AthleteInvitesSection({ athlete, onOpenInviteModal }: Props) {
           <p>Carregando estado de convites…</p>
         ) : pendingInvites.length > 0 ? (
           <div className="athlete-invites__list">
+            {hasPendingInviteButNoLink && (
+              <StateMessage
+                kind="info"
+                title="Link do convite não disponível"
+                description={
+                  <>
+                    O link de convite só é exibido uma vez — na criação. Após recarregar a
+                    página ou trocar de sessão, o link não pode mais ser recuperado.
+                    <br />
+                    <br />
+                    Use <strong>Gerar novo convite</strong> para emitir um novo link.
+                    Isso revogará automaticamente o convite pendente atual.
+                  </>
+                }
+              />
+            )}
             {pendingInvites.map((inv) => {
               const canCopy = Boolean(cachedPath);
               return (
@@ -134,6 +170,33 @@ export function AthleteInvitesSection({ athlete, onOpenInviteModal }: Props) {
               <p className="athlete-invites__error" role="alert">
                 {revokeError}
               </p>
+            )}
+
+            {/* Confirmação de reemissão (reissue) em um passo — T-098 */}
+            {showReissueConfirm && (
+              <StateMessage
+                kind="warning"
+                title="Gerar novo convite?"
+                description={
+                  <>
+                    Isso revogará o convite pendente atual e criará um novo link.
+                    O atleta deverá usar o novo link — o anterior deixará de funcionar.
+                    <br />
+                    <br />
+                    Tem certeza que deseja prosseguir?
+                  </>
+                }
+                actions={
+                  <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-3)" }}>
+                    <Button type="button" variant="ghost" onClick={handleReissueCancel}>
+                      Cancelar
+                    </Button>
+                    <Button type="button" onClick={handleReissueProceed}>
+                      Sim, gerar novo convite
+                    </Button>
+                  </div>
+                }
+              />
             )}
           </div>
         ) : (

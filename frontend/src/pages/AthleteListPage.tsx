@@ -74,11 +74,9 @@ export function AthleteListPage() {
         </div>
 
         {isError ? (
-          <StateMessage variant="error" onRetry={() => refetch()}>
-            Não foi possível carregar os atletas.
-          </StateMessage>
+          <StateMessage kind="error" description="Não foi possível carregar os atletas." onRetry={() => refetch()} />
         ) : isLoading ? (
-          <StateMessage variant="loading">Carregando atletas…</StateMessage>
+          <StateMessage kind="info" description="Carregando atletas…" />
         ) : (
           <DataTable
             columns={columns}

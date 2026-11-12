@@ -2,25 +2,36 @@ import { ReactNode } from "react";
 import { Button } from "./Button";
 import "./StateMessage.css";
 
+type StateMessageKind = "info" | "warning" | "error" | "success";
+
 type StateMessageProps = {
-  variant: "loading" | "empty" | "error";
-  children: ReactNode;
+  kind: StateMessageKind;
+  title?: string;
+  description?: ReactNode;
+  /** Ações customizadas (botões, etc.) — exibidas abaixo da descrição. */
+  actions?: ReactNode;
   /** Só no erro: mostra o botão "Tentar novamente". */
   onRetry?: () => void;
 };
 
-// Estados de tela padronizados (carregando / vazio / erro). Loading usa
-// role="status" e erro usa role="alert" para leitores de tela.
-export function StateMessage({ variant, children, onRetry }: StateMessageProps) {
+// Estados de tela padronizados (info / warning / error / success).
+// info/warning usam role="status", erro usa role="alert" para leitores de tela.
+export function StateMessage({
+  kind,
+  title,
+  description,
+  actions,
+  onRetry,
+}: StateMessageProps) {
+  const role = kind === "error" ? "alert" : "status";
+
   return (
-    <div
-      className={`pc-state pc-state--${variant}`}
-      role={variant === "error" ? "alert" : variant === "loading" ? "status" : undefined}
-      aria-busy={variant === "loading" || undefined}
-    >
-      <p>{children}</p>
-      {variant === "error" && onRetry && (
-        <Button type="button" variant="ghost" onClick={onRetry}>
+    <div className={`pc-state pc-state--${kind}`} role={role}>
+      {title && <strong className="pc-state__title">{title}</strong>}
+      {description && <p className="pc-state__description">{description}</p>}
+      {actions && <div className="pc-state__actions">{actions}</div>}
+      {kind === "error" && onRetry && (
+        <Button type="button" variant="ghost" onClick={onRetry} className="pc-state__retry">
           Tentar novamente
         </Button>
       )}
