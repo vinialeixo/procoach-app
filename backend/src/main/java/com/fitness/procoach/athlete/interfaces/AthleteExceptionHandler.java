@@ -1,6 +1,7 @@
 package com.fitness.procoach.athlete.interfaces;
 
 import com.fitness.procoach.athlete.application.AthleteNotFoundException;
+import com.fitness.procoach.athlete.application.EmailAlreadyRegisteredAsUserException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -50,6 +51,17 @@ public class AthleteExceptionHandler {
 		body.put("status", 404);
 		body.put("error", ex.getMessage());
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+	}
+
+	/** T-078: e-mail informado já pertence a um User — 409 com código acionável. */
+	@ExceptionHandler(EmailAlreadyRegisteredAsUserException.class)
+	public ResponseEntity<Map<String, Object>> handleEmailAlreadyRegistered(EmailAlreadyRegisteredAsUserException ex) {
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("timestamp", Instant.now());
+		body.put("status", 409);
+		body.put("code", EmailAlreadyRegisteredAsUserException.CODE);
+		body.put("error", ex.getMessage());
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
 	}
 
 	/** Transição inválida (ex.: trocar para o status atual) ou atleta removido. */

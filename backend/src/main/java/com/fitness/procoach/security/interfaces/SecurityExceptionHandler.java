@@ -25,7 +25,8 @@ import com.fitness.procoach.security.application.MfaSetupException;
  * Tradução das exceções de autenticação para HTTP (T-008), no mesmo formato de
  * erro dos demais módulos ({@code message} + {@code fields} quando aplicável).
  */
-@RestControllerAdvice(assignableTypes = { AuthController.class, AthleteInviteController.class })
+@RestControllerAdvice(assignableTypes = { AuthController.class, AthleteInviteController.class,
+		AthleteInviteAdminController.class })
 public class SecurityExceptionHandler {
 
 	@ExceptionHandler(InvalidCredentialsException.class)
@@ -51,6 +52,19 @@ public class SecurityExceptionHandler {
 	@ExceptionHandler({ EmailAlreadyRegisteredException.class, MfaSetupException.class,
 			AthleteAlreadyHasCredentialException.class })
 	public ResponseEntity<Map<String, Object>> conflict(RuntimeException ex) {
+		String code = null;
+		if (ex instanceof EmailAlreadyRegisteredException) {
+			code = EmailAlreadyRegisteredException.CODE;
+		}
+		else if (ex instanceof AthleteAlreadyHasCredentialException) {
+			code = AthleteAlreadyHasCredentialException.CODE;
+		}
+		return error(HttpStatus.CONFLICT, ex.getMessage(), code);
+	}
+
+	/** T-077: revogação de convite não pendente (aceito/revogado/expirado). */
+	@ExceptionHandler(IllegalStateException.class)
+	public ResponseEntity<Map<String, Object>> illegalState(IllegalStateException ex) {
 		return error(HttpStatus.CONFLICT, ex.getMessage());
 	}
 
@@ -76,7 +90,14 @@ public class SecurityExceptionHandler {
 	}
 
 	private ResponseEntity<Map<String, Object>> error(HttpStatus status, String message) {
+		return error(status, message, null);
+	}
+
+	private ResponseEntity<Map<String, Object>> error(HttpStatus status, String message, String code) {
 		Map<String, Object> body = new LinkedHashMap<>();
+		if (code != null) {
+			body.put("code", code);
+		}
 		body.put("message", message);
 		return ResponseEntity.status(status).body(body);
 	}

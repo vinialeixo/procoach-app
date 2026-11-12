@@ -16,4 +16,10 @@ public interface AthleteInviteRepository {
 
 	/** Convites ainda não usados nem revogados do atleta (podem estar expirados). */
 	List<AthleteInvite> findOpenByAthleteId(UUID athleteId);
+
+	/** Todos os convites do atleta (T-077: listagem para o coach). */
+	List<AthleteInvite> findAllByAthleteId(UUID athleteId);
+
+	/** Convite por id (T-077: revogação). */
+	Optional<AthleteInvite> findById(UUID id);
 }

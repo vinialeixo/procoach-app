@@ -43,6 +43,20 @@ public class JpaAthleteInviteRepository implements AthleteInviteRepository {
 				.toList();
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public List<AthleteInvite> findAllByAthleteId(UUID athleteId) {
+		return jpaRepository.findByAthleteId(athleteId).stream()
+				.map(JpaAthleteInviteRepository::toDomain)
+				.toList();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<AthleteInvite> findById(UUID id) {
+		return jpaRepository.findById(id).map(JpaAthleteInviteRepository::toDomain);
+	}
+
 	private static AthleteInviteJpaEntity toEntity(AthleteInvite invite) {
 		AthleteInviteJpaEntity entity = new AthleteInviteJpaEntity();
 		entity.setId(invite.getId());

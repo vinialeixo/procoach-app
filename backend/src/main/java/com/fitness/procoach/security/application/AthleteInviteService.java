@@ -15,6 +15,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,6 +98,79 @@ public class AthleteInviteService {
 				.orElseThrow(InvalidInviteException::new);
 		String name = athleteAccessService.profileOf(invite.getAthleteId()).name();
 		return new InvitePreview(name, invite.getEmail(), invite.getExpiresAt());
+	}
+
+	/** Status do convite para a listagem do coach (T-077) — sem expor token. */
+	public static String statusOf(AthleteInvite invite, Instant now) {
+		if (invite.getUsedAt() != null) {
+			return "ACCEPTED";
+		}
+		if (invite.getRevokedAt() != null) {
+			return "REVOKED";
+		}
+		if (!now.isBefore(invite.getExpiresAt())) {
+			return "EXPIRED";
+		}
+		return "PENDING";
+	}
+
+	/** Resumo do convite para o coach; o token nunca aparece (T-077). */
+	public record InviteSummary(UUID id, UUID athleteId, String email, Instant expiresAt, Instant createdAt,
+			String status) {
+	}
+
+	/**
+	 * Lista os convites do atleta (qualquer status). O coach só enxerga atletas
+	 * da própria carteira (404 caso contrário — anti-IDOR).
+	 */
+	@Transactional(readOnly = true)
+	public List<InviteSummary> listByAthlete(UUID coachUserId, UUID athleteId) {
+		UUID coachId = coachService.requireCoachIdByUserId(coachUserId).value();
+		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
+		Instant now = Instant.now();
+		return invites.findAllByAthleteId(athleteId).stream()
+				.map(i -> new InviteSummary(i.getId(), i.getAthleteId(), i.getEmail(), i.getExpiresAt(),
+						i.getCreatedAt(), statusOf(i, now)))
+				.toList();
+	}
+
+	/**
+	 * Revoga um convite pendente do atleta. Só o coach dono pode (anti-IDOR,
+	 * 404); convite inexistente, de outro atleta ou não pendente → 404/409.
+	 * Auditoria append-only: {@code ATHLETE_INVITE_REVOKED}.
+	 */
+	@Transactional
+	public InviteSummary revoke(UUID coachUserId, UUID athleteId, UUID inviteId) {
+		UUID coachId = coachService.requireCoachIdByUserId(coachUserId).value();
+		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
+		AthleteInvite invite = invites.findById(inviteId)
+				.filter(i -> i.getAthleteId().equals(athleteId))
+				.orElseThrow(InvalidInviteException::new);
+		Instant now = Instant.now();
+		if (invite.getUsedAt() != null) {
+			throw new IllegalStateException("Convite já aceito não pode ser revogado");
+		}
+		if (invite.getRevokedAt() != null) {
+			throw new IllegalStateException("Convite já revogado");
+		}
+		if (!now.isBefore(invite.getExpiresAt())) {
+			throw new IllegalStateException("Convite expirado não pode ser revogado");
+		}
+		invite.revoke(now);
+		invites.save(invite);
+		auditService.record("AthleteInvite", invite.getId(), athleteId, "ATHLETE_INVITE_REVOKED", coachUserId,
+				AuditData.of("email", invite.getEmail()));
+		return new InviteSummary(invite.getId(), invite.getAthleteId(), invite.getEmail(), invite.getExpiresAt(),
+				invite.getCreatedAt(), statusOf(invite, now));
+	}
+
+	/** Convite pendente (não usado, não revogado, dentro do prazo) do atleta, se houver. */
+	@Transactional(readOnly = true)
+	public Optional<AthleteInvite> findPendingByAthleteId(UUID athleteId) {
+		Instant now = Instant.now();
+		return invites.findOpenByAthleteId(athleteId).stream()
+				.filter(i -> i.isUsable(now))
+				.findFirst();
 	}
 
 	/**

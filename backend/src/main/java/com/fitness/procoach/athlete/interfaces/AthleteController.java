@@ -1,5 +1,6 @@
 package com.fitness.procoach.athlete.interfaces;
 
+import com.fitness.procoach.athlete.application.AthleteAccessInfoProvider;
 import com.fitness.procoach.athlete.application.AthleteApplicationService;
 import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.athlete.domain.Athlete;
@@ -35,9 +36,17 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class AthleteController {
 
 	private final AthleteApplicationService service;
+	private final AthleteAccessInfoProvider accessInfo;
 
-	public AthleteController(AthleteApplicationService service) {
+	public AthleteController(AthleteApplicationService service, AthleteAccessInfoProvider accessInfo) {
 		this.service = service;
+		this.accessInfo = accessInfo;
+	}
+
+	/** Estado de acesso do atleta (T-077): credencial + convite pendente. */
+	private AthleteResponse withAccessState(com.fitness.procoach.athlete.domain.Athlete athlete) {
+		return AthleteResponse.from(athlete, accessInfo.hasCredential(athlete.id().value()),
+				accessInfo.pendingInvite(athlete.id().value()).orElse(null));
 	}
 
 	/**
@@ -61,22 +70,23 @@ public class AthleteController {
 		// partir do usuário autenticado (subject do JWT) na camada de aplicação.
 		Athlete athlete = service.register(new AthleteApplicationService.RegisterAthleteCommand(
 				UUID.fromString(jwt.getSubject()), request.name(), request.sex(), request.birthDate(),
-				request.height(), request.weight(), request.goal()));
+				request.height(), request.weight(), request.goal(), request.email()));
 		URI location = ServletUriComponentsBuilder.fromCurrentRequest()
 				.path("/{id}")
 				.buildAndExpand(athlete.id().value())
 				.toUri();
-		return ResponseEntity.created(location).body(AthleteResponse.from(athlete));
+		return ResponseEntity.created(location).body(withAccessState(athlete));
 	}
 
 	@Operation(summary = "Listar atletas da carteira",
-			description = "Atletas não removidos do coach autenticado, com filtro opcional por status.")
+			description = "Atletas não removidos do coach autenticado, com filtro opcional por status. "
+					+ "Cada atleta traz o estado de acesso: hasCredential e pendingInvite (T-077).")
 	@PreAuthorize("hasRole('COACH')")
 	@GetMapping
 	public List<AthleteResponse> list(@AuthenticationPrincipal Jwt jwt,
 			@RequestParam(required = false) AthleteStatus status) {
 		return service.list(UUID.fromString(jwt.getSubject()), status).stream()
-				.map(AthleteResponse::from)
+				.map(this::withAccessState)
 				.toList();
 	}
 
@@ -85,7 +95,7 @@ public class AthleteController {
 	@PreAuthorize("hasRole('COACH')")
 	@GetMapping("/{id}")
 	public AthleteResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-		return AthleteResponse.from(service.get(UUID.fromString(jwt.getSubject()), id));
+		return withAccessState(service.get(UUID.fromString(jwt.getSubject()), id));
 	}
 
 	@Operation(summary = "Histórico de auditoria do atleta",
@@ -104,7 +114,7 @@ public class AthleteController {
 	@PostMapping("/{id}/status")
 	public AthleteResponse changeStatus(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id,
 			@Valid @RequestBody ChangeAthleteStatusRequest request) {
-		return AthleteResponse.from(service.changeStatus(new AthleteApplicationService.ChangeStatusCommand(
+		return withAccessState(service.changeStatus(new AthleteApplicationService.ChangeStatusCommand(
 				UUID.fromString(jwt.getSubject()), id, request.status(), request.reason())));
 	}
 
