@@ -687,8 +687,9 @@ export function useApplyCurrentExerciseVersion(
 }
 
 /**
- * T-074 — cria a nova versão do plano. O backend copia as sessões da versão de
- * origem e a nova versão nasce em DRAFT; a origem permanece intacta.
+ * T-074 / Issue #43 — cria a nova versão do plano. Por padrão duplica as sessões da versão
+ * de origem ou permite começar em branco (copySessions: false). A nova versão nasce em DRAFT
+ * e mantém previousVersionId apontando para a origem (histórico encadeado imutável).
  */
 export function useCreateTrainingPlanVersion(
   athleteId: string,
@@ -700,14 +701,16 @@ export function useCreateTrainingPlanVersion(
       planId,
       newName,
       newDescription,
+      copySessions = true,
     }: {
       planId: string;
       newName: string;
       newDescription: string;
+      copySessions?: boolean;
     }) => {
       const { data } = await apiClient.post<TrainingPlan>(
         `/api/training/plans/${planId}/versions`,
-        { newName, newDescription },
+        { newName, newDescription, copySessions },
         rootRequestConfig()
       );
       return data;

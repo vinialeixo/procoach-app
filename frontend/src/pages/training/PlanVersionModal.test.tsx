@@ -1,3 +1,4 @@
+import { FormEvent } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -64,6 +65,64 @@ describe("PlanVersionModal (Issue #39 / T-074)", () => {
 
     await user.click(screen.getByRole("button", { name: "Criar versão" }));
     expect(handleSubmit).toHaveBeenCalled();
+  });
+
+  it("apresenta opções de estratégia de criação com duplicação pré-selecionada (Issue #43)", () => {
+    render(
+      <PlanVersionModal
+        open={true}
+        selectedPlan={mockPlan}
+        sessionsCount={2}
+        isPending={false}
+        error={null}
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+      />
+    );
+
+    const duplicateRadio = screen.getByLabelText(
+      /Duplicar sessões e prescrições da versão atual \(Recomendado\)/
+    ) as HTMLInputElement;
+    const blankRadio = screen.getByLabelText(
+      /Começar em branco \(nova versão sem sessões copiadas\)/
+    ) as HTMLInputElement;
+
+    expect(duplicateRadio).toBeInTheDocument();
+    expect(duplicateRadio.checked).toBe(true);
+    expect(blankRadio).toBeInTheDocument();
+    expect(blankRadio.checked).toBe(false);
+  });
+
+  it("permite selecionar opção de começar em branco e submeter (Issue #43)", async () => {
+    const user = userEvent.setup();
+    let submittedStrategy = "";
+    const handleSubmit = vi.fn((e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const form = new FormData(e.currentTarget);
+      submittedStrategy = String(form.get("strategy"));
+    });
+
+    render(
+      <PlanVersionModal
+        open={true}
+        selectedPlan={mockPlan}
+        sessionsCount={2}
+        isPending={false}
+        error={null}
+        onClose={vi.fn()}
+        onSubmit={handleSubmit}
+      />
+    );
+
+    const blankRadio = screen.getByLabelText(
+      /Começar em branco \(nova versão sem sessões copiadas\)/
+    );
+    await user.click(blankRadio);
+
+    await user.click(screen.getByRole("button", { name: "Criar versão" }));
+
+    expect(handleSubmit).toHaveBeenCalled();
+    expect(submittedStrategy).toBe("blank");
   });
 
   it("exibe alerta quando há erro", () => {

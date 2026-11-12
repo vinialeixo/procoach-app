@@ -202,11 +202,14 @@ export function TrainingPage() {
     event.preventDefault();
     if (!selectedPlan) return;
     const form = new FormData(event.currentTarget);
+    const strategy = String(form.get("strategy") ?? "duplicate");
+    const copySessions = strategy !== "blank";
     try {
       const created = await createPlanVersion.mutateAsync({
         planId: selectedPlan.id,
         newName: String(form.get("newName") ?? "").trim(),
         newDescription: String(form.get("newDescription") ?? "").trim(),
+        copySessions,
       });
       updateSelection({ athlete: athleteId, periodization: periodizationId, plan: created.id });
       setVersioningPlan(false);

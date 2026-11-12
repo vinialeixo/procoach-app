@@ -231,4 +231,65 @@ describe("TrainingPage (Issues #39, #40, #41)", () => {
       expect(screen.getByLabelText("Buscar exercício")).toHaveFocus();
     });
   });
+
+  it("permite criar nova versão do plano com estratégia de duplicação por padrão (Issue #43)", async () => {
+    const user = userEvent.setup();
+    setupMocks();
+
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        id: "plan-2",
+        athleteId: "ath-1",
+        periodizationId: "per-1",
+        version: 2,
+        name: "Hipertrofia Fase 1 (v2)",
+        description: "Ajuste de volume",
+        status: "DRAFT",
+        previousVersionId: "plan-1",
+        deleted: false,
+      },
+    });
+
+    render(
+      <QueryClientProvider client={createClient()}>
+        <MemoryRouter
+          initialEntries={[
+            "/coach/training?athlete=ath-1&periodization=per-1&plan=plan-1",
+          ]}
+        >
+          <Routes>
+            <Route path="/coach/training" element={<TrainingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Criar nova versão" })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Criar nova versão" }));
+
+    // Modal aberto com opção de duplicação pré-selecionada
+    expect(
+      screen.getByRole("heading", { name: "Criar nova versão do plano" })
+    ).toBeInTheDocument();
+
+    const duplicateRadio = screen.getByLabelText(
+      /Duplicar sessões e prescrições da versão atual \(Recomendado\)/
+    ) as HTMLInputElement;
+    expect(duplicateRadio.checked).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Criar versão" }));
+
+    await waitFor(() => {
+      expect(apiClient.post).toHaveBeenCalledWith(
+        "/api/training/plans/plan-1/versions",
+        expect.objectContaining({
+          copySessions: true,
+        }),
+        expect.any(Object)
+      );
+    });
+  });
 });
