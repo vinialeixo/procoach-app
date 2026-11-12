@@ -176,4 +176,200 @@ class DietTest {
 
         assertThat(diet.domainEvents()).isEmpty();
     }
+
+    // ===== T-085: Meal Tests =====
+
+    private static final Macronutrients EGG_MACROS = Macronutrients.of(143, 13.0, 1.6, 9.5);
+    private static final Macronutrients RICE_MACROS = Macronutrients.of(130, 2.7, 28.0, 0.3);
+    private static final Macronutrients CHICKEN_MACROS = Macronutrients.of(165, 31.0, 0.1, 3.6);
+
+    @Test
+    void meals_shouldInitiallyBeEmpty() {
+        Diet diet = Diet.create(COACH, ATHLETE, DietObjective.HYPERTROPHY, MACROS, AUTHOR);
+
+        assertThat(diet.meals()).isEmpty();
+    }
+
+    @Test
+    void addMeal_shouldAddMealToDiet() {
+        Diet diet = Diet.create(COACH, ATHLETE, DietObjective.HYPERTROPHY, MACROS, AUTHOR);
+        Meal meal = Meal.create("Café da manhã", 1, "07:00", "Pós-jejum", null);
+
+        diet.addMeal(meal);
+
+        assertThat(diet.meals()).hasSize(1);
+        assertThat(diet.meals().get(0)).isEqualTo(meal);
+    }
+
+    @Test
+    void addMeal_shouldRecalculateMacrosFromMeals() {
+        Diet diet = Diet.create(COACH, ATHLETE, DietObjective.HYPERTROPHY, MACROS, AUTHOR);
+        Meal meal = Meal.create("Café da manhã", 1, "07:00", null, null);
+        MealItem item = MealItem.create("food1", "Ovo", FoodSource.TACO, FoodKind.FOOD,
+                FoodState.RAW, 100, "2 un", "cozido", EGG_MACROS);
+        meal.addItem(item);
+
+        diet.addMeal(meal);
+
+        // Macros should be recalculated from meal items
+        Macronutrients totals = diet.calculateTotalsFromMeals();
+        assertThat(totals.calories()).isEqualTo(143);
+        assertThat(totals.protein()).isEqualTo(13.0);
+        assertThat(totals.carbohydrates()).isEqualTo(1.6);
+        assertThat(totals.fat()).isEqualTo(9.5);
+    }
+
+    @Test
+    void addMeal_shouldRejectOnReadOnlyVersion() {
+        Diet v1 = Diet.create(COACH, ATHLETE, DietObjective.CUTTING, MACROS, AUTHOR);
+        v1.createNewVersion(DietObjective.CUTTING, MACROS, "Ajuste", AUTHOR);
+        Meal meal = Meal.create("Café da manhã", 1, "07:00", null, null);
+
+        assertThatThrownBy(() -> v1.addMeal(meal))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("read-only");
+    }
+
+    @Test
+    void addMeal_shouldRejectOnDeletedDiet() {
+        Diet diet = Diet.create(COACH, ATHLETE, DietObjective.CUTTING, MACROS, AUTHOR);
+        diet.softDelete(AUTHOR);
+        Meal meal = Meal.create("Café da manhã", 1, "07:00", null, null);
+
+        assertThatThrownBy(() -> diet.addMeal(meal))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("deleted");
+    }
+
+    @Test
+    void removeMeal_shouldRemoveMealAndRecalculate() {
+        Diet diet = Diet.create(COACH, ATHLETE, DietObjective.HYPERTROPHY, MACROS, AUTHOR);
+        Meal meal1 = Meal.create("Café da manhã", 1, "07:00", null, null);
+        MealItem item1 = MealItem.create("food1", "Ovo", FoodSource.TACO, FoodKind.FOOD,
+                FoodState.RAW, 100, "2 un", "cozido", EGG_MACROS);
+        meal1.addItem(item1);
+        Meal meal2 = Meal.create("Almoço", 2, "12:00", null, null);
+        MealItem item2 = MealItem.create("food2", "Frango", FoodSource.TACO, FoodKind.FOOD,
+                FoodState.RAW, 100, "1 filé", "grelhado", CHICKEN_MACROS);
+        meal2.addItem(item2);
+        diet.addMeal(meal1);
+        diet.addMeal(meal2);
+
+        boolean removed = diet.removeMeal(meal1.id());
+
+        assertThat(removed).isTrue();
+        assertThat(diet.meals()).hasSize(1);
+        assertThat(diet.meals().get(0).id()).isEqualTo(meal2.id());
+
+        // Macros should be recalculated
+        Macronutrients totals = diet.calculateTotalsFromMeals();
+        assertThat(totals.calories()).isEqualTo(165);
+        assertThat(totals.protein()).isEqualTo(31.0);
+    }
+
+    @Test
+    void removeMeal_shouldReturnFalseForNonExistentMeal() {
+        Diet diet = Diet.create(COACH, ATHLETE, DietObjective.HYPERTROPHY, MACROS, AUTHOR);
+        Meal meal = Meal.create("Café da manhã", 1, "07:00", null, null);
+        diet.addMeal(meal);
+
+        boolean removed = diet.removeMeal(MealId.random());
+
+        assertThat(removed).isFalse();
+        assertThat(diet.meals()).hasSize(1);
+    }
+
+    @Test
+    void removeMeal_shouldRejectOnReadOnlyVersion() {
+        Diet v1 = Diet.create(COACH, ATHLETE, DietObjective.CUTTING, MACROS, AUTHOR);
+        Meal meal = Meal.create("Café da manhã", 1, "07:00", null, null);
+        v1.addMeal(meal);
+        v1.createNewVersion(DietObjective.CUTTING, MACROS, "Ajuste", AUTHOR);
+
+        assertThatThrownBy(() -> v1.removeMeal(meal.id()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("read-only");
+    }
+
+    @Test
+    void createNewVersion_shouldCopyMealsAndItems() {
+        Diet v1 = Diet.create(COACH, ATHLETE, DietObjective.HYPERTROPHY, MACROS, AUTHOR);
+        Meal meal = Meal.create("Café da manhã", 1, "07:00", "Pós-jejum", null);
+        MealItem item = MealItem.create("food1", "Ovo", FoodSource.TACO, FoodKind.FOOD,
+                FoodState.RAW, 100, "2 un", "cozido", EGG_MACROS);
+        meal.addItem(item);
+        v1.addMeal(meal);
+
+        Macronutrients newMacros = Macronutrients.of(2600, 200, 250, 85);
+        Diet v2 = v1.createNewVersion(DietObjective.HYPERTROPHY, newMacros, "Ajuste de macros", AUTHOR);
+
+        // v1 should be read-only
+        assertThat(v1.isReadOnly()).isTrue();
+
+        // v2 should have copied meals with new IDs
+        assertThat(v2.meals()).hasSize(1);
+        Meal copiedMeal = v2.meals().get(0);
+        assertThat(copiedMeal.name()).isEqualTo("Café da manhã");
+        assertThat(copiedMeal.order()).isEqualTo(1);
+        assertThat(copiedMeal.time()).isEqualTo("07:00");
+        assertThat(copiedMeal.notes()).isEqualTo("Pós-jejum");
+        assertThat(copiedMeal.id()).isNotEqualTo(meal.id()); // new ID
+
+        // Items should be copied with new IDs and snapshot macros
+        assertThat(copiedMeal.items()).hasSize(1);
+        MealItem copiedItem = copiedMeal.items().get(0);
+        assertThat(copiedItem.name()).isEqualTo("Ovo");
+        assertThat(copiedItem.macrosSnapshot()).isEqualTo(EGG_MACROS);
+        assertThat(copiedItem.id()).isNotEqualTo(item.id()); // new ID
+
+        // v2 macros should be recalculated from copied items
+        Macronutrients v2Totals = v2.calculateTotalsFromMeals();
+        assertThat(v2Totals.calories()).isEqualTo(143);
+        assertThat(v2Totals.protein()).isEqualTo(13.0);
+
+        // v2 should emit DietVersioned event
+        assertThat(v2.domainEvents()).hasSize(1);
+        assertThat(v2.domainEvents().get(0)).isInstanceOf(DietVersioned.class);
+    }
+
+    @Test
+    void recalculateMacrosFromMeals_shouldUpdateMacrosWhenItemsChange() {
+        Diet diet = Diet.create(COACH, ATHLETE, DietObjective.HYPERTROPHY, MACROS, AUTHOR);
+        Meal meal = Meal.create("Café da manhã", 1, "07:00", null, null);
+        MealItem item = MealItem.create("food1", "Ovo", FoodSource.TACO, FoodKind.FOOD,
+                FoodState.RAW, 100, "2 un", "cozido", EGG_MACROS);
+        meal.addItem(item);
+        diet.addMeal(meal);
+
+        // Add another item
+        MealItem item2 = MealItem.create("food2", "Arroz", FoodSource.TACO, FoodKind.FOOD,
+                FoodState.RAW, 100, "1 xícara", "cozido", RICE_MACROS);
+        meal.addItem(item2);
+        diet.recalculateMacrosFromMeals();
+
+        Macronutrients totals = diet.calculateTotalsFromMeals();
+        assertThat(totals.calories()).isEqualTo(143 + 130);
+        assertThat(totals.protein()).isEqualTo(13.0 + 2.7);
+        assertThat(totals.carbohydrates()).isEqualTo(1.6 + 28.0);
+        assertThat(totals.fat()).isEqualTo(9.5 + 0.3);
+    }
+
+    @Test
+    void calculateTotalsFromMeals_shouldReturnStoredMacrosWhenNoMeals() {
+        Diet diet = Diet.create(COACH, ATHLETE, DietObjective.HYPERTROPHY, MACROS, AUTHOR);
+
+        Macronutrients totals = diet.calculateTotalsFromMeals();
+
+        assertThat(totals).isEqualTo(MACROS);
+    }
+
+    @Test
+    void meals_shouldReturnUnmodifiableList() {
+        Diet diet = Diet.create(COACH, ATHLETE, DietObjective.HYPERTROPHY, MACROS, AUTHOR);
+        Meal meal = Meal.create("Café da manhã", 1, "07:00", null, null);
+        diet.addMeal(meal);
+
+        assertThatThrownBy(() -> diet.meals().add(meal))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
 }
