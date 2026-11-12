@@ -212,7 +212,10 @@ export function AthleteDetailPage() {
           ) : activeTab === "treinos" ? (
             <p className="athlete-detail__placeholder">
               Monte e acompanhe os treinos deste atleta em{" "}
-              <Link to="/coach/training">Treinos e biblioteca</Link>.
+              <Link to={`/coach/training?athlete=${athlete.id}`}>
+                Treinos e biblioteca
+              </Link>
+              .
             </p>
           ) : (
             <p className="athlete-detail__placeholder">

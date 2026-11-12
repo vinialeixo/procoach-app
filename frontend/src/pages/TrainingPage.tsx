@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
 import { COACH_NAV } from "@/lib/coach-nav";
 import { Button } from "@/components/ui/Button";
@@ -143,10 +144,13 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 export function TrainingPage() {
-  const [athleteId, setAthleteId] = useState("");
-  const [periodizationId, setPeriodizationId] = useState("");
-  const [planId, setPlanId] = useState("");
-  const [sessionId, setSessionId] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const rawAthleteId = searchParams.get("athlete") ?? "";
+  const rawPeriodizationId = searchParams.get("periodization") ?? "";
+  const rawPlanId = searchParams.get("plan") ?? "";
+  const rawSessionId = searchParams.get("session") ?? "";
+
   const [libraryName, setLibraryName] = useState("");
   const [libraryMuscle, setLibraryMuscle] = useState<MuscleGroup | "">("");
   const [submittedName, setSubmittedName] = useState("");
@@ -161,9 +165,58 @@ export function TrainingPage() {
   const [comparingPlan, setComparingPlan] = useState(false);
 
   const athletesQuery = useAthletes();
+
+  // Validação: se o ID na URL não existe na lista carregada, marca como inválido
+  const isAthleteInvalid = Boolean(
+    rawAthleteId && athletesQuery.isSuccess && !athletesQuery.data.some((a) => a.id === rawAthleteId)
+  );
+  const athleteId = isAthleteInvalid ? "" : rawAthleteId;
+
   const periodizationsQuery = usePeriodizations(athleteId);
+  const periodizations = periodizationsQuery.data ?? [];
+
+  const isPeriodizationInvalid = Boolean(
+    rawPeriodizationId &&
+      periodizationsQuery.isSuccess &&
+      !periodizations.some((p) => p.id === rawPeriodizationId)
+  );
+  const periodizationId = isPeriodizationInvalid ? "" : rawPeriodizationId;
+
   const plansQuery = useTrainingPlans(athleteId);
+  const plans = (plansQuery.data ?? []).filter((plan) => plan.periodizationId === periodizationId);
+
+  const isPlanInvalid = Boolean(
+    rawPlanId && plansQuery.isSuccess && !plans.some((p) => p.id === rawPlanId)
+  );
+  const planId = isPlanInvalid ? "" : rawPlanId;
+
   const sessionsQuery = useTrainingSessions(periodizationId);
+  const sessions = useMemo(
+    () =>
+      (sessionsQuery.data ?? [])
+        .filter((session) => session.planId === planId)
+        .sort((a, b) => a.weekNumber - b.weekNumber || a.dayOfWeek - b.dayOfWeek),
+    [sessionsQuery.data, planId]
+  );
+
+  const isSessionInvalid = Boolean(
+    rawSessionId && sessionsQuery.isSuccess && !sessions.some((s) => s.id === rawSessionId)
+  );
+  const sessionId = isSessionInvalid ? "" : rawSessionId;
+
+  function updateSelection(params: {
+    athlete?: string;
+    periodization?: string;
+    plan?: string;
+    session?: string;
+  }) {
+    const next = new URLSearchParams();
+    if (params.athlete) next.set("athlete", params.athlete);
+    if (params.periodization) next.set("periodization", params.periodization);
+    if (params.plan) next.set("plan", params.plan);
+    if (params.session) next.set("session", params.session);
+    setSearchParams(next);
+  }
   const exercisesQuery = useExercises(submittedName, submittedMuscle, Boolean(sessionId));
 
   const createPeriodization = useCreatePeriodization(athleteId);
@@ -178,15 +231,6 @@ export function TrainingPage() {
   const transitionPlan = useTransitionTrainingPlan(athleteId, periodizationId);
   const transitionSession = useTransitionTrainingSession(periodizationId, sessionId);
 
-  const periodizations = periodizationsQuery.data ?? [];
-  const plans = (plansQuery.data ?? []).filter((plan) => plan.periodizationId === periodizationId);
-  const sessions = useMemo(
-    () =>
-      (sessionsQuery.data ?? [])
-        .filter((session) => session.planId === planId)
-        .sort((a, b) => a.weekNumber - b.weekNumber || a.dayOfWeek - b.dayOfWeek),
-    [sessionsQuery.data, planId]
-  );
   const selectedPeriodization = periodizations.find((item) => item.id === periodizationId);
   const selectedPlan = plans.find((item) => item.id === planId);
   const selectedSession = sessions.find((item) => item.id === sessionId);
@@ -225,9 +269,7 @@ export function TrainingPage() {
         startDate,
         endDate,
       });
-      setPeriodizationId(created.id);
-      setPlanId("");
-      setSessionId("");
+      updateSelection({ athlete: athleteId, periodization: created.id });
       formElement.reset();
     } catch {
       // A mensagem da mutação aparece junto ao formulário.
@@ -244,8 +286,7 @@ export function TrainingPage() {
         name: String(form.get("name")),
         description: String(form.get("description") ?? ""),
       });
-      setPlanId(created.id);
-      setSessionId("");
+      updateSelection({ athlete: athleteId, periodization: periodizationId, plan: created.id });
       formElement.reset();
     } catch {
       // A mensagem da mutação aparece junto ao formulário.
@@ -262,8 +303,7 @@ export function TrainingPage() {
         newName: String(form.get("newName") ?? "").trim(),
         newDescription: String(form.get("newDescription") ?? "").trim(),
       });
-      setPlanId(created.id);
-      setSessionId("");
+      updateSelection({ athlete: athleteId, periodization: periodizationId, plan: created.id });
       setEditingPrescription(null);
       setRemovingPrescription(null);
       setVersioningPlan(false);
@@ -285,7 +325,7 @@ export function TrainingPage() {
         weekNumber: Number(form.get("weekNumber")),
         dayOfWeek: Number(form.get("dayOfWeek")),
       });
-      setSessionId(created.id);
+      updateSelection({ athlete: athleteId, periodization: periodizationId, plan: planId, session: created.id });
       formElement.reset();
     } catch {
       // A mensagem da mutação aparece junto ao formulário.
@@ -310,8 +350,7 @@ export function TrainingPage() {
       restSeconds: Number(form.get("restSeconds")),
     };
     try {
-      const updated = await addExercise.mutateAsync(payload);
-      setSessionId(updated.id);
+      await addExercise.mutateAsync(payload);
       setExerciseId("");
       formElement.reset();
     } catch {
@@ -356,21 +395,15 @@ export function TrainingPage() {
   }
 
   function onChangeAthlete(nextAthleteId: string) {
-    setAthleteId(nextAthleteId);
-    setPeriodizationId("");
-    setPlanId("");
-    setSessionId("");
+    updateSelection({ athlete: nextAthleteId });
   }
 
   function onChangePeriodization(nextPeriodizationId: string) {
-    setPeriodizationId(nextPeriodizationId);
-    setPlanId("");
-    setSessionId("");
+    updateSelection({ athlete: athleteId, periodization: nextPeriodizationId });
   }
 
   function onChangePlan(nextPlanId: string) {
-    setPlanId(nextPlanId);
-    setSessionId("");
+    updateSelection({ athlete: athleteId, periodization: periodizationId, plan: nextPlanId });
   }
 
   return (
@@ -385,6 +418,27 @@ export function TrainingPage() {
             </p>
           </div>
         </header>
+
+        {isAthleteInvalid && (
+          <p className="training-page__alert" role="alert">
+            Atleta informado na URL não foi encontrado ou você não tem permissão para acessá-lo.
+          </p>
+        )}
+        {isPeriodizationInvalid && (
+          <p className="training-page__alert" role="alert">
+            Periodização informada na URL não foi encontrada para este atleta.
+          </p>
+        )}
+        {isPlanInvalid && (
+          <p className="training-page__alert" role="alert">
+            Plano informado na URL não foi encontrado nesta periodização.
+          </p>
+        )}
+        {isSessionInvalid && (
+          <p className="training-page__alert" role="alert">
+            Sessão informada na URL não foi encontrada neste plano.
+          </p>
+        )}
 
         {athletesQuery.isError && (
           <p className="training-page__alert" role="alert">Não foi possível carregar os atletas.</p>
@@ -536,9 +590,15 @@ export function TrainingPage() {
                   <li key={session.id}>
                     <button
                       type="button"
+                      aria-current={session.id === sessionId ? "true" : undefined}
                       className={session.id === sessionId ? "training-page__session training-page__session--selected" : "training-page__session"}
                       onClick={() => {
-                        setSessionId(session.id);
+                        updateSelection({
+                          athlete: athleteId,
+                          periodization: periodizationId,
+                          plan: planId,
+                          session: session.id,
+                        });
                         setEditingPrescription(null);
                         setRemovingPrescription(null);
                       }}
