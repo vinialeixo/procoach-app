@@ -48,6 +48,7 @@ export function TrainingPage() {
   const [periodizationDateError, setPeriodizationDateError] = useState(false);
   const [versioningPlan, setVersioningPlan] = useState(false);
   const [comparingPlan, setComparingPlan] = useState(false);
+  const [focusAddExerciseToken, setFocusAddExerciseToken] = useState(0);
   const [searchQuery, setSearchQuery] = useState<{
     name: string;
     muscle: MuscleGroup | "";
@@ -105,6 +106,16 @@ export function TrainingPage() {
     if (params.plan) next.set("plan", params.plan);
     if (params.session) next.set("session", params.session);
     setSearchParams(next);
+  }
+
+  function handleAddExerciseShortcut(targetSessionId: string) {
+    updateSelection({
+      athlete: athleteId,
+      periodization: periodizationId,
+      plan: planId,
+      session: targetSessionId,
+    });
+    setFocusAddExerciseToken((prev) => prev + 1);
   }
 
   const exercisesQuery = useExercises(
@@ -378,6 +389,7 @@ export function TrainingPage() {
                 session: id,
               })
             }
+            onAddExerciseShortcut={handleAddExerciseShortcut}
             onOpenVersioning={() => setVersioningPlan(true)}
             onOpenComparing={() => setComparingPlan(true)}
             onTransitionPlan={(targetStatus: TrainingStatus) => {
@@ -394,6 +406,7 @@ export function TrainingPage() {
             exercises={exercisesQuery.data ?? []}
             exercisesLoading={exercisesQuery.isLoading}
             exercisesError={exercisesQuery.isError}
+            autoFocusAddExercise={focusAddExerciseToken > 0}
             transitionSessionPending={transitionSession.isPending}
             transitionSessionError={transitionSession.error}
             reorderExercisesPending={reorderExercises.isPending}
@@ -413,9 +426,9 @@ export function TrainingPage() {
             onReorderExercises={(prescriptionIds: string[]) =>
               reorderExercises.mutate(prescriptionIds)
             }
-            onApplyCurrentVersion={(exercise: ExercisePrescription) =>
-              applyCurrentVersion.mutate(exercise)
-            }
+            onApplyCurrentVersion={async (exercise: ExercisePrescription) => {
+              await applyCurrentVersion.mutateAsync(exercise);
+            }}
             onAddExercise={async (payload: AddExercisePayload) => {
               await addExercise.mutateAsync(payload);
             }}

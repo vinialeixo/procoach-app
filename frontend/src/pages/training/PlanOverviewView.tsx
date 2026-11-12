@@ -41,6 +41,7 @@ interface PlanOverviewViewProps {
   onCreatePlan: (event: FormEvent<HTMLFormElement>) => void;
   onCreateSession: (event: FormEvent<HTMLFormElement>) => void;
   onSelectSession: (id: string) => void;
+  onAddExerciseShortcut?: (id: string) => void;
   onOpenVersioning: () => void;
   onOpenComparing: () => void;
   onTransitionPlan: (targetStatus: TrainingStatus) => void;
@@ -65,6 +66,7 @@ export function PlanOverviewView({
   onCreatePlan,
   onCreateSession,
   onSelectSession,
+  onAddExerciseShortcut,
   onOpenVersioning,
   onOpenComparing,
   onTransitionPlan,
@@ -154,7 +156,14 @@ export function PlanOverviewView({
           {sessions.length > 0 && (
             <ol className="training-page__schedule">
               {sessions.map((session) => (
-                <li key={session.id}>
+                <li
+                  key={session.id}
+                  className={
+                    session.id === sessionId
+                      ? "training-page__schedule-item training-page__schedule-item--selected"
+                      : "training-page__schedule-item"
+                  }
+                >
                   <button
                     type="button"
                     aria-current={session.id === sessionId ? "true" : undefined}
@@ -174,6 +183,25 @@ export function PlanOverviewView({
                     </span>
                     <StatusBadge status={session.status} />
                   </button>
+                  <div className="training-page__schedule-item-actions">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={session.status === "FINISHED"}
+                      onClick={() =>
+                        onAddExerciseShortcut
+                          ? onAddExerciseShortcut(session.id)
+                          : onSelectSession(session.id)
+                      }
+                      title={
+                        session.status === "FINISHED"
+                          ? "Sessão finalizada não permite novos exercícios"
+                          : "Adicionar exercício a esta sessão"
+                      }
+                    >
+                      + Adicionar exercício
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ol>

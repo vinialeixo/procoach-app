@@ -198,4 +198,37 @@ describe("TrainingPage (Issues #39, #40, #41)", () => {
       expect(screen.getByDisplayValue("Ana Souza")).toBeInTheDocument();
     });
   });
+
+  it("seleciona sessão e foca campo de prescrição ao clicar no atalho de adicionar exercício (Issue #42)", async () => {
+    const user = userEvent.setup();
+    setupMocks();
+
+    render(
+      <QueryClientProvider client={createClient()}>
+        <MemoryRouter
+          initialEntries={[
+            "/coach/training?athlete=ath-1&periodization=per-1&plan=plan-1",
+          ]}
+        >
+          <Routes>
+            <Route path="/coach/training" element={<TrainingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Treino A - Peito")).toBeInTheDocument();
+    });
+
+    // Clique 1: atalho "+ Adicionar exercício" na grade
+    const addExerciseShortcut = screen.getByRole("button", { name: "+ Adicionar exercício" });
+    await user.click(addExerciseShortcut);
+
+    // O editor da sessão abre e o campo de busca de exercício ganha foco
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Treino A - Peito" })).toBeInTheDocument();
+      expect(screen.getByLabelText("Buscar exercício")).toHaveFocus();
+    });
+  });
 });

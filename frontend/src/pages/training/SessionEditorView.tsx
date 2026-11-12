@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
@@ -31,6 +31,7 @@ interface SessionEditorViewProps {
   exercises: Exercise[];
   exercisesLoading: boolean;
   exercisesError: boolean;
+  autoFocusAddExercise?: boolean;
   transitionSessionPending: boolean;
   transitionSessionError: unknown;
   reorderExercisesPending: boolean;
@@ -46,7 +47,7 @@ interface SessionEditorViewProps {
   onSearchExercises: (name: string, muscle: MuscleGroup | "") => void;
   onTransitionSession: (targetStatus: TrainingSession["status"]) => void;
   onReorderExercises: (prescriptionIds: string[]) => void;
-  onApplyCurrentVersion: (exercise: ExercisePrescription) => void;
+  onApplyCurrentVersion: (exercise: ExercisePrescription) => void | Promise<void>;
   onAddExercise: (payload: AddExercisePayload) => Promise<void>;
   onUpdatePrescription: (prescriptionId: string, payload: UpdateExercisePrescriptionPayload) => Promise<void>;
   onRemovePrescription: (prescriptionId: string) => Promise<void>;
@@ -57,6 +58,7 @@ export function SessionEditorView({
   exercises,
   exercisesLoading,
   exercisesError,
+  autoFocusAddExercise,
   transitionSessionPending,
   transitionSessionError,
   reorderExercisesPending,
@@ -82,6 +84,31 @@ export function SessionEditorView({
   const [selectedExerciseId, setSelectedExerciseId] = useState("");
   const [editingPrescription, setEditingPrescription] = useState<ExercisePrescription | null>(null);
   const [removingPrescription, setRemovingPrescription] = useState<ExercisePrescription | null>(null);
+  const [updatingExerciseId, setUpdatingExerciseId] = useState<string | null>(null);
+  const [applySuccessFeedback, setApplySuccessFeedback] = useState<string | null>(null);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (autoFocusAddExercise) {
+      const el = searchInputRef.current ?? document.getElementById("library-search-input");
+      if (el) {
+        el.focus();
+        el.scrollIntoView?.({ behavior: "smooth", block: "start" });
+      }
+    }
+  }, [autoFocusAddExercise, selectedSession.id]);
+
+  async function handleApplyCurrentVersion(exercise: ExercisePrescription) {
+    setUpdatingExerciseId(exercise.id);
+    setApplySuccessFeedback(null);
+    try {
+      await onApplyCurrentVersion(exercise);
+      setApplySuccessFeedback(`Exercício "${exercise.exerciseName}" atualizado para a versão atual.`);
+    } finally {
+      setUpdatingExerciseId(null);
+    }
+  }
 
   const selectedExercise = exercises.find((exercise) => exercise.id === selectedExerciseId);
 
@@ -180,7 +207,17 @@ export function SessionEditorView({
             <li key={exercise.id} className="training-page__prescription">
               <span className="training-page__prescription-order">{index + 1}</span>
               <div className="training-page__prescription-main">
-                <strong>{exercise.exerciseName}</strong>
+                <div className="training-page__prescription-heading">
+                  <strong>{exercise.exerciseName}</strong>
+                  {exercise.newerVersionAvailable && exercise.currentExerciseId && (
+                    <span
+                      className="training-page__badge-outdated pc-badge pc-badge--muted"
+                      data-testid={`badge-outdated-${exercise.id}`}
+                    >
+                      Versão desatualizada (v{exercise.exerciseVersion})
+                    </span>
+                  )}
+                </div>
                 <span>
                   {exercise.sets} séries × {exercise.repetitions} reps · {exercise.load} kg ·{" "}
                   {exercise.intensityType}
@@ -197,12 +234,13 @@ export function SessionEditorView({
                     <Button
                       type="button"
                       variant="ghost"
+                      loading={applyCurrentVersionPending && updatingExerciseId === exercise.id}
                       disabled={
                         selectedSession.status === "FINISHED" ||
                         applyCurrentVersionPending ||
                         exercise.intensityValue === null
                       }
-                      onClick={() => onApplyCurrentVersion(exercise)}
+                      onClick={() => handleApplyCurrentVersion(exercise)}
                     >
                       Trocar pela versão atual
                     </Button>
@@ -268,9 +306,14 @@ export function SessionEditorView({
           {errorMessage(applyCurrentVersionError, "Não foi possível trocar pela versão atual do exercício.")}
         </p>
       )}
+      {applySuccessFeedback && (
+        <p className="training-page__notice training-page__notice--success" role="status">
+          {applySuccessFeedback}
+        </p>
+      )}
 
       {selectedSession.status !== "FINISHED" && (
-        <div className="training-page__add-prescription">
+        <div className="training-page__add-prescription" id="session-add-prescription">
           <div>
             <p className="training-page__eyebrow">Adicionar exercício</p>
             <h3>Prescrição da biblioteca</h3>
@@ -284,6 +327,8 @@ export function SessionEditorView({
             }}
           >
             <Field
+              ref={searchInputRef}
+              id="library-search-input"
               label="Buscar exercício"
               value={libraryName}
               onChange={(event) => setLibraryName(event.target.value)}
