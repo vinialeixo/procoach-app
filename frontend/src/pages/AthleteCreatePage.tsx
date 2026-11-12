@@ -43,10 +43,7 @@ type FormValues = z.output<typeof schema>;
 export function AthleteCreatePage() {
   const navigate = useNavigate();
   const createMutation = useCreateAthlete();
-  const [conflictInfo, setConflictInfo] = useState<{
-    message: string;
-    athleteId?: string;
-  } | null>(null);
+  const [conflictInfo, setConflictInfo] = useState<{ message: string } | null>(null);
   const {
     register,
     handleSubmit,
@@ -65,26 +62,22 @@ export function AthleteCreatePage() {
         state: { created: true },
       });
     } catch (error) {
+      // Envelope de erro do módulo athlete (AthleteExceptionHandler):
+      // {timestamp, status, code?, error}. 409 com code
+      // EMAIL_ALREADY_REGISTERED significa que o e-mail já tem conta (T-078).
       const err = error as {
         response?: {
           status?: number;
-          data?: { code?: string; message?: string; athleteId?: string };
+          data?: { code?: string; error?: string; message?: string };
         };
       };
       const status = err.response?.status;
       const code = err.response?.data?.code;
-      const message = err.response?.data?.message ?? "";
-      const athleteId = err.response?.data?.athleteId;
 
-      if (
-        status === 409 ||
-        code === "EMAIL_ALREADY_REGISTERED" ||
-        /já cadastrado/i.test(message)
-      ) {
+      if (status === 409 || code === "EMAIL_ALREADY_REGISTERED") {
         setConflictInfo({
           message:
             "Esta pessoa já tem conta no sistema. Convide o atleta utilizando este e-mail pela ficha ou consulte a listagem.",
-          athleteId,
         });
       } else {
         setError("root", { message: "Não foi possível cadastrar. Tente novamente." });
@@ -156,15 +149,9 @@ export function AthleteCreatePage() {
             <div className="athlete-form__conflict-alert" role="alert">
               <p>{conflictInfo.message}</p>
               <div className="athlete-form__conflict-actions">
-                {conflictInfo.athleteId ? (
-                  <ButtonLink to={`/coach/athletes/${conflictInfo.athleteId}`}>
-                    Ir para a ficha do atleta
-                  </ButtonLink>
-                ) : (
-                  <ButtonLink to="/coach/athletes" variant="ghost">
-                    Ver atletas cadastrados
-                  </ButtonLink>
-                )}
+                <ButtonLink to="/coach/athletes" variant="ghost">
+                  Ver atletas cadastrados
+                </ButtonLink>
               </div>
             </div>
           )}

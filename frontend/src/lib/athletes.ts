@@ -41,9 +41,9 @@ export const GOAL_LABEL: Record<Goal, string> = {
   RECOMPOSITION: "Recomposição",
 };
 
-/** Resumo de convite pendente retornado pelo backend (T-077). */
+/** Convite pendente retornado pelo backend (AthleteResponse.pendingInvite, T-077). */
 export type PendingInviteSummary = {
-  id?: string;
+  id: string;
   email: string;
   expiresAt: string;
 };

@@ -36,15 +36,16 @@ export type InvitePreview = {
   expiresAt: string;
 };
 
+export type InviteStatus = "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED";
+
+/** Resumo do convite (InviteSummaryResponse do backend, T-077). O token nunca é exposto. */
 export type AthleteInvite = {
   id: string;
   athleteId: string;
   email: string;
   expiresAt: string;
-  createdAt?: string;
-  status?: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED";
-  token?: string;
-  invitePath?: string;
+  createdAt: string;
+  status: InviteStatus;
 };
 
 const INVITE_STORAGE_PREFIX = "pc_invite_path_";
@@ -90,50 +91,29 @@ async function acceptInvite(token: string, password: string): Promise<void> {
 }
 
 /**
- * Lista convites de um atleta (T-077 / T-082).
- * Contrato assumido: GET /api/v1/athletes/{athleteId}/invites
- * Fallback defensivo: se o endpoint retornar 404 (back em dev),
- * retorna array vazio sem quebrar a UI.
+ * Lista convites de um atleta (T-077).
+ * Contrato real: GET /api/v1/athletes/{athleteId}/invites
+ * -> array de {id, athleteId, email, expiresAt, createdAt, status}.
  */
 async function listAthleteInvites(athleteId: string): Promise<AthleteInvite[]> {
-  try {
-    const { data } = await apiClient.get<AthleteInvite[]>(`/athletes/${athleteId}/invites`);
-    return Array.isArray(data) ? data : [];
-  } catch (error) {
-    const status = (error as { response?: { status?: number } }).response?.status;
-    if (status === 404) {
-      return [];
-    }
-    throw error;
-  }
+  const { data } = await apiClient.get<AthleteInvite[]>(`/athletes/${athleteId}/invites`);
+  return data;
 }
 
 /**
- * Revogação de convite do atleta (T-077 / T-082).
- * Contrato assumido: POST /api/v1/athletes/{athleteId}/invites/{inviteId}/revoke
- * Fallbacks defensivos: DELETE /athletes/{athleteId}/invites/{inviteId}
- * ou POST /auth/invites/{inviteId}/revoke.
+ * Revogação de convite do atleta (T-077).
+ * Contrato real: POST /api/v1/athletes/{athleteId}/invites/{inviteId}/revoke
+ * -> 200 com o resumo do convite revogado; 404 (inexistente/de outro coach)
+ * ou 409 (não está pendente). Sem fallbacks: o contrato é estável.
  */
-async function revokeAthleteInvite(athleteId: string, inviteId: string): Promise<void> {
-  try {
-    await apiClient.post(`/athletes/${athleteId}/invites/${inviteId}/revoke`);
-  } catch (error) {
-    const status = (error as { response?: { status?: number } }).response?.status;
-    if (status === 404 || status === 405) {
-      try {
-        await apiClient.delete(`/athletes/${athleteId}/invites/${inviteId}`);
-      } catch (deleteError) {
-        const delStatus = (deleteError as { response?: { status?: number } }).response?.status;
-        if (delStatus === 404 || delStatus === 405) {
-          await apiClient.post(`/auth/invites/${inviteId}/revoke`);
-        } else {
-          throw deleteError;
-        }
-      }
-    } else {
-      throw error;
-    }
-  }
+async function revokeAthleteInvite(
+  athleteId: string,
+  inviteId: string
+): Promise<AthleteInvite> {
+  const { data } = await apiClient.post<AthleteInvite>(
+    `/athletes/${athleteId}/invites/${inviteId}/revoke`
+  );
+  return data;
 }
 
 /** Link completo para o coach repassar ao atleta. */
@@ -208,20 +188,17 @@ export function getInviteErrorMessage(error: unknown): string {
 
   if (err.response?.status === 409) {
     const code = err.response.data?.code;
-    const msg = err.response.data?.message ?? "";
 
-    if (code === "ATHLETE_HAS_CREDENTIAL" || /já possui acesso/i.test(msg)) {
+    // Códigos estáveis do backend (T-079): ATHLETE_HAS_CREDENTIAL / EMAIL_IN_USE.
+    if (code === "ATHLETE_HAS_CREDENTIAL") {
       return "Este atleta já possui uma credencial de acesso ativa no aplicativo.";
     }
-    if (
-      code === "EMAIL_IN_USE" ||
-      code === "EMAIL_ALREADY_REGISTERED" ||
-      /já cadastrado/i.test(msg) ||
-      /em uso/i.test(msg)
-    ) {
+    if (code === "EMAIL_IN_USE") {
       return "Este e-mail já pertence a outro usuário cadastrado no sistema. Utilize outro e-mail para o convite.";
     }
-    return msg || "Conflito ao gerar convite. O atleta já possui acesso ou o e-mail já está em uso.";
+    // Código desconhecido/ausente: não vaza a mensagem crua do backend para o
+    // coach; usa a orientação genérica (o backend pode mudar os textos).
+    return "Conflito ao gerar convite. O atleta já possui acesso ou o e-mail já está em uso.";
   }
 
   return "Não foi possível gerar o convite. Tente novamente.";

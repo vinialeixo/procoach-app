@@ -21,6 +21,7 @@ describe("getAthleteAccessStatus", () => {
     const athlete: Pick<Athlete, "hasCredential" | "pendingInvite"> = {
       hasCredential: true,
       pendingInvite: {
+        id: "inv-1",
         email: "atleta@exemplo.com",
         expiresAt: "2026-12-01T00:00:00Z",
       },
@@ -34,6 +35,7 @@ describe("getAthleteAccessStatus", () => {
     const athlete: Pick<Athlete, "hasCredential" | "pendingInvite"> = {
       hasCredential: false,
       pendingInvite: {
+        id: "inv-2",
         email: "convite@exemplo.com",
         expiresAt: "2026-12-01T00:00:00Z",
       },

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AthleteListPage } from "./AthleteListPage";
 import { AthleteDetailPage } from "./AthleteDetailPage";
 import { apiClient } from "@/lib/api-client";
+import { rememberInviteLink } from "@/lib/invites";
 
 vi.mock("@/lib/api-client", () => ({
   apiClient: {
@@ -135,8 +136,8 @@ describe("Athlete Access & Invites (Issue #98 / T-082)", () => {
               athleteId: "ath-pending",
               email: "lucas@exemplo.com",
               expiresAt: "2026-11-18T10:00:00Z",
+              createdAt: "2026-11-11T10:00:00Z",
               status: "PENDING",
-              invitePath: "/convite/tok-123",
             },
           ],
         });
@@ -150,7 +151,26 @@ describe("Athlete Access & Invites (Issue #98 / T-082)", () => {
       return Promise.reject(new Error(`Not found: ${url}`));
     });
 
-    vi.mocked(apiClient.post).mockResolvedValue({ data: {} });
+    vi.mocked(apiClient.post).mockResolvedValue({
+      data: {
+        id: "inv-pending-1",
+        athleteId: "ath-pending",
+        email: "lucas@exemplo.com",
+        expiresAt: "2026-11-18T10:00:00Z",
+        createdAt: "2026-11-11T10:00:00Z",
+        status: "REVOKED",
+      },
+    });
+
+    // O link de convite só existe no momento da criação (o token nunca volta
+    // na listagem do T-077): simula o cache do POST /auth/invites.
+    rememberInviteLink("ath-pending", "/convite/tok-123");
+
+    // jsdom não implementa navigator.clipboard (getter sem setter).
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
 
     render(
       <QueryClientProvider client={createClient()}>

@@ -28,18 +28,18 @@ describe("getInviteErrorMessage", () => {
     );
   });
 
-  it("maps legacy 409 message with 'já possui acesso' when code is omitted", () => {
+  it("returns the generic conflict message for a 409 without a known code", () => {
     const error = {
       response: {
         status: 409,
         data: {
-          message: "Este atleta já possui acesso",
+          message: "Conflito genérico",
         },
       },
     };
 
     expect(getInviteErrorMessage(error)).toBe(
-      "Este atleta já possui uma credencial de acesso ativa no aplicativo."
+      "Conflito ao gerar convite. O atleta já possui acesso ou o e-mail já está em uso."
     );
   });
 
@@ -59,18 +59,19 @@ describe("getInviteErrorMessage", () => {
     );
   });
 
-  it("maps legacy 409 message with 'já cadastrado' when code is omitted", () => {
+  it("returns the generic conflict message for a 409 with an unknown code", () => {
     const error = {
       response: {
         status: 409,
         data: {
+          code: "SOMETHING_ELSE",
           message: "E-mail já cadastrado: fulano@exemplo.com",
         },
       },
     };
 
     expect(getInviteErrorMessage(error)).toBe(
-      "Este e-mail já pertence a outro usuário cadastrado no sistema. Utilize outro e-mail para o convite."
+      "Conflito ao gerar convite. O atleta já possui acesso ou o e-mail já está em uso."
     );
   });
 

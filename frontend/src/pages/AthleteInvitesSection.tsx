@@ -22,30 +22,21 @@ export function AthleteInvitesSection({ athlete, onOpenInviteModal }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [revokeError, setRevokeError] = useState<string | null>(null);
 
-  // Combina lista do servidor com pendingInvite defensivo da entidade do atleta (T-077)
-  const pendingInvites: AthleteInvite[] =
-    serverInvites && serverInvites.length > 0
-      ? serverInvites.filter((inv) => (inv.status ? inv.status === "PENDING" : true))
-      : athlete.pendingInvite
-      ? [
-          {
-            id: athlete.pendingInvite.id ?? "current-pending",
-            athleteId: athlete.id,
-            email: athlete.pendingInvite.email,
-            expiresAt: athlete.pendingInvite.expiresAt,
-            status: "PENDING",
-          },
-        ]
-      : [];
+  // A listagem do backend (T-077) já inclui os convites pendentes com status
+  // PENDING; sem fallback defensivo — o contrato é a fonte de verdade.
+  const pendingInvites: AthleteInvite[] = (serverInvites ?? []).filter(
+    (inv) => inv.status === "PENDING"
+  );
 
   const cachedPath = getCachedInvitePath(athlete.id);
 
-  async function handleCopy(invite: AthleteInvite) {
-    const path = invite.invitePath ?? (invite.token ? `/convite/${invite.token}` : cachedPath);
-    if (!path) return;
+  async function handleCopy() {
+    // O token nunca volta na listagem; o link só existe no momento da criação
+    // (resposta do POST /auth/invites, guardada em sessionStorage).
+    if (!cachedPath) return;
     try {
-      await navigator.clipboard.writeText(inviteUrl({ invitePath: path }));
-      setCopiedId(invite.id);
+      await navigator.clipboard.writeText(inviteUrl({ invitePath: cachedPath }));
+      setCopiedId(cachedPath);
       setTimeout(() => setCopiedId(null), 3000);
     } catch {
       setCopiedId(null);
@@ -106,7 +97,7 @@ export function AthleteInvitesSection({ athlete, onOpenInviteModal }: Props) {
         ) : pendingInvites.length > 0 ? (
           <div className="athlete-invites__list">
             {pendingInvites.map((inv) => {
-              const canCopy = Boolean(inv.invitePath || inv.token || cachedPath);
+              const canCopy = Boolean(cachedPath);
               return (
                 <div key={inv.id} className="athlete-invites__active-card">
                   <div className="athlete-invites__item-info">
@@ -122,9 +113,9 @@ export function AthleteInvitesSection({ athlete, onOpenInviteModal }: Props) {
                       <Button
                         type="button"
                         variant="ghost"
-                        onClick={() => handleCopy(inv)}
+                        onClick={handleCopy}
                       >
-                        {copiedId === inv.id ? "Link copiado!" : "Copiar link"}
+                        {copiedId ? "Link copiado!" : "Copiar link"}
                       </Button>
                     )}
                     <Button

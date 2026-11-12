@@ -65,6 +65,8 @@ describe("AthleteCreatePage", () => {
         goal: "HYPERTROPHY",
         status: "ACTIVE",
         createdAt: "2026-11-12T00:00:00Z",
+        hasCredential: false,
+        pendingInvite: null,
       },
     });
 
@@ -96,13 +98,16 @@ describe("AthleteCreatePage", () => {
 
   it("handles 409 EMAIL_ALREADY_REGISTERED with actionable guidance and link", async () => {
     const user = userEvent.setup();
+    // Envelope de erro real do módulo athlete (AthleteExceptionHandler):
+    // {timestamp, status, code, error} — sem athleteId.
     vi.mocked(apiClient.post).mockRejectedValueOnce({
       response: {
         status: 409,
         data: {
+          timestamp: "2026-11-12T00:00:00Z",
+          status: 409,
           code: "EMAIL_ALREADY_REGISTERED",
-          message: "E-mail já cadastrado",
-          athleteId: "ath-existing-1",
+          error: "O e-mail carlos@exemplo.com já está cadastrado na plataforma.",
         },
       },
     });
@@ -124,8 +129,8 @@ describe("AthleteCreatePage", () => {
         screen.getByText(/Esta pessoa já tem conta no sistema/i)
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("link", { name: "Ir para a ficha do atleta" })
-      ).toHaveAttribute("href", "/coach/athletes/ath-existing-1");
+        screen.getByRole("link", { name: "Ver atletas cadastrados" })
+      ).toHaveAttribute("href", "/coach/athletes");
     });
   });
 });
