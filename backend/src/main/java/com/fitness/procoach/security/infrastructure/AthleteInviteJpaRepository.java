@@ -18,4 +18,6 @@ public interface AthleteInviteJpaRepository extends JpaRepository<AthleteInviteJ
 	Optional<AthleteInviteJpaEntity> findByTokenHashForUpdate(@Param("tokenHash") String tokenHash);
 
 	List<AthleteInviteJpaEntity> findByAthleteIdAndUsedAtIsNullAndRevokedAtIsNull(UUID athleteId);
+
+	List<AthleteInviteJpaEntity> findByAthleteId(UUID athleteId);
 }
