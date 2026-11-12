@@ -554,7 +554,7 @@ export function useCreateTrainingSession(athleteId: string, periodizationId: str
       );
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.sessions(periodizationId) }),
+    onSuccess: () => invalidateSessionCaches(queryClient, periodizationId),
   });
 }
 
@@ -573,9 +573,7 @@ export function useAddExerciseToSession(periodizationId: string, sessionId: stri
       );
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: keys.sessions(periodizationId) });
-    },
+    onSuccess: () => invalidateSessionCaches(queryClient, periodizationId),
   });
 }
 
@@ -590,7 +588,7 @@ export function useReorderSessionExercises(periodizationId: string, sessionId: s
       );
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.sessions(periodizationId) }),
+    onSuccess: () => invalidateSessionCaches(queryClient, periodizationId),
   });
 }
 
@@ -738,7 +736,7 @@ export function useTransitionTrainingPlan(athleteId: string, periodizationId: st
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keys.plans(athleteId) });
-      queryClient.invalidateQueries({ queryKey: keys.sessions(periodizationId) });
+      invalidateSessionCaches(queryClient, periodizationId);
     },
   });
 }
@@ -757,6 +755,6 @@ export function useTransitionTrainingSession(
       );
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.sessions(periodizationId) }),
+    onSuccess: () => invalidateSessionCaches(queryClient, periodizationId),
   });
 }

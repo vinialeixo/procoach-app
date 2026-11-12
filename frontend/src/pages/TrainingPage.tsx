@@ -16,6 +16,7 @@ import {
   comparePlanVersions,
   useAddExerciseToSession,
   useApplyCurrentExerciseVersion,
+  useAthleteTrainingSessions,
   useCreatePeriodization,
   useCreateTrainingPlan,
   useCreateTrainingPlanVersion,
@@ -25,7 +26,6 @@ import {
   useRemoveExercisePrescription,
   useReorderSessionExercises,
   useTrainingPlans,
-  useTrainingSessions,
   useTransitionTrainingPlan,
   useTransitionTrainingSession,
   useUpdateExercisePrescription,
@@ -80,13 +80,13 @@ export function TrainingPage() {
   );
   const planId = isPlanInvalid ? "" : rawPlanId;
 
-  const sessionsQuery = useTrainingSessions(periodizationId);
+  const sessionsQuery = useAthleteTrainingSessions(athleteId, planId);
   const sessions = useMemo(
     () =>
       (sessionsQuery.data ?? [])
-        .filter((session) => session.planId === planId)
+        .slice()
         .sort((a, b) => a.weekNumber - b.weekNumber || a.dayOfWeek - b.dayOfWeek),
-    [sessionsQuery.data, planId]
+    [sessionsQuery.data]
   );
 
   const isSessionInvalid = Boolean(
@@ -143,9 +143,11 @@ export function TrainingPage() {
   const previousPlan = selectedPlan?.previousVersionId
     ? plans.find((plan) => plan.id === selectedPlan.previousVersionId)
     : undefined;
-  const previousPlanSessions = (sessionsQuery.data ?? []).filter(
-    (session) => session.planId === previousPlan?.id
+  const previousPlanSessionsQuery = useAthleteTrainingSessions(
+    athleteId,
+    previousPlan?.id ?? ""
   );
+  const previousPlanSessions = previousPlanSessionsQuery.data ?? [];
   const planComparison =
     selectedPlan && previousPlan
       ? comparePlanVersions(

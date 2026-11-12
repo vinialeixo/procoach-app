@@ -69,7 +69,8 @@ beforeEach(() => {
 });
 
 function setupMocks() {
-  vi.mocked(apiClient.get).mockImplementation((url: string) => {
+  vi.mocked(apiClient.get).mockImplementation((url: string, config?: unknown) => {
+    const requestConfig = config as { params?: { planId?: string } } | undefined;
     if (url === "/athletes") {
       return Promise.resolve({ data: mockAthletes });
     }
@@ -78,6 +79,12 @@ function setupMocks() {
     }
     if (url.includes("/api/training/plans/athlete/ath-1")) {
       return Promise.resolve({ data: mockPlans });
+    }
+    if (url.includes("/api/training/trainings/athlete/ath-1")) {
+      if (!requestConfig?.params?.planId || requestConfig.params.planId === "plan-1") {
+        return Promise.resolve({ data: mockSessions });
+      }
+      return Promise.resolve({ data: [] });
     }
     if (url.includes("/api/training/trainings/periodization/per-1")) {
       return Promise.resolve({ data: mockSessions });
@@ -291,5 +298,43 @@ describe("TrainingPage (Issues #39, #40, #41)", () => {
         expect.any(Object)
       );
     });
+  });
+
+  it("busca sessões filtrando por planId diretamente no backend (Issue #45)", async () => {
+    setupMocks();
+
+    render(
+      <QueryClientProvider client={createClient()}>
+        <MemoryRouter
+          initialEntries={[
+            "/coach/training?athlete=ath-1&periodization=per-1&plan=plan-1",
+          ]}
+        >
+          <Routes>
+            <Route path="/coach/training" element={<TrainingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Treino A - Peito")).toBeInTheDocument();
+    });
+
+    // Garante que a requisição de treinos foi feita diretamente por atleta e planId
+    expect(apiClient.get).toHaveBeenCalledWith(
+      "/api/training/trainings/athlete/ath-1",
+      expect.objectContaining({
+        params: { planId: "plan-1" },
+      })
+    );
+
+    // Garante que não busca mais todas as sessões da periodização
+    const calledUrls = vi.mocked(apiClient.get).mock.calls.map((call) => call[0]);
+    expect(
+      calledUrls.some((url) =>
+        url.includes("/api/training/trainings/periodization/per-1")
+      )
+    ).toBe(false);
   });
 });
