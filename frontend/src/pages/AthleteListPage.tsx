@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
 import { COACH_NAV } from "@/lib/coach-nav";
 import { DataTable, Column } from "@/components/ui/DataTable";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { AthleteAccessBadge, StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { StateMessage } from "@/components/ui/StateMessage";
@@ -25,6 +25,7 @@ const STATUS_OPTIONS: { value: "" | AthleteStatus; label: string }[] = [
 const columns: Column<Athlete>[] = [
   { key: "name", header: "Nome", render: (a) => a.name },
   { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
+  { key: "access", header: "Acesso", render: (a) => <AthleteAccessBadge athlete={a} /> },
   { key: "goal", header: "Objetivo", render: (a) => GOAL_LABEL[a.goal] },
 ];
 

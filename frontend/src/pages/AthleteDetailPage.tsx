@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AppShell } from "@/layouts/AppShell";
 import { COACH_NAV } from "@/lib/coach-nav";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { AthleteAccessBadge, StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextareaField } from "@/components/ui/TextareaField";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { GOAL_LABEL, SEX_LABEL, useAthlete, useChangeAthleteStatus } from "@/lib/athletes";
 import { AthleteAssessmentsPanel } from "./AthleteAssessmentsPanel";
 import { AthleteDietsPanel } from "./AthleteDietsPanel";
+import { AthleteInvitesSection } from "./AthleteInvitesSection";
 import { InviteAthleteModal } from "./InviteAthleteModal";
 import "./AthleteDetail.css";
 
@@ -147,7 +148,13 @@ export function AthleteDetailPage() {
           </div>
           <div className="athlete-detail__status">
             <StatusBadge status={athlete.status} />
-            <Button variant="ghost" onClick={() => setInviteModalOpen(true)}>
+            <AthleteAccessBadge athlete={athlete} />
+            <Button
+              variant="ghost"
+              onClick={() => setInviteModalOpen(true)}
+              disabled={athlete.hasCredential}
+              title={athlete.hasCredential ? "Atleta já possui credencial de acesso" : undefined}
+            >
               Convidar para o app
             </Button>
             <Button variant="ghost" onClick={() => setStatusModalOpen(true)}>
@@ -163,6 +170,11 @@ export function AthleteDetailPage() {
           <div><dt>Peso</dt><dd>{athlete.weightKg} kg</dd></div>
           <div className="athlete-detail__goal"><dt>Objetivo</dt><dd>{GOAL_LABEL[athlete.goal]}</dd></div>
         </dl>
+
+        <AthleteInvitesSection
+          athlete={athlete}
+          onOpenInviteModal={() => setInviteModalOpen(true)}
+        />
 
         <div
           className="athlete-detail__tabs"
@@ -229,6 +241,7 @@ export function AthleteDetailPage() {
         open={inviteModalOpen}
         athleteId={athlete.id}
         athleteName={athlete.name}
+        defaultEmail={athlete.email}
         onClose={() => setInviteModalOpen(false)}
       />
 

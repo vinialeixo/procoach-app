@@ -16,9 +16,9 @@ O backlog é dividido por ambiente. Os IDs são globais e não foram renumerados
 
 | Arquivo | Escopo | Tasks |
 |---|---|---|
-| [`backend/TASKS.md`](backend/TASKS.md) | Núcleo Java, RAG (Python), infra, segurança, testes de regra de negócio | 88 |
-| [`frontend/TASKS.md`](frontend/TASKS.md) | SPA: telas, design system, tooling | 27 |
-| este arquivo | Transversais: estratégia de QA, E2E integrado, UAT | 6 |
+| [`backend/TASKS.md`](backend/TASKS.md) | Núcleo Java, RAG (Python), infra, segurança, testes de regra de negócio | 89 |
+| [`frontend/TASKS.md`](frontend/TASKS.md) | SPA: telas, design system, tooling | 28 |
+| este arquivo | Transversais: estratégia de QA, E2E integrado, UAT | 7 |
 
 Critério: a task entra em `frontend/` se o entregável é código da SPA (tasks "Front: ..." e setup do front). Entra aqui se só faz sentido com front e back juntos (E2E, UAT, plano de QA). O resto fica em `backend/`, inclusive testes de QA de regra de negócio e hardening.
 
@@ -46,6 +46,7 @@ Critério: a task entra em `frontend/` se o entregável é código da SPA (tasks
 | Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
 |---|---|---|---|---|---|---|---|---|
 | [ ] | **T-042** | - | MVP | Testes E2E integrados de todo o fluxo do MVP | QA | Must | 3 | T-041 |
+| [ ] | **T-097** | - | MVP | QA: rodar o teste de integração Playwright (`frontend/athlete-access-and-invites.spec.ts`) no CI, com backend H2 + Vite; documentar a execução local e definir se vira required. *(QA 2026-11-12 — integração PR #121/#118, GitHub #123.)* | QA | Should | 1 | T-042 |
 | [ ] | **T-045** | - | MVP | UAT / testes de aceite final | QA | Must | 2 | T-044 |
 
 ### Resumo por Sprint — MVP
@@ -54,8 +55,8 @@ Critério: a task entra em `frontend/` se o entregável é código da SPA (tasks
 |---|---|---|---|---|
 | S1 | Fundação + Segurança + Auditoria | 1 | 0 | 2 |
 | S2 | Atletas + Auditoria | 1 | 0 | 2 |
-| S6 | Integração + Hardening + UAT | 2 | 0 | 5 |
-| TOTAL |  | 4 | 0 | 9 |
+| S6 | Integração + Hardening + UAT | 3 | 0 | 6 |
+| TOTAL |  | 5 | 0 | 10 |
 
 
 ---

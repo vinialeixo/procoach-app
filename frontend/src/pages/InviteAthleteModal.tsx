@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Modal } from "@/components/ui/Modal";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { inviteUrl, useCreateInvite, type Invite } from "@/lib/invites";
+import { getInviteErrorMessage, inviteUrl, useCreateInvite, type Invite } from "@/lib/invites";
 
 // Coach gera o convite do atleta (primeira credencial). Não há envio de
 // e-mail: o link aparece uma única vez e o coach o repassa ao atleta. Gerar
@@ -20,10 +20,11 @@ type Props = {
   open: boolean;
   athleteId: string;
   athleteName: string;
+  defaultEmail?: string | null;
   onClose: () => void;
 };
 
-export function InviteAthleteModal({ open, athleteId, athleteName, onClose }: Props) {
+export function InviteAthleteModal({ open, athleteId, athleteName, defaultEmail, onClose }: Props) {
   const createInvite = useCreateInvite();
   const [invite, setInvite] = useState<Invite | null>(null);
   const [copied, setCopied] = useState(false);
@@ -33,7 +34,16 @@ export function InviteAthleteModal({ open, athleteId, athleteName, onClose }: Pr
     reset,
     setError,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: defaultEmail ?? "" },
+  });
+
+  useEffect(() => {
+    if (open) {
+      reset({ email: defaultEmail ?? "" });
+    }
+  }, [open, defaultEmail, reset]);
 
   function close() {
     setInvite(null);
@@ -47,12 +57,8 @@ export function InviteAthleteModal({ open, athleteId, athleteName, onClose }: Pr
     try {
       setInvite(await createInvite.mutateAsync({ athleteId, email: values.email }));
     } catch (error) {
-      const status = (error as { response?: { status?: number } }).response?.status;
       setError("root", {
-        message:
-          status === 409
-            ? "Este atleta já tem acesso ou o e-mail já está em uso."
-            : "Não foi possível gerar o convite. Tente novamente.",
+        message: getInviteErrorMessage(error),
       });
     }
   }

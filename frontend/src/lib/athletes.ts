@@ -41,9 +41,43 @@ export const GOAL_LABEL: Record<Goal, string> = {
   RECOMPOSITION: "Recomposição",
 };
 
+/** Convite pendente retornado pelo backend (AthleteResponse.pendingInvite, T-077). */
+export type PendingInviteSummary = {
+  id: string;
+  email: string;
+  expiresAt: string;
+};
+
+/**
+ * Estado de acesso do atleta ao app (T-082 / Issue #98):
+ * - HAS_ACCESS: já possui credencial criada (hasCredential = true).
+ * - INVITE_PENDING: convite ativo e aguardando aceite (pendingInvite != null).
+ * - NO_ACCESS: sem credencial e sem convite pendente.
+ */
+export type AthleteAccessStatus = "HAS_ACCESS" | "INVITE_PENDING" | "NO_ACCESS";
+
+export const ATHLETE_ACCESS_LABEL: Record<AthleteAccessStatus, string> = {
+  HAS_ACCESS: "Tem acesso",
+  INVITE_PENDING: "Convite pendente",
+  NO_ACCESS: "Sem acesso",
+};
+
+export function getAthleteAccessStatus(
+  athlete: Pick<Athlete, "hasCredential" | "pendingInvite">
+): AthleteAccessStatus {
+  if (athlete.hasCredential) {
+    return "HAS_ACCESS";
+  }
+  if (athlete.pendingInvite) {
+    return "INVITE_PENDING";
+  }
+  return "NO_ACCESS";
+}
+
 export type Athlete = {
   id: string; // ID único e imutável (US-002) — exibido na ficha
   name: string;
+  email?: string | null;
   sex: Sex;
   birthDate: string; // ISO yyyy-mm-dd
   heightCm: number;
@@ -51,10 +85,13 @@ export type Athlete = {
   goal: Goal;
   status: AthleteStatus;
   createdAt: string;
+  hasCredential?: boolean;
+  pendingInvite?: PendingInviteSummary | null;
 };
 
 export type CreateAthletePayload = {
   name: string;
+  email?: string;
   sex: Sex;
   birthDate: string;
   heightCm: number;
@@ -67,10 +104,11 @@ export type ChangeStatusPayload = {
   reason: string; // motivo obrigatório (US-005, RF-42)
 };
 
-// Formato do backend (AthleteResponse).
+// Formato do backend (AthleteResponse / T-077 / T-078).
 type ApiAthlete = {
   id: string;
   name: string;
+  email?: string | null;
   sex: Sex;
   birthDate: string;
   height: number;
@@ -78,12 +116,15 @@ type ApiAthlete = {
   goal: Goal;
   status: AthleteStatus;
   createdAt: string;
+  hasCredential?: boolean;
+  pendingInvite?: PendingInviteSummary | null;
 };
 
 function toAthlete(a: ApiAthlete): Athlete {
   return {
     id: a.id,
     name: a.name,
+    email: a.email ?? null,
     sex: a.sex,
     birthDate: a.birthDate,
     heightCm: a.height,
@@ -91,6 +132,8 @@ function toAthlete(a: ApiAthlete): Athlete {
     goal: a.goal,
     status: a.status,
     createdAt: a.createdAt,
+    hasCredential: Boolean(a.hasCredential),
+    pendingInvite: a.pendingInvite ?? null,
   };
 }
 
@@ -109,9 +152,11 @@ async function getAthlete(id: string): Promise<Athlete> {
 }
 
 async function createAthlete(payload: CreateAthletePayload): Promise<Athlete> {
-  const { heightCm, weightKg, ...rest } = payload;
+  const { heightCm, weightKg, email, ...rest } = payload;
+  const cleanEmail = email?.trim();
   const { data } = await apiClient.post<ApiAthlete>("/athletes", {
     ...rest,
+    ...(cleanEmail ? { email: cleanEmail } : {}),
     height: heightCm,
     weight: weightKg,
   });
