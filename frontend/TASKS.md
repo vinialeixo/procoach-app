@@ -3,7 +3,7 @@
 > Tasks da SPA (`frontend/`): telas, design system e tooling do front.
 > Backlog completo, convenções de status e contexto: [`TASKS.md` na raiz](../TASKS.md).
 > Os IDs (`T-xxx`, `M2-xxx`) são globais — a coluna "Depende de" pode apontar para task de outro arquivo (`backend/TASKS.md` ou o `TASKS.md` da raiz).
-> Total neste arquivo: **27** tasks.
+> Total neste arquivo: **28** tasks.
 
 ---
 
@@ -84,6 +84,7 @@
 | [ ] | **T-093** | E3 | US-07 | Front: editor de dieta por refeições e itens — criar/reordenar refeições, buscar alimento TACO, quantidade em gramas (peso cru), medida caseira, `RAW`/`AS_SERVED`, `SUPPLEMENT_CALORIC`, totais calculados e seção de suplementos. *(Análise PO/Nutrição 2026-11-11 — GitHub #64, `docs/nutricao-plano-alimentar.md`.)* | Dev | Must (sugerido) | 5 | T-085, T-086 |
 | [ ] | **T-094** | E3 | US-07 | Front: avisos nutricionais e faixas de referência no editor — inconsistência 4/4/9, macro zerado, kcal vs TMB, déficit agressivo, proteína/gordura/fibras; confirmação de ciência sem bloquear e sem aprovar sozinho. *(Análise PO/Nutrição 2026-11-11 — GitHub #65, `docs/nutricao-plano-alimentar.md`.)* | Dev | Should (sugerido) | 2 | T-087 |
 | [ ] | **T-095** | E1/E3 | US-38 | Front: visão do atleta por refeição — horários, alimentos, gramaturas (peso cru), medidas caseiras, suplementos separados e lista de compras por categoria; só versão aprovada, 404 = sem dieta. *(Análise PO/Nutrição 2026-11-11 — GitHub #66, `docs/nutricao-plano-alimentar.md`.)* | Dev | Should (sugerido) | 3 | T-093, T-054 |
+| [ ] | **T-098** | E1/E9 | US-01/US-20 | Front: UX do link de convite após recarregar/trocar de sessão — o token só existe na criação; exibir orientação quando o convite `PENDING` não tem link em cache, garantir "Gerar novo convite" (com aviso de revogação) e avaliar reemissão em um passo. *(QA 2026-11-12 — integração PR #121/#118, GitHub #124.)* | Dev | Should (sugerido) | 1 | T-082, T-077 |
 
 > **MFA/TOTP desligado em 2026-11-03** (decisão do time, backlog `T-059`/`T-060`): o login passa a
 > exigir só e-mail e senha. No front foram removidos a etapa de código do login, a tela `/registro/mfa` e os hooks de MFA; o cadastro agora vai direto para a área do coach.
