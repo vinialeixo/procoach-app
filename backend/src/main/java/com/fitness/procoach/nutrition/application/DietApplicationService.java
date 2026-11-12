@@ -15,7 +15,14 @@ import com.fitness.procoach.nutrition.domain.EnergyBalanceCalculator;
 import com.fitness.procoach.nutrition.domain.DietObjective;
 import com.fitness.procoach.nutrition.domain.DietRepository;
 import com.fitness.procoach.nutrition.domain.DietStatus;
+import com.fitness.procoach.nutrition.domain.FoodKind;
+import com.fitness.procoach.nutrition.domain.FoodSource;
+import com.fitness.procoach.nutrition.domain.FoodState;
 import com.fitness.procoach.nutrition.domain.Macronutrients;
+import com.fitness.procoach.nutrition.domain.Meal;
+import com.fitness.procoach.nutrition.domain.MealId;
+import com.fitness.procoach.nutrition.domain.MealItem;
+import com.fitness.procoach.nutrition.domain.MealItemId;
 import java.util.List;
 import java.util.Comparator;
 import java.util.UUID;
@@ -210,6 +217,99 @@ public class DietApplicationService {
 						"Athlete has no assessment; register one to calculate the energy balance"));
 		return new DietEnergyBalance(diet, profile,
 				EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal()));
+	}
+
+	/** Adiciona uma refeição à dieta (T-085). */
+	@Transactional
+	public Diet addMeal(UUID userId, UUID dietId, AddMealCommand command) {
+		Diet diet = findOwnedById(new DietId(dietId), userId);
+		Meal meal = Meal.create(command.name(), command.order(), command.time(), command.notes(),
+				command.target() != null ? Macronutrients.of(command.target().calories(), command.target().protein(),
+						command.target().carbohydrates(), command.target().fat()) : null);
+		diet.addMeal(meal);
+		Diet saved = repository.save(diet);
+		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "MEAL_ADDED", userId,
+				AuditData.of("mealId", meal.id().value(), "mealName", meal.name(), "version", saved.version()));
+		return saved;
+	}
+
+	/** Adiciona um item a uma refeição da dieta (T-085). */
+	@Transactional
+	public Diet addMealItem(UUID userId, UUID dietId, UUID mealId, AddMealItemCommand command) {
+		Diet diet = findOwnedById(new DietId(dietId), userId);
+		Meal meal = diet.meals().stream()
+				.filter(m -> m.id().value().equals(mealId))
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("Meal not found: " + mealId));
+
+		MealItem item = MealItem.create(
+				command.foodId(),
+				command.name(),
+				command.source(),
+				command.kind(),
+				command.state(),
+				command.quantityG(),
+				command.householdMeasure(),
+				command.preparation(),
+				Macronutrients.of(command.calories(), command.protein(), command.carbohydrates(), command.fat()));
+		meal.addItem(item);
+		diet.recalculateMacrosFromMeals();
+		Diet saved = repository.save(diet);
+		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "MEAL_ITEM_ADDED", userId,
+				AuditData.of("mealId", mealId, "itemId", item.id().value(), "itemName", item.name(), "version", saved.version()));
+		return saved;
+	}
+
+	/** Remove um item de uma refeição da dieta (T-085). */
+	@Transactional
+	public Diet removeMealItem(UUID userId, UUID dietId, UUID mealId, UUID itemId) {
+		Diet diet = findOwnedById(new DietId(dietId), userId);
+		Meal meal = diet.meals().stream()
+				.filter(m -> m.id().value().equals(mealId))
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("Meal not found: " + mealId));
+
+		boolean removed = meal.removeItem(new MealItemId(itemId));
+		if (!removed) {
+			throw new IllegalArgumentException("MealItem not found: " + itemId);
+		}
+		diet.recalculateMacrosFromMeals();
+		Diet saved = repository.save(diet);
+		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "MEAL_ITEM_REMOVED", userId,
+				AuditData.of("mealId", mealId, "itemId", itemId, "version", saved.version()));
+		return saved;
+	}
+
+	/** Remove uma refeição da dieta (T-085). */
+	@Transactional
+	public Diet removeMeal(UUID userId, UUID dietId, UUID mealId) {
+		Diet diet = findOwnedById(new DietId(dietId), userId);
+		String mealName = diet.meals().stream()
+				.filter(m -> m.id().value().equals(mealId))
+				.findFirst()
+				.map(Meal::name)
+				.orElse("unknown");
+
+		boolean removed = diet.removeMeal(new MealId(mealId));
+		if (!removed) {
+			throw new IllegalArgumentException("Meal not found: " + mealId);
+		}
+		Diet saved = repository.save(diet);
+		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "MEAL_REMOVED", userId,
+				AuditData.of("mealId", mealId, "mealName", mealName, "version", saved.version()));
+		return saved;
+	}
+
+	public record AddMealCommand(UUID userId, UUID dietId, String name, int order, String time, String notes,
+			MealTarget target) {
+	}
+
+	public record MealTarget(double calories, double protein, double carbohydrates, double fat) {
+	}
+
+	public record AddMealItemCommand(UUID userId, UUID dietId, UUID mealId, String foodId, String name,
+			FoodSource source, FoodKind kind, FoodState state, double quantityG, String householdMeasure,
+			String preparation, double calories, double protein, double carbohydrates, double fat) {
 	}
 
 	public record NewVersionCommand(UUID userId, UUID dietId, DietObjective objective,

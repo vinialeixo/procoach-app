@@ -2,13 +2,19 @@ package com.fitness.procoach.nutrition.infrastructure;
 
 import com.fitness.procoach.nutrition.domain.DietObjective;
 import com.fitness.procoach.nutrition.domain.DietStatus;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -74,6 +80,10 @@ public class DietJpaEntity {
 
 	@Column(nullable = false)
 	private boolean deleted;
+
+	@OneToMany(mappedBy = "diet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	@OrderBy("orderIndex")
+	private List<MealJpaEntity> meals = new ArrayList<>();
 
 	protected DietJpaEntity() {
 	}
@@ -220,5 +230,23 @@ public class DietJpaEntity {
 
 	public void setDeleted(boolean deleted) {
 		this.deleted = deleted;
+	}
+
+	public List<MealJpaEntity> getMeals() {
+		return meals;
+	}
+
+	public void setMeals(List<MealJpaEntity> meals) {
+		this.meals = meals;
+	}
+
+	public void addMeal(MealJpaEntity meal) {
+		meals.add(meal);
+		meal.setDiet(this);
+	}
+
+	public void removeMeal(MealJpaEntity meal) {
+		meals.remove(meal);
+		meal.setDiet(null);
 	}
 }

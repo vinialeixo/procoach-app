@@ -5,6 +5,9 @@ import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.nutrition.application.DietApplicationService;
 import com.fitness.procoach.nutrition.domain.Diet;
 import com.fitness.procoach.nutrition.domain.DietId;
+import com.fitness.procoach.nutrition.domain.FoodKind;
+import com.fitness.procoach.nutrition.domain.FoodSource;
+import com.fitness.procoach.nutrition.domain.FoodState;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -18,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -206,6 +210,81 @@ public class DietController {
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
 		requireCoachOwnsAthlete(jwt, athleteId);
 		return service.historyByAthlete(athleteId, isAthlete(jwt)).stream().map(DietResponse::from).toList();
+	}
+
+	// ===== T-085: Meal Management Endpoints =====
+
+	@Operation(summary = "Adicionar refeição à dieta",
+			description = "Adiciona uma refeição a uma versão da dieta (T-085). Apenas versões não read-only (DRAFT).")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "Refeição adicionada"),
+			@ApiResponse(responseCode = "404", description = "Dieta não encontrada ou de outro coach"),
+			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida") })
+	@PreAuthorize("hasRole('COACH')")
+	@PostMapping("/{id}/meals")
+	public ResponseEntity<DietResponse> addMeal(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador da dieta") @PathVariable UUID id,
+			@Valid @RequestBody AddMealRequest request) {
+		Diet diet = service.addMeal(UUID.fromString(jwt.getSubject()), id,
+				new DietApplicationService.AddMealCommand(UUID.fromString(jwt.getSubject()), id,
+						request.name(), request.order(), request.time(), request.notes(),
+						request.target() != null ? new DietApplicationService.MealTarget(
+								request.target().calories(), request.target().protein(),
+								request.target().carbohydrates(), request.target().fat()) : null));
+		URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
+				.path("/api/v1/diets/{id}")
+				.buildAndExpand(diet.id().value())
+				.toUri();
+		return ResponseEntity.created(location).body(DietResponse.from(diet));
+	}
+
+	@Operation(summary = "Adicionar item a uma refeição",
+			description = "Adiciona um item de alimento a uma refeição da dieta (T-085). Macros são snapshot no momento da prescrição.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Item adicionado"),
+			@ApiResponse(responseCode = "404", description = "Dieta ou refeição não encontrada"),
+			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida") })
+	@PreAuthorize("hasRole('COACH')")
+	@PostMapping("/{id}/meals/{mealId}/items")
+	public DietResponse addMealItem(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador da dieta") @PathVariable UUID id,
+			@Parameter(description = "Identificador da refeição") @PathVariable UUID mealId,
+			@Valid @RequestBody AddMealItemRequest request) {
+		return DietResponse.from(service.addMealItem(UUID.fromString(jwt.getSubject()), id, mealId,
+				new DietApplicationService.AddMealItemCommand(UUID.fromString(jwt.getSubject()), id, mealId,
+						request.foodId(), request.name(), request.source(), request.kind(),
+						request.state(), request.quantityG(), request.householdMeasure(),
+						request.preparation(), request.calories(), request.protein(),
+						request.carbohydrates(), request.fat())));
+	}
+
+	@Operation(summary = "Remover item de uma refeição",
+			description = "Remove um item de uma refeição da dieta (T-085). Recalcula os totais automaticamente.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Item removido"),
+			@ApiResponse(responseCode = "404", description = "Dieta, refeição ou item não encontrado"),
+			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida") })
+	@PreAuthorize("hasRole('COACH')")
+	@DeleteMapping("/{id}/meals/{mealId}/items/{itemId}")
+	public DietResponse removeMealItem(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador da dieta") @PathVariable UUID id,
+			@Parameter(description = "Identificador da refeição") @PathVariable UUID mealId,
+			@Parameter(description = "Identificador do item") @PathVariable UUID itemId) {
+		return DietResponse.from(service.removeMealItem(UUID.fromString(jwt.getSubject()), id, mealId, itemId));
+	}
+
+	@Operation(summary = "Remover refeição da dieta",
+			description = "Remove uma refeição e todos os seus itens da dieta (T-085). Recalcula os totais automaticamente.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Refeição removida"),
+			@ApiResponse(responseCode = "404", description = "Dieta ou refeição não encontrada"),
+			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida") })
+	@PreAuthorize("hasRole('COACH')")
+	@DeleteMapping("/{id}/meals/{mealId}")
+	public DietResponse removeMeal(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador da dieta") @PathVariable UUID id,
+			@Parameter(description = "Identificador da refeição") @PathVariable UUID mealId) {
+		return DietResponse.from(service.removeMeal(UUID.fromString(jwt.getSubject()), id, mealId));
 	}
 
 	/**

@@ -20,6 +20,8 @@ import java.util.UUID;
  *   <li>Objetivo definido na criação (US-011).</li>
  *   <li>Exclusão lógica (soft-delete), nunca DELETE físico.</li>
  *   <li>Referências a outros agregados por UUID (coachId, athleteId).</li>
+ *   <li>Totais de macros são <b>derivados dos itens das refeições</b> quando há refeições
+ *       (T-085 / docs/nutricao-plano-alimentar.md §3.3).</li>
  * </ul>
  *
  * <p>Framework-agnostic: nenhuma anotação Spring/JPA neste pacote.
@@ -30,7 +32,7 @@ public class Diet {
     private final CoachId coachId;
     private final AthleteId athleteId;
     private DietObjective objective;
-    private Macronutrients macros;
+    private Macronutrients macros; // snapshot dos totais (metas ou derivados dos itens)
     private DietStatus status;
     private final int version;
     private final DietId previousVersionId;
@@ -41,6 +43,7 @@ public class Diet {
     private Instant updatedAt;
     private boolean readOnly;
     private boolean deleted;
+    private final List<Meal> meals = new ArrayList<>();
     private final List<DietEvent> domainEvents = new ArrayList<>();
 
     private Diet(DietId id, CoachId coachId, AthleteId athleteId, DietObjective objective,
@@ -73,10 +76,14 @@ public class Diet {
                                     DietStatus status, int version, DietId previousVersionId,
                                     String changeReason, UUID createdBy, UUID updatedBy,
                                     Instant createdAt, Instant updatedAt, boolean readOnly,
-                                    boolean deleted) {
-        return new Diet(id, coachId, athleteId, objective, macros, status, version,
+                                    boolean deleted, List<Meal> meals) {
+        Diet diet = new Diet(id, coachId, athleteId, objective, macros, status, version,
                 previousVersionId, changeReason, createdBy, updatedBy, createdAt, updatedAt,
                 readOnly, deleted);
+        if (meals != null) {
+            diet.meals.addAll(meals);
+        }
+        return diet;
     }
 
     /**
@@ -94,6 +101,7 @@ public class Diet {
     /**
      * Cria uma nova versão a partir desta. A versão atual torna-se somente leitura.
      * O motivo da alteração é obrigatório (US-016).
+     * As refeições e itens são copiados (snapshot) para a nova versão.
      */
     public Diet createNewVersion(DietObjective newObjective, Macronutrients newMacros,
                                  String changeReason, UUID changedBy) {
@@ -110,11 +118,124 @@ public class Diet {
         this.readOnly = true;
         this.updatedBy = changedBy;
         this.updatedAt = now;
+
+        // Copia refeições e itens (deep copy para nova versão)
+        List<Meal> copiedMeals = new ArrayList<>();
+        for (Meal meal : this.meals) {
+            List<MealItem> copiedItems = new ArrayList<>();
+            for (MealItem item : meal.items()) {
+                copiedItems.add(MealItem.reconstitute(
+                        MealItemId.random(), item.foodId(), item.name(), item.source(),
+                        item.kind(), item.state(), item.quantityG(),
+                        item.householdMeasure(), item.preparation(), item.macrosSnapshot()));
+            }
+            Meal copiedMeal = Meal.reconstitute(
+                    MealId.random(), meal.name(), meal.order(), meal.time(),
+                    meal.notes(), meal.target(), copiedItems);
+            copiedMeals.add(copiedMeal);
+        }
+
         Diet next = new Diet(DietId.random(), coachId, athleteId, newObjective, newMacros,
                 DietStatus.DRAFT, version + 1, id, changeReason, changedBy, changedBy, now, now, false, false);
+        next.meals.addAll(copiedMeals);
+
+        // Recalcula macros da nova versão a partir dos itens copiados
+        next.recalculateMacrosFromMeals();
+
         next.registerEvent(new DietVersioned(next.id, id, version + 1, newObjective, newMacros,
                 changeReason, changedBy, now));
         return next;
+    }
+
+    /**
+     * Adiciona uma refeição à dieta.
+     */
+    public void addMeal(Meal meal) {
+        Objects.requireNonNull(meal, "meal");
+        if (readOnly) {
+            throw new IllegalStateException("Cannot add meal to a read-only version");
+        }
+        if (deleted) {
+            throw new IllegalStateException("Cannot add meal to a deleted diet");
+        }
+        meals.add(meal);
+        recalculateMacrosFromMeals();
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Remove uma refeição da dieta pelo id.
+     */
+    public boolean removeMeal(MealId mealId) {
+        if (readOnly) {
+            throw new IllegalStateException("Cannot remove meal from a read-only version");
+        }
+        if (deleted) {
+            throw new IllegalStateException("Cannot remove meal from a deleted diet");
+        }
+        boolean removed = meals.removeIf(m -> m.id().equals(mealId));
+        if (removed) {
+            recalculateMacrosFromMeals();
+            this.updatedAt = Instant.now();
+        }
+        return removed;
+    }
+
+    /**
+     * Recalcula os macros da dieta a partir dos itens das refeições.
+     * Chamado automaticamente ao adicionar/remover refeições ou itens.
+     */
+    public void recalculateMacrosFromMeals() {
+        if (meals.isEmpty()) {
+            return; // mantém macros informados manualmente (modo MACRO_BUDGET)
+        }
+        double calories = 0;
+        double protein = 0;
+        double carbohydrates = 0;
+        double fat = 0;
+        boolean hasAnyItems = false;
+        for (Meal meal : meals) {
+            Macronutrients totals = meal.calculateTotals();
+            if (totals != null) {
+                calories += totals.calories();
+                protein += totals.protein();
+                carbohydrates += totals.carbohydrates();
+                fat += totals.fat();
+                hasAnyItems = true;
+            }
+        }
+        if (hasAnyItems) {
+            this.macros = Macronutrients.of(calories, protein, carbohydrates, fat);
+        }
+    }
+
+    /**
+     * Retorna os totais calculados a partir das refeições (somente leitura).
+     * Se não houver refeições ou itens, retorna os macros armazenados (modo MACRO_BUDGET).
+     */
+    public Macronutrients calculateTotalsFromMeals() {
+        if (meals.isEmpty()) {
+            return macros;
+        }
+        double calories = 0;
+        double protein = 0;
+        double carbohydrates = 0;
+        double fat = 0;
+        boolean hasAnyItems = false;
+        for (Meal meal : meals) {
+            Macronutrients totals = meal.calculateTotals();
+            if (totals != null) {
+                calories += totals.calories();
+                protein += totals.protein();
+                carbohydrates += totals.carbohydrates();
+                fat += totals.fat();
+                hasAnyItems = true;
+            }
+        }
+        if (hasAnyItems) {
+            return Macronutrients.of(calories, protein, carbohydrates, fat);
+        }
+        return macros;
     }
 
     /**
@@ -233,5 +354,12 @@ public class Diet {
 
     public boolean isDeleted() {
         return deleted;
+    }
+
+    /**
+     * Retorna as refeições da dieta (somente leitura).
+     */
+    public List<Meal> meals() {
+        return Collections.unmodifiableList(meals);
     }
 }
