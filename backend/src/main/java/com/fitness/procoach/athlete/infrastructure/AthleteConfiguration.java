@@ -1,5 +1,6 @@
 package com.fitness.procoach.athlete.infrastructure;
 
+import com.fitness.procoach.athlete.application.AthleteAccessInfoProvider;
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.athlete.application.AthleteApplicationService;
 import com.fitness.procoach.audit.application.AuditService;
@@ -16,8 +17,9 @@ public class AthleteConfiguration {
 
 	@Bean
 	public AthleteApplicationService athleteApplicationService(AthleteRepository repository,
-			CoachApplicationService coachService, AuditService auditService) {
-		return new AthleteApplicationService(repository, coachService, auditService);
+			CoachApplicationService coachService, AuditService auditService,
+			AthleteAccessInfoProvider accessInfo) {
+		return new AthleteApplicationService(repository, coachService, auditService, accessInfo);
 	}
 
 	@Bean

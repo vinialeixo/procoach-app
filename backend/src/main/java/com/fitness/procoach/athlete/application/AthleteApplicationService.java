@@ -28,12 +28,14 @@ public class AthleteApplicationService {
 	private final AthleteRepository repository;
 	private final CoachApplicationService coachService;
 	private final AuditService auditService;
+	private final AthleteAccessInfoProvider accessInfo;
 
 	public AthleteApplicationService(AthleteRepository repository, CoachApplicationService coachService,
-			AuditService auditService) {
+			AuditService auditService, AthleteAccessInfoProvider accessInfo) {
 		this.auditService = auditService;
 		this.repository = repository;
 		this.coachService = coachService;
+		this.accessInfo = accessInfo;
 	}
 
 	/**
@@ -45,6 +47,12 @@ public class AthleteApplicationService {
 	@Transactional
 	public Athlete register(RegisterAthleteCommand command) {
 		UUID coachId = coachService.requireCoachIdByUserId(command.userId()).value();
+		// T-078: e-mail opcional; se já pertencer a um User, 409 acionável em vez
+		// de deixar o conflito aparecer só na hora do convite.
+		if (command.email() != null && !command.email().isBlank()
+				&& accessInfo.emailBelongsToUser(command.email().trim())) {
+			throw new EmailAlreadyRegisteredAsUserException(command.email().trim());
+		}
 		Athlete athlete = Athlete.register(
 				AthleteId.generate(),
 				coachId,
@@ -131,7 +139,7 @@ public class AthleteApplicationService {
 	}
 
 	public record RegisterAthleteCommand(UUID userId, String name, Sex sex, LocalDate birthDate,
-			BigDecimal height, BigDecimal weight, Goal goal) {
+			BigDecimal height, BigDecimal weight, Goal goal, String email) {
 	}
 
 	public record RemoveAthleteCommand(UUID userId, UUID athleteId) {

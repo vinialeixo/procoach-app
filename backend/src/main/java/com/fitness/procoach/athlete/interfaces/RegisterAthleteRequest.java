@@ -29,5 +29,6 @@ public record RegisterAthleteRequest(
 		@Schema(description = "Peso em quilogramas", example = "62.5")
 		@NotNull(message = "weight é obrigatório") @Positive(message = "weight deve ser positivo") BigDecimal weight,
 		@Schema(description = "Objetivo do acompanhamento", example = "HYPERTROPHY")
-		@NotNull(message = "goal é obrigatório") Goal goal) {
+		@NotNull(message = "goal é obrigatório") Goal goal,
+		@Schema(description = "E-mail do atleta (opcional; usado para dedupe de credencial, T-078)", example = "atleta@test.com") @jakarta.validation.constraints.Email(message = "email inválido") String email) {
 }
