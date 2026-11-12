@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,17 +8,25 @@ import { COACH_NAV } from "@/lib/coach-nav";
 import { Field } from "@/components/ui/Field";
 import { SelectField } from "@/components/ui/SelectField";
 import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import { GOALS, GOAL_LABEL, SEXES, SEX_LABEL, useCreateAthlete } from "@/lib/athletes";
 import "./AthleteForm.css";
 
 // T-019 — Cadastro de atleta (US-001). Persona: Coach.
-// Todos os campos são obrigatórios (RF-01); validação com Zod antes de salvar.
+// Todos os campos são obrigatórios (RF-01), com exceção do e-mail que é opcional
+// para fins de deduplicação e convite direto (T-078 / T-083 / Issue #99).
 // Sucesso -> redireciona para a ficha do atleta criado com banner
 // "cadastrado com sucesso" (critério 2), e o registro passa a aparecer na
 // listagem (critério 3).
 
 const schema = z.object({
   name: z.string().min(1, "Informe o nome"),
+  email: z
+    .string()
+    .trim()
+    .email("E-mail inválido")
+    .optional()
+    .or(z.literal("")),
   sex: z.enum(SEXES, { error: "Selecione o sexo" }),
   birthDate: z.string().min(1, "Informe a data de nascimento"),
   heightCm: z.coerce
@@ -34,6 +43,10 @@ type FormValues = z.output<typeof schema>;
 export function AthleteCreatePage() {
   const navigate = useNavigate();
   const createMutation = useCreateAthlete();
+  const [conflictInfo, setConflictInfo] = useState<{
+    message: string;
+    athleteId?: string;
+  } | null>(null);
   const {
     register,
     handleSubmit,
@@ -44,14 +57,38 @@ export function AthleteCreatePage() {
   });
 
   async function onSubmit(values: FormValues) {
+    setConflictInfo(null);
     try {
       const athlete = await createMutation.mutateAsync(values);
       navigate(`/coach/athletes/${athlete.id}`, {
         replace: true,
         state: { created: true },
       });
-    } catch {
-      setError("root", { message: "Não foi possível cadastrar. Tente novamente." });
+    } catch (error) {
+      const err = error as {
+        response?: {
+          status?: number;
+          data?: { code?: string; message?: string; athleteId?: string };
+        };
+      };
+      const status = err.response?.status;
+      const code = err.response?.data?.code;
+      const message = err.response?.data?.message ?? "";
+      const athleteId = err.response?.data?.athleteId;
+
+      if (
+        status === 409 ||
+        code === "EMAIL_ALREADY_REGISTERED" ||
+        /já cadastrado/i.test(message)
+      ) {
+        setConflictInfo({
+          message:
+            "Esta pessoa já tem conta no sistema. Convide o atleta utilizando este e-mail pela ficha ou consulte a listagem.",
+          athleteId,
+        });
+      } else {
+        setError("root", { message: "Não foi possível cadastrar. Tente novamente." });
+      }
     }
   }
 
@@ -68,6 +105,13 @@ export function AthleteCreatePage() {
             label="Nome"
             error={errors.name?.message}
             {...register("name")}
+          />
+          <Field
+            label="E-mail (opcional)"
+            type="email"
+            placeholder="atleta@exemplo.com"
+            error={errors.email?.message}
+            {...register("email")}
           />
           <SelectField
             label="Sexo"
@@ -107,6 +151,23 @@ export function AthleteCreatePage() {
             error={errors.goal?.message}
             {...register("goal")}
           />
+
+          {conflictInfo && (
+            <div className="athlete-form__conflict-alert" role="alert">
+              <p>{conflictInfo.message}</p>
+              <div className="athlete-form__conflict-actions">
+                {conflictInfo.athleteId ? (
+                  <ButtonLink to={`/coach/athletes/${conflictInfo.athleteId}`}>
+                    Ir para a ficha do atleta
+                  </ButtonLink>
+                ) : (
+                  <ButtonLink to="/coach/athletes" variant="ghost">
+                    Ver atletas cadastrados
+                  </ButtonLink>
+                )}
+              </div>
+            </div>
+          )}
 
           {errors.root && (
             <p className="athlete-form__error" role="alert">
