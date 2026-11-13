@@ -83,6 +83,12 @@ Regras específicas do front:
 - Ao implementar uma tela nova (tasks "Front: ..." do `TASKS.md`), seguir a mesma ordem de
   camadas: componente de UI reutilizável → hook/serviço em `src/lib` → página em `src/pages`
   → rota em `src/App.tsx`.
+- **Manter os mocks MSW (`src/mocks/`) sincronizados com mudanças de contrato.** Ao adicionar
+  ou alterar endpoints, DTOs ou regras de domínio em `src/lib/*.ts`, atualize também
+  `src/mocks/db.ts`, os handlers em `src/mocks/handlers/*.handlers.ts` e os testes em
+  `src/mocks/mocks.test.ts` para manter o modo standalone (`npm run dev:mocks`) fiel ao
+  contrato real. Nunca importe `msw` ou `src/mocks/` fora do carregamento condicional de
+  `VITE_USE_MOCKS === "true"` para preservar o *tree-shaking* do build de produção.
 
 ## Comandos úteis
 
