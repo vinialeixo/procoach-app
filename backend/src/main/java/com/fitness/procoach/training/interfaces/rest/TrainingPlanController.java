@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
+import com.fitness.procoach.security.application.CoachAthleteAccessGuard;
 import com.fitness.procoach.training.application.CreateTrainingPlanUseCase;
 import com.fitness.procoach.training.application.CreateTrainingPlanVersionUseCase;
 import com.fitness.procoach.training.application.SoftDeleteTrainingPlanUseCase;
@@ -54,11 +55,14 @@ public class TrainingPlanController {
 
 	private final AthleteAccessService athleteAccessService;
 
+	private final CoachAthleteAccessGuard coachAthleteGuard;
+
 	public TrainingPlanController(CreateTrainingPlanUseCase createTrainingPlanUseCase,
 			CreateTrainingPlanVersionUseCase createVersionUseCase,
 			TransitionTrainingPlanStatusUseCase transitionStatusUseCase,
 			SoftDeleteTrainingPlanUseCase softDeleteUseCase, TrainingQueryService queryService,
-			CoachApplicationService coachService, AthleteAccessService athleteAccessService) {
+			CoachApplicationService coachService, AthleteAccessService athleteAccessService,
+			CoachAthleteAccessGuard coachAthleteGuard) {
 		this.createTrainingPlanUseCase = createTrainingPlanUseCase;
 		this.createVersionUseCase = createVersionUseCase;
 		this.transitionStatusUseCase = transitionStatusUseCase;
@@ -66,6 +70,7 @@ public class TrainingPlanController {
 		this.queryService = queryService;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
+		this.coachAthleteGuard = coachAthleteGuard;
 	}
 
 	@Operation(summary = "Criar plano de treino (v1)",
@@ -117,8 +122,8 @@ public class TrainingPlanController {
 	@GetMapping("/athlete/{athleteId}")
 	public ResponseEntity<List<TrainingPlanResponse>> findByAthlete(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @PathVariable UUID athleteId) {
-		requireCoachOwnsAthlete(jwt, athleteId);
-		List<TrainingPlanResponse> result = this.queryService.findTrainingPlansByAthlete(athleteId, isAthlete(jwt))
+		coachAthleteGuard.requireCoachOwnsAthlete(jwt, athleteId);
+		List<TrainingPlanResponse> result = this.queryService.findTrainingPlansByAthlete(athleteId, CoachAthleteAccessGuard.isAthlete(jwt))
 			.stream()
 			.map(TrainingPlanResponse::from)
 			.toList();
@@ -137,8 +142,8 @@ public class TrainingPlanController {
 	@GetMapping("/athlete/{athleteId}/latest")
 	public ResponseEntity<TrainingPlanResponse> findLatestVersion(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @PathVariable UUID athleteId) {
-		requireCoachOwnsAthlete(jwt, athleteId);
-		return this.queryService.findLatestPlanVersion(athleteId, isAthlete(jwt))
+		coachAthleteGuard.requireCoachOwnsAthlete(jwt, athleteId);
+		return this.queryService.findLatestPlanVersion(athleteId, CoachAthleteAccessGuard.isAthlete(jwt))
 			.map(tp -> ResponseEntity.ok(TrainingPlanResponse.from(tp)))
 			.orElse(ResponseEntity.notFound().build());
 	}
@@ -200,23 +205,5 @@ public class TrainingPlanController {
 			@Parameter(description = "Identificador do plano") @PathVariable UUID id) {
 		this.softDeleteUseCase.execute(id, UUID.fromString(jwt.getSubject()));
 		return ResponseEntity.noContent().build();
-	}
-
-	/**
-	 * Para chamadas de coach, garante que o atleta pertence à carteira do coach
-	 * autenticado. Chamadas de atleta (self-access) já foram validadas pelo
-	 * {@code @athleteGuard} e não passam por aqui.
-	 */
-	private void requireCoachOwnsAthlete(Jwt jwt, UUID athleteId) {
-		if (jwt == null || !"COACH".equals(jwt.getClaimAsString("role"))) {
-			return;
-		}
-		UUID coachId = coachService.requireCoachIdByUserId(UUID.fromString(jwt.getSubject())).value();
-		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
-	}
-
-	/** Chamada do próprio atleta (somente leitura, só conteúdo liberado pelo coach). */
-	private static boolean isAthlete(Jwt jwt) {
-		return jwt != null && "ATHLETE".equals(jwt.getClaimAsString("role"));
 	}
 }

@@ -9,6 +9,7 @@ import com.fitness.procoach.nutrition.domain.DietId;
 import com.fitness.procoach.nutrition.domain.FoodKind;
 import com.fitness.procoach.nutrition.domain.FoodSource;
 import com.fitness.procoach.nutrition.domain.FoodState;
+import com.fitness.procoach.security.application.CoachAthleteAccessGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -51,13 +52,16 @@ public class DietController {
 	private final CoachApplicationService coachService;
 	private final AthleteAccessService athleteAccessService;
 	private final AssessmentApplicationService assessmentService;
+	private final CoachAthleteAccessGuard coachAthleteGuard;
 
 	public DietController(DietApplicationService service, CoachApplicationService coachService,
-			AthleteAccessService athleteAccessService, AssessmentApplicationService assessmentService) {
+			AthleteAccessService athleteAccessService, AssessmentApplicationService assessmentService,
+			CoachAthleteAccessGuard coachAthleteGuard) {
 		this.service = service;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
 		this.assessmentService = assessmentService;
+		this.coachAthleteGuard = coachAthleteGuard;
 	}
 
 	/**
@@ -155,8 +159,8 @@ public class DietController {
 	@GetMapping("/energy-balance")
 	public EnergyBalanceResponse athleteEnergyBalance(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
-		requireCoachOwnsAthlete(jwt, athleteId);
-		return EnergyBalanceResponse.from(service.latestEnergyBalance(athleteId, isAthlete(jwt)));
+		coachAthleteGuard.requireCoachOwnsAthlete(jwt, athleteId);
+		return EnergyBalanceResponse.from(service.latestEnergyBalance(athleteId, CoachAthleteAccessGuard.isAthlete(jwt)));
 	}
 
 	@Operation(summary = "Balanço energético da dieta",
@@ -210,8 +214,8 @@ public class DietController {
 	@GetMapping
 	public DietResponse latest(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
-		requireCoachOwnsAthlete(jwt, athleteId);
-		Diet diet = service.latestByAthlete(athleteId, isAthlete(jwt));
+		coachAthleteGuard.requireCoachOwnsAthlete(jwt, athleteId);
+		Diet diet = service.latestByAthlete(athleteId, CoachAthleteAccessGuard.isAthlete(jwt));
 		double weightKg = getAthleteWeightKg(athleteId);
 		return DietResponse.from(diet, weightKg);
 	}
@@ -229,9 +233,9 @@ public class DietController {
 	@GetMapping("/history")
 	public List<DietResponse> history(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
-		requireCoachOwnsAthlete(jwt, athleteId);
+		coachAthleteGuard.requireCoachOwnsAthlete(jwt, athleteId);
 		double weightKg = getAthleteWeightKg(athleteId);
-		return service.historyByAthlete(athleteId, isAthlete(jwt)).stream()
+		return service.historyByAthlete(athleteId, CoachAthleteAccessGuard.isAthlete(jwt)).stream()
 				.map(d -> DietResponse.from(d, weightKg))
 				.toList();
 	}
@@ -318,21 +322,4 @@ public class DietController {
 		return DietResponse.from(diet, weightKg);
 	}
 
-	/**
-	 * Para chamadas de coach, garante que o atleta pertence à carteira do coach
-	 * autenticado. Chamadas de atleta (self-access) já foram validadas pelo
-	 * {@code @athleteGuard} e não passam por aqui.
-	 */
-	private void requireCoachOwnsAthlete(Jwt jwt, UUID athleteId) {
-		if (jwt == null || !"COACH".equals(jwt.getClaimAsString("role"))) {
-			return;
-		}
-		UUID coachId = coachService.requireCoachIdByUserId(UUID.fromString(jwt.getSubject())).value();
-		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
 	}
-
-	/** Chamada do próprio atleta (somente leitura, só conteúdo liberado pelo coach). */
-	private static boolean isAthlete(Jwt jwt) {
-		return jwt != null && "ATHLETE".equals(jwt.getClaimAsString("role"));
-	}
-}

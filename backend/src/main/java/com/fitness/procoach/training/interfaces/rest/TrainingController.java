@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
+import com.fitness.procoach.security.application.CoachAthleteAccessGuard;
 import com.fitness.procoach.training.application.AddExerciseToTrainingUseCase;
 import com.fitness.procoach.training.application.CreateTrainingUseCase;
 import com.fitness.procoach.training.application.RemoveExerciseFromTrainingUseCase;
@@ -64,6 +65,8 @@ public class TrainingController {
 
 	private final AthleteAccessService athleteAccessService;
 
+	private final CoachAthleteAccessGuard coachAthleteGuard;
+
 	private final UpdateExercisePrescriptionUseCase updateExerciseUseCase;
 
 	private final RemoveExerciseFromTrainingUseCase removeExerciseUseCase;
@@ -72,7 +75,8 @@ public class TrainingController {
 			AddExerciseToTrainingUseCase addExerciseUseCase, ReorderExercisesUseCase reorderExercisesUseCase,
 			TransitionTrainingStatusUseCase transitionStatusUseCase, SoftDeleteTrainingUseCase softDeleteUseCase,
 			TrainingQueryService queryService, CoachApplicationService coachService,
-			AthleteAccessService athleteAccessService, UpdateExercisePrescriptionUseCase updateExerciseUseCase,
+			AthleteAccessService athleteAccessService, CoachAthleteAccessGuard coachAthleteGuard,
+			UpdateExercisePrescriptionUseCase updateExerciseUseCase,
 			RemoveExerciseFromTrainingUseCase removeExerciseUseCase) {
 		this.createTrainingUseCase = createTrainingUseCase;
 		this.addExerciseUseCase = addExerciseUseCase;
@@ -82,6 +86,7 @@ public class TrainingController {
 		this.queryService = queryService;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
+		this.coachAthleteGuard = coachAthleteGuard;
 		this.updateExerciseUseCase = updateExerciseUseCase;
 		this.removeExerciseUseCase = removeExerciseUseCase;
 	}
@@ -157,8 +162,8 @@ public class TrainingController {
 			@RequestParam(required = false) TrainingStatus status,
 			@Parameter(description = "Filtro opcional por versão do plano")
 			@RequestParam(required = false) UUID planId) {
-		requireCoachOwnsAthlete(jwt, athleteId);
-		List<Training> trainings = this.queryService.findTrainingsByAthlete(athleteId, status, planId, isAthlete(jwt));
+		coachAthleteGuard.requireCoachOwnsAthlete(jwt, athleteId);
+		List<Training> trainings = this.queryService.findTrainingsByAthlete(athleteId, status, planId, CoachAthleteAccessGuard.isAthlete(jwt));
 		return ResponseEntity.ok(toResponses(trainings));
 	}
 
@@ -277,24 +282,6 @@ public class TrainingController {
 			@Parameter(description = "Identificador do treino") @PathVariable UUID id) {
 		this.softDeleteUseCase.execute(id, UUID.fromString(jwt.getSubject()));
 		return ResponseEntity.noContent().build();
-	}
-
-	/**
-	 * Para chamadas de coach, garante que o atleta pertence à carteira do coach
-	 * autenticado. Chamadas de atleta (self-access) já foram validadas pelo
-	 * {@code @athleteGuard} e não passam por aqui.
-	 */
-	private void requireCoachOwnsAthlete(Jwt jwt, UUID athleteId) {
-		if (jwt == null || !"COACH".equals(jwt.getClaimAsString("role"))) {
-			return;
-		}
-		UUID coachId = coachService.requireCoachIdByUserId(UUID.fromString(jwt.getSubject())).value();
-		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
-	}
-
-	/** Chamada do próprio atleta (somente leitura, só conteúdo liberado pelo coach). */
-	private static boolean isAthlete(Jwt jwt) {
-		return jwt != null && "ATHLETE".equals(jwt.getClaimAsString("role"));
 	}
 
 	/** Resposta do treino com o aviso de versão mais nova dos exercícios da biblioteca (T-066). */

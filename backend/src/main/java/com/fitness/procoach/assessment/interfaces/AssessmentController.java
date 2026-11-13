@@ -5,6 +5,7 @@ import com.fitness.procoach.assessment.domain.Assessment;
 import com.fitness.procoach.assessment.domain.AssessmentId;
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
+import com.fitness.procoach.security.application.CoachAthleteAccessGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -40,12 +41,14 @@ public class AssessmentController {
 	private final AssessmentApplicationService service;
 	private final CoachApplicationService coachService;
 	private final AthleteAccessService athleteAccessService;
+	private final CoachAthleteAccessGuard coachAthleteGuard;
 
 	public AssessmentController(AssessmentApplicationService service, CoachApplicationService coachService,
-			AthleteAccessService athleteAccessService) {
+			AthleteAccessService athleteAccessService, CoachAthleteAccessGuard coachAthleteGuard) {
 		this.service = service;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
+		this.coachAthleteGuard = coachAthleteGuard;
 	}
 
 	/**
@@ -111,7 +114,7 @@ public class AssessmentController {
 	@GetMapping
 	public List<AssessmentResponse> history(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
-		requireCoachOwnsAthlete(jwt, athleteId);
+		coachAthleteGuard.requireCoachOwnsAthlete(jwt, athleteId);
 		return service.historyWithMetrics(athleteId).stream().map(AssessmentResponse::from).toList();
 	}
 
@@ -132,25 +135,8 @@ public class AssessmentController {
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId,
 			@Parameter(description = "Avaliação de partida") @RequestParam UUID from,
 			@Parameter(description = "Avaliação de chegada") @RequestParam UUID to) {
-		requireCoachOwnsAthlete(jwt, athleteId);
+		coachAthleteGuard.requireCoachOwnsAthlete(jwt, athleteId);
 		return AssessmentComparisonResponse.from(
 				service.compare(athleteId, new AssessmentId(from), new AssessmentId(to)));
-	}
-
-	/**
-	 * Para chamadas de coach, garante que o atleta pertence à carteira do coach
-	 * autenticado. Chamadas de atleta (self-access) já foram validadas pelo
-	 * {@code @athleteGuard} e não passam por aqui.
-	 */
-	private void requireCoachOwnsAthlete(Jwt jwt, UUID athleteId) {
-		if (jwt == null || !isCoach(jwt)) {
-			return;
-		}
-		UUID coachId = coachService.requireCoachIdByUserId(UUID.fromString(jwt.getSubject())).value();
-		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
-	}
-
-	private boolean isCoach(Jwt jwt) {
-		return "COACH".equals(jwt.getClaimAsString("role"));
 	}
 }

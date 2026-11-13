@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
+import com.fitness.procoach.security.application.CoachAthleteAccessGuard;
 import com.fitness.procoach.training.application.CreatePeriodizationUseCase;
 import com.fitness.procoach.training.application.TrainingQueryService;
 import com.fitness.procoach.training.domain.model.Periodization;
@@ -44,13 +45,16 @@ public class PeriodizationController {
 
 	private final AthleteAccessService athleteAccessService;
 
+	private final CoachAthleteAccessGuard coachAthleteGuard;
+
 	public PeriodizationController(CreatePeriodizationUseCase createPeriodizationUseCase,
 			TrainingQueryService queryService, CoachApplicationService coachService,
-			AthleteAccessService athleteAccessService) {
+			AthleteAccessService athleteAccessService, CoachAthleteAccessGuard coachAthleteGuard) {
 		this.createPeriodizationUseCase = createPeriodizationUseCase;
 		this.queryService = queryService;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
+		this.coachAthleteGuard = coachAthleteGuard;
 	}
 
 	@Operation(summary = "Criar periodização",
@@ -100,29 +104,11 @@ public class PeriodizationController {
 	@GetMapping("/athlete/{athleteId}")
 	public ResponseEntity<List<PeriodizationResponse>> findByAthlete(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @PathVariable UUID athleteId) {
-		requireCoachOwnsAthlete(jwt, athleteId);
-		List<PeriodizationResponse> result = this.queryService.findPeriodizationsByAthlete(athleteId, isAthlete(jwt))
+		coachAthleteGuard.requireCoachOwnsAthlete(jwt, athleteId);
+		List<PeriodizationResponse> result = this.queryService.findPeriodizationsByAthlete(athleteId, CoachAthleteAccessGuard.isAthlete(jwt))
 			.stream()
 			.map(PeriodizationResponse::from)
 			.toList();
 		return ResponseEntity.ok(result);
-	}
-
-	/**
-	 * Para chamadas de coach, garante que o atleta pertence à carteira do coach
-	 * autenticado. Chamadas de atleta (self-access) já foram validadas pelo
-	 * {@code @athleteGuard} e não passam por aqui.
-	 */
-	private void requireCoachOwnsAthlete(Jwt jwt, UUID athleteId) {
-		if (jwt == null || !"COACH".equals(jwt.getClaimAsString("role"))) {
-			return;
-		}
-		UUID coachId = coachService.requireCoachIdByUserId(UUID.fromString(jwt.getSubject())).value();
-		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
-	}
-
-	/** Chamada do próprio atleta (somente leitura, só conteúdo liberado pelo coach). */
-	private static boolean isAthlete(Jwt jwt) {
-		return jwt != null && "ATHLETE".equals(jwt.getClaimAsString("role"));
 	}
 }
