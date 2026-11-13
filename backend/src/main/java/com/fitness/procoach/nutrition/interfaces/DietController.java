@@ -3,14 +3,23 @@ package com.fitness.procoach.nutrition.interfaces;
 import com.fitness.procoach.assessment.application.AssessmentApplicationService;
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
+import com.fitness.procoach.coach.domain.CoachId;
 import com.fitness.procoach.nutrition.application.DietApplicationService;
+import com.fitness.procoach.nutrition.domain.AiPlanProposal;
+import com.fitness.procoach.nutrition.domain.AthleteId;
 import com.fitness.procoach.nutrition.domain.Diet;
 import com.fitness.procoach.nutrition.domain.DietId;
 import com.fitness.procoach.nutrition.domain.EnergyBalance;
 import com.fitness.procoach.nutrition.domain.EnergyBalanceCalculator;
+import com.fitness.procoach.nutrition.domain.DietObjective;
+import com.fitness.procoach.nutrition.domain.DietStatus;
+import com.fitness.procoach.nutrition.domain.DietWarning;
 import com.fitness.procoach.nutrition.domain.FoodKind;
 import com.fitness.procoach.nutrition.domain.FoodSource;
 import com.fitness.procoach.nutrition.domain.FoodState;
+import com.fitness.procoach.nutrition.domain.Macronutrients;
+import com.fitness.procoach.nutrition.interfaces.AiPlanProposalRequest;
+import com.fitness.procoach.nutrition.interfaces.AiPlanProposalResponse;
 import com.fitness.procoach.security.application.CoachAthleteAccessGuard;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -20,6 +29,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
@@ -442,4 +452,190 @@ public class DietController {
 		return DietResponse.from(diet, weightKg, balance);
 	}
 
+	// ===== T-088: AI Plan Proposal Endpoints =====
+
+	/**
+	 * Proposta de plano alimentar gerado por IA (T-088).
+	 * Recebe o contrato JSON v1, valida, persiste como DRAFT com requiresCoachApproval=true,
+	 * registra auditoria AI_PLAN_PROPOSED. Nunca aprova automaticamente.
+	 */
+	@Operation(summary = "Propor plano alimentar gerado por IA",
+			description = "Recebe o contrato JSON v1 do plano gerado por IA (docs/nutricao-plano-alimentar.md §4), " +
+					"valida, persiste como nova versão em DRAFT com requiresCoachApproval=true, " +
+					"registra auditoria AI_PLAN_PROPOSED. O coach deve revisar e aprovar manualmente. " +
+					"Se baseDietVersionId for informado, cria nova versão encadeada; caso contrário, cria a primeira dieta do atleta.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "Plano proposto e persistido como DRAFT"),
+			@ApiResponse(responseCode = "400", description = "Contrato inválido ou validação falhou"),
+			@ApiResponse(responseCode = "404", description = "Atleta não encontrado ou não pertence ao coach"),
+			@ApiResponse(responseCode = "409", description = "Atleta já possui dieta (use baseDietVersionId) ou versão base inválida") })
+	@PreAuthorize("hasRole('COACH')")
+	@PostMapping("/ai-proposal")
+	public ResponseEntity<AiPlanProposalResponse> proposeAiPlan(@AuthenticationPrincipal Jwt jwt,
+			@Valid @RequestBody AiPlanProposalRequest request) {
+		// Converte request para domain object
+		AiPlanProposal proposal = convertRequestToProposal(request, UUID.fromString(jwt.getSubject()));
+
+		// Propõe o plano (persiste)
+		Diet diet = service.proposeAiPlan(
+				new DietApplicationService.ProposeAiPlanCommand(
+						UUID.fromString(jwt.getSubject()),
+						request.athlete().athleteId(),
+						proposal));
+
+		URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
+				.path("/api/v1/diets/{id}")
+				.buildAndExpand(diet.id().value())
+				.toUri();
+
+		double weightKg = getAthleteWeightKg(diet.athleteId().value());
+		UUID previousVersionId = diet.previousVersionId() != null ? diet.previousVersionId().value() : null;
+		return ResponseEntity.created(location)
+				.body(AiPlanProposalResponse.from(diet, weightKg, true, previousVersionId));
 	}
+
+	/**
+	 * Validação dry-run de proposta de IA (T-088).
+	 * Não persiste; apenas valida o contrato, calcula warnings, consistência e derivados,
+	 * e retorna a proposta enriquecida para o coach revisar antes de confirmar.
+	 */
+	@Operation(summary = "Validar proposta de IA (dry-run)",
+			description = "Valida o contrato JSON v1 sem persistir. Calcula warnings nutricionais, " +
+					"consistência 4/4/9, macros derivados (g/kg, %kcal) e balanço energético " +
+					"com base na avaliação mais recente do atleta. Útil para preview antes de confirmar.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Proposta validada e enriquecida"),
+			@ApiResponse(responseCode = "400", description = "Contrato inválido"),
+			@ApiResponse(responseCode = "404", description = "Atleta não encontrado ou sem avaliação para basear o balanço"),
+			@ApiResponse(responseCode = "409", description = "Atleta sem avaliação para calcular balanço") })
+	@PreAuthorize("hasRole('COACH')")
+	@PostMapping("/ai-proposal/validate")
+	public AiPlanProposalResponse validateAiPlan(@AuthenticationPrincipal Jwt jwt,
+			@Valid @RequestBody AiPlanProposalRequest request) {
+		CoachId coachId = coachService.requireCoachIdByUserId(UUID.fromString(jwt.getSubject()));
+		athleteAccessService.requireOwnedByCoach(request.athlete().athleteId(), coachId.value());
+
+		// Busca perfil energético do atleta (avaliação mais recente)
+		var energyProfile = assessmentService.latestEnergyProfile(request.athlete().athleteId())
+				.orElseThrow(() -> new IllegalStateException("Athlete has no assessment; register one to validate energy balance"));
+
+		double weightKg = request.athlete().weightKg();
+		double tmbKcal = energyProfile.tmbKcal().doubleValue();
+		double getKcal = energyProfile.getKcal().doubleValue();
+
+		// Converte request para domain object
+		AiPlanProposal proposal = convertRequestToProposal(request, UUID.fromString(jwt.getSubject()));
+
+		// Valida (dry-run)
+		AiPlanProposal validated = service.validateAiPlan(proposal, weightKg, tmbKcal, getKcal);
+
+		return AiPlanProposalResponse.fromValidation(validated, weightKg);
+	}
+
+	/**
+	 * Converte o request DTO para o objeto de domínio AiPlanProposal.
+	 */
+	private AiPlanProposal convertRequestToProposal(AiPlanProposalRequest request, UUID coachUserId) {
+		CoachId coachId = coachService.requireCoachIdByUserId(coachUserId);
+		AthleteId athleteId = AthleteId.of(request.athlete().athleteId());
+
+		// Converte refeições
+		List<AiPlanProposal.AiPlanMeal> meals = request.meals().stream().map(m -> {
+			List<AiPlanProposal.AiPlanMealItem> items = m.items().stream().map(i ->
+					new AiPlanProposal.AiPlanMealItem(
+							i.foodId(),
+							i.name(),
+							i.source(),
+							i.kind(),
+							i.state(),
+							i.quantityG(),
+							i.householdMeasure(),
+							i.preparation(),
+							Macronutrients.of(i.macros().calories(), i.macros().protein(),
+									i.macros().carbohydrates(), i.macros().fat())
+					)).toList();
+
+			AiPlanProposal.MealTarget target = m.target() != null ?
+					new AiPlanProposal.MealTarget(
+							m.target().calories(), m.target().protein(),
+							m.target().carbohydrates(), m.target().fat()) : null;
+
+			Macronutrients totals = m.totals() != null ?
+					Macronutrients.of(m.totals().calories(), m.totals().protein(),
+							m.totals().carbohydrates(), m.totals().fat()) : null;
+
+			return new AiPlanProposal.AiPlanMeal(
+					m.mealId(), m.name(), m.order(), m.time(), m.notes(), target, items, totals);
+		}).toList();
+
+		// Converte suplementos
+		List<AiPlanProposal.AiPlanSupplement> supplements = request.supplements() != null ?
+				request.supplements().stream().map(s ->
+						new AiPlanProposal.AiPlanSupplement(
+								s.name(), s.dose(), s.timing(), s.countsTowardMacros()
+						)).toList() : List.of();
+
+		// Converte warnings
+		List<DietWarning> warnings = request.warnings().stream().map(w ->
+				new DietWarning(
+						DietWarning.WarningCode.valueOf(w.code()),
+						DietWarning.Severity.valueOf(w.severity()),
+						w.message()
+				)
+		).toList();
+
+		// Derivados
+		AiPlanProposal.AiPlanDerived derived = new AiPlanProposal.AiPlanDerived(
+				request.derived().tmbKcal(),
+				request.derived().getKcal(),
+				request.derived().balanceKcal(),
+				request.derived().balancePercent(),
+				request.derived().classification(),
+				request.derived().proteinGPerKg(),
+				request.derived().carbohydratesGPerKg(),
+				request.derived().fatGPerKg(),
+				request.derived().proteinPctKcal(),
+				request.derived().carbohydratesPctKcal(),
+				request.derived().fatPctKcal()
+		);
+
+		// Consistência
+		AiPlanProposal.AiPlanConsistency consistency = new AiPlanProposal.AiPlanConsistency(
+				request.consistency().calculatedCalories(),
+				request.consistency().declaredCalories(),
+				request.consistency().deltaKcal(),
+				request.consistency().deltaPercent(),
+				request.consistency().isConsistent()
+		);
+
+		// Base version
+		DietId baseDietVersionId = request.meta().baseDietVersionId() != null ?
+				DietId.of(request.meta().baseDietVersionId()) : null;
+
+		return AiPlanProposal.builder()
+				.id(UUID.randomUUID())
+				.coachId(coachId)
+				.athleteId(athleteId)
+				.objective(request.strategy().objective())
+				.targets(Macronutrients.of(
+						request.targets().calories(),
+						request.targets().protein(),
+						request.targets().carbohydrates(),
+						request.targets().fat()))
+				.planMode(request.planMode())
+				.meals(meals)
+				.supplements(supplements)
+				.warnings(warnings)
+				.derived(derived)
+				.consistency(consistency)
+				.generatedAt(Instant.parse(request.meta().generatedAt()))
+				.source(request.meta().source())
+				.baseDietVersionId(baseDietVersionId)
+				.disclaimer(request.disclaimer())
+				.strategyNotes(request.strategy().notes())
+				.phase(request.strategy().phase())
+				.trainingDay(request.strategy().trainingDay() != null && request.strategy().trainingDay())
+				.build();
+	}
+
+}
