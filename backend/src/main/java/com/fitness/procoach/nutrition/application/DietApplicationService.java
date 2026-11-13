@@ -7,9 +7,11 @@ import com.fitness.procoach.assessment.application.AssessmentApplicationService;
 import com.fitness.procoach.audit.application.AuditData;
 import com.fitness.procoach.notification.application.NotificationService;
 import com.fitness.procoach.audit.application.AuditService;
+import com.fitness.procoach.nutrition.domain.AiPlanProposal;
 import com.fitness.procoach.nutrition.domain.AthleteId;
 import com.fitness.procoach.nutrition.domain.Diet;
 import com.fitness.procoach.nutrition.domain.DietId;
+import com.fitness.procoach.nutrition.domain.DietWarning;
 import com.fitness.procoach.nutrition.domain.EnergyBalance;
 import com.fitness.procoach.nutrition.domain.EnergyBalanceCalculator;
 import com.fitness.procoach.nutrition.domain.DietObjective;
@@ -23,6 +25,7 @@ import com.fitness.procoach.nutrition.domain.Meal;
 import com.fitness.procoach.nutrition.domain.MealId;
 import com.fitness.procoach.nutrition.domain.MealItem;
 import com.fitness.procoach.nutrition.domain.MealItemId;
+import java.time.Instant;
 import java.util.List;
 import java.util.Comparator;
 import java.util.UUID;
@@ -318,5 +321,126 @@ public class DietApplicationService {
 
 	public record CreateDietCommand(UUID userId, UUID athleteId, DietObjective objective,
 			double calories, double protein, double carbohydrates, double fat) {
+	}
+
+	/**
+	 * Comando para propor um plano alimentar gerado por IA (T-088).
+	 * A proposta chega como JSON válido (contrato v1) e é convertida em uma dieta
+	 * em estado DRAFT com {@code requiresCoachApproval = true}.
+	 * Auditoria: evento {@code AI_PLAN_PROPOSED}.
+	 */
+	public record ProposeAiPlanCommand(UUID userId, UUID athleteId, AiPlanProposal proposal) {
+	}
+
+	/**
+	 * Cria uma dieta em DRAFT a partir de uma proposta de IA (T-088).
+	 * O plano nunca é aprovado automaticamente — fica em DRAFT aguardando ação do coach.
+	 * Registra auditoria {@code AI_PLAN_PROPOSED}.
+	 */
+	@Transactional
+	public Diet proposeAiPlan(ProposeAiPlanCommand command) {
+		CoachId coachId = coachService.requireCoachIdByUserId(command.userId());
+		athleteAccessService.requireOwnedByCoach(command.athleteId(), coachId.value());
+
+		Diet diet;
+		DietId previousVersionId = null;
+
+		if (command.proposal().baseDietVersionId() == null) {
+			// Primeira dieta do atleta
+			if (repository.findLatestByAthleteId(AthleteId.of(command.athleteId())).isPresent()) {
+				throw new IllegalStateException(
+						"Athlete already has a diet; use baseDietVersionId to create a new version from AI proposal");
+			}
+			diet = command.proposal().toDiet(command.userId());
+		} else {
+			// Nova versão baseada em dieta existente
+			Diet base = repository.findById(command.proposal().baseDietVersionId())
+					.orElseThrow(() -> new DietNotFoundException(command.proposal().baseDietVersionId().value()));
+			if (!base.athleteId().value().equals(command.athleteId())) {
+				throw new IllegalArgumentException("baseDietVersionId does not belong to the specified athlete");
+			}
+			athleteAccessService.requireOwnedByCoach(base.athleteId().value(), coachId.value());
+
+			diet = command.proposal().toNewVersion(base, command.userId());
+			previousVersionId = base.id();
+			repository.save(base); // salva base congelada
+		}
+
+		Diet saved = repository.save(diet);
+
+		// Auditoria: AI_PLAN_PROPOSED
+		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "AI_PLAN_PROPOSED", command.userId(),
+				AuditData.of("version", saved.version(), "objective", saved.objective().name(),
+						"source", "AI_ASSISTANT", "baseDietVersionId",
+						previousVersionId != null ? previousVersionId.value().toString() : "none"));
+
+		return saved;
+	}
+
+	/**
+	 * Valida uma proposta de IA sem persistir (dry-run).
+	 * Retorna a proposta enriquecida com warnings calculados e consistência verificada.
+	 */
+	public AiPlanProposal validateAiPlan(AiPlanProposal proposal, double athleteWeightKg, double tmbKcal, double getKcal) {
+		// Converte para Diet temporária para reutilizar lógica de warnings/consistência
+		Diet tempDiet = proposal.toDiet(UUID.randomUUID());
+		Macronutrients totals = tempDiet.calculateTotalsFromMeals();
+
+		// Calcula balanço e classificação
+		double balanceKcal = totals.calories() - getKcal;
+		double balancePercent = getKcal > 0 ? (balanceKcal / getKcal) * 100 : 0;
+		EnergyBalance.Classification classification;
+		if (balancePercent <= -5) {
+			classification = EnergyBalance.Classification.DEFICIT;
+		} else if (balancePercent >= 5) {
+			classification = EnergyBalance.Classification.SURPLUS;
+		} else {
+			classification = EnergyBalance.Classification.MAINTENANCE;
+		}
+
+		// Gera warnings
+		List<DietWarning> warnings = tempDiet.generateWarnings(athleteWeightKg, tmbKcal, getKcal, balancePercent, classification);
+
+		// Derivados
+		Diet.DerivedMacros derived = tempDiet.derivedMacros(athleteWeightKg);
+
+		// Consistência
+		AiPlanProposal.AiPlanConsistency consistency = new AiPlanProposal.AiPlanConsistency(
+				totals.calculatedCalories(), totals.calories(),
+				totals.consistencyDeltaKcal(), totals.consistencyDeltaPercent(),
+				totals.isConsistent());
+
+		// Retorna proposta enriquecida
+		return AiPlanProposal.builder()
+				.id(proposal.id())
+				.coachId(proposal.coachId())
+				.athleteId(proposal.athleteId())
+				.objective(proposal.objective())
+				.targets(proposal.targets())
+				.planMode(proposal.planMode())
+				.meals(proposal.meals())
+				.supplements(proposal.supplements())
+				.warnings(warnings)
+				.derived(new AiPlanProposal.AiPlanDerived(
+						proposal.derived().tmbKcal(),
+						proposal.derived().getKcal(),
+						balanceKcal,
+						balancePercent,
+						classification.name(),
+						derived.proteinGPerKg(),
+						derived.carbohydratesGPerKg(),
+						derived.fatGPerKg(),
+						derived.proteinPctKcal(),
+						derived.carbohydratesPctKcal(),
+						derived.fatPctKcal()))
+				.consistency(consistency)
+				.generatedAt(proposal.generatedAt())
+				.source(proposal.source())
+				.baseDietVersionId(proposal.baseDietVersionId())
+				.disclaimer(proposal.disclaimer())
+				.strategyNotes(proposal.strategyNotes())
+				.phase(proposal.phase())
+				.trainingDay(proposal.trainingDay())
+				.build();
 	}
 }
