@@ -164,7 +164,7 @@ class AssessmentControllerTest {
 		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
 		String athleteOfA = registerAthlete(mockMvc, coachA);
 
-		// Coach B tenta registrar avaliação para um atleta do coach A -> 404.
+		// Coach B tenta registrar avaliação para um atleta do coach A -> 404 (service valida posse).
 		mockMvc.perform(post("/api/v1/assessments")
 						.header("Authorization", bearer(coachB))
 						.contentType(MediaType.APPLICATION_JSON)
@@ -178,10 +178,10 @@ class AssessmentControllerTest {
 		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
 		String athleteOfA = registerAthlete(mockMvc, coachA);
 
-		// Coach B tenta ler o histórico de um atleta do coach A -> 404.
+		// Coach B tenta ler o histórico de um atleta do coach A -> 403 (guard valida posse).
 		mockMvc.perform(get("/api/v1/assessments").param("athleteId", athleteOfA)
 						.header("Authorization", bearer(coachB)))
-				.andExpect(status().isNotFound());
+				.andExpect(status().isForbidden());
 	}
 
 	@Test
@@ -191,7 +191,7 @@ class AssessmentControllerTest {
 		String athleteOfA = registerAthlete(mockMvc, coachA);
 
 		// Coach B forja o coachId do coach A no body, mas o coachId é ignorado
-		// (resolvido do JWT = coach B) e o atleta não pertence a B -> 404.
+		// (resolvido do JWT = coach B) e o atleta não pertence a B -> 404 (service valida posse).
 		String forged = validRequestJson(athleteOfA, "2026-09-01")
 				.replace("{", "{\"coachId\": \"%s\",".formatted(UUID.randomUUID().toString()));
 		mockMvc.perform(post("/api/v1/assessments")

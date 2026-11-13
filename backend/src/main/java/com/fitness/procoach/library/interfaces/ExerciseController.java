@@ -62,7 +62,8 @@ public class ExerciseController {
 
 	@Operation(summary = "Editar exercício (cria nova versão)",
 			description = "Atualiza os dados descritivos de um exercício da biblioteca (id, createdBy e createdAt "
-					+ "são imutáveis).")
+					+ "são imutáveis). Só o autor (createdBy) pode editar; para outros coaches o exercício "
+					+ "aparece como inexistente (404), sem vazar sua existência.")
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "Nova versão criada (id novo); a anterior fica somente leitura"),
 			@ApiResponse(responseCode = "409", description = "Versão já substituída: edite a versão corrente"),
@@ -83,7 +84,7 @@ public class ExerciseController {
 
 	@Operation(summary = "Remover exercício (soft-delete)",
 			description = "Exclusão lógica do exercício: o registro é apenas marcado como excluído e nunca "
-					+ "removido fisicamente do banco (regra inegociável de soft-delete).")
+					+ "removido fisicamente do banco (regra inegociável de soft-delete). Só o autor pode remover.")
 	@ApiResponses({
 			@ApiResponse(responseCode = "204", description = "Exercício removido (soft-delete)"),
 			@ApiResponse(responseCode = "404", description = "Exercício não encontrado") })
@@ -96,27 +97,33 @@ public class ExerciseController {
 		return ResponseEntity.noContent().build();
 	}
 
-	@Operation(summary = "Buscar exercício por id")
+	@Operation(summary = "Buscar exercício por id",
+			description = "Retorna o exercício se o coach autenticado for o autor (createdBy). "
+					+ "Para exercícios de outro coach, retorna 404 (não vaza a existência).")
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "Exercício encontrado"),
-			@ApiResponse(responseCode = "404", description = "Exercício não encontrado") })
+			@ApiResponse(responseCode = "404", description = "Exercício não encontrado ou de outro coach") })
+	// T-139: visibilidade por autor — só o coach criador vê seus exercícios.
+	@PreAuthorize("hasRole('COACH')")
 	@GetMapping("/{id}")
-	public ResponseEntity<ExerciseResponse> findById(
+	public ResponseEntity<ExerciseResponse> findById(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do exercício") @PathVariable UUID id) {
-		return ResponseEntity.ok(ExerciseResponse.from(service.findById(id)));
+		return ResponseEntity.ok(ExerciseResponse.from(service.findOwnedByCoach(id, UUID.fromString(jwt.getSubject()))));
 	}
 
 	@Operation(summary = "Buscar exercícios",
-			description = "Lista exercícios da biblioteca com filtros opcionais por nome (contém, "
-					+ "case-insensitive) e/ou grupo muscular.")
+			description = "Lista exercícios da biblioteca do coach autenticado (criados por ele) "
+					+ "com filtros opcionais por nome (contém, case-insensitive) e/ou grupo muscular.")
 	@ApiResponse(responseCode = "200", description = "Busca realizada com sucesso")
+	// T-139: visibilidade por autor — só o coach criador vê seus exercícios.
+	@PreAuthorize("hasRole('COACH')")
 	@GetMapping
-	public ResponseEntity<List<ExerciseResponse>> search(
+	public ResponseEntity<List<ExerciseResponse>> search(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Trecho do nome do exercício", example = "supino")
 			@RequestParam(required = false) String name,
 			@Parameter(description = "Grupo muscular trabalhado", example = "PEITO")
 			@RequestParam(required = false) MuscleGroup muscleGroup) {
-		List<ExerciseResponse> result = service.search(name, muscleGroup).stream()
+		List<ExerciseResponse> result = service.searchByCoach(UUID.fromString(jwt.getSubject()), name, muscleGroup).stream()
 				.map(ExerciseResponse::from)
 				.toList();
 		return ResponseEntity.ok(result);

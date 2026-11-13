@@ -150,7 +150,7 @@ class TrainingAuthorizationTest {
 		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
 		String athleteOfA = registerAthlete(mockMvc, coachA);
 
-		// Coach B tenta criar periodização para um atleta do coach A -> 404.
+		// Coach B tenta criar periodização para um atleta do coach A -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(post("/api/training/periodizations")
 						.header("Authorization", bearer(coachB))
 						.contentType(MediaType.APPLICATION_JSON)
@@ -164,10 +164,10 @@ class TrainingAuthorizationTest {
 		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
 		String athleteOfA = registerAthlete(mockMvc, coachA);
 
-		// Coach B tenta ler as periodizações de um atleta do coach A -> 404.
+		// Coach B tenta ler as periodizações de um atleta do coach A -> 403 (guard valida posse via SpEL).
 		mockMvc.perform(get("/api/training/periodizations/athlete/{athleteId}", athleteOfA)
 						.header("Authorization", bearer(coachB)))
-				.andExpect(status().isNotFound());
+				.andExpect(status().isForbidden());
 	}
 
 	@Test
@@ -177,7 +177,7 @@ class TrainingAuthorizationTest {
 		String athleteOfA = registerAthlete(mockMvc, coachA);
 
 		// Coach B forja um coachId no body, mas ele é ignorado (resolvido do JWT
-		// = coach B) e o atleta não pertence a B -> 404.
+		// = coach B) e o atleta não pertence a B -> 404 (service valida posse, não vaza existência).
 		String forged = periodizationJson(athleteOfA)
 				.replace("{", "{\"coachId\": \"%s\",".formatted(java.util.UUID.randomUUID().toString()));
 		mockMvc.perform(post("/api/training/periodizations")
@@ -208,8 +208,7 @@ class TrainingAuthorizationTest {
 		String athleteOfA = registerAthlete(mockMvc, coachA);
 		String periodizationId = createPeriodization(coachA, athleteOfA);
 
-		// Coach B consulta a periodização do atleta do coach A pelo id -> 404
-		// (mesmo status de "não existe": não vaza a existência do recurso).
+		// Coach B consulta a periodização do atleta do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(get("/api/training/periodizations/{id}", periodizationId)
 						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
@@ -223,7 +222,7 @@ class TrainingAuthorizationTest {
 		String periodizationId = createPeriodization(coachA, athleteOfA);
 		String planId = createPlan(coachA, athleteOfA, periodizationId);
 
-		// Coach B consulta o plano do atleta do coach A pelo id -> 404.
+		// Coach B consulta o plano do atleta do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(get("/api/training/plans/{id}", planId)
 						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
@@ -237,7 +236,7 @@ class TrainingAuthorizationTest {
 		String periodizationId = createPeriodization(coachA, athleteOfA);
 		String planId = createPlan(coachA, athleteOfA, periodizationId);
 
-		// Coach B tenta criar versão do plano do coach A pelo id -> 404.
+		// Coach B tenta criar versão do plano do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(post("/api/training/plans/{id}/versions", planId)
 						.header("Authorization", bearer(coachB))
 						.contentType(MediaType.APPLICATION_JSON)
@@ -258,7 +257,7 @@ class TrainingAuthorizationTest {
 		String periodizationId = createPeriodization(coachA, athleteOfA);
 		String planId = createPlan(coachA, athleteOfA, periodizationId);
 
-		// Coach B tenta transicionar o plano do coach A pelo id -> 404.
+		// Coach B tenta transicionar o plano do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(post("/api/training/plans/{id}/transition", planId)
 						.header("Authorization", bearer(coachB))
 						.contentType(MediaType.APPLICATION_JSON)
@@ -278,7 +277,7 @@ class TrainingAuthorizationTest {
 		String periodizationId = createPeriodization(coachA, athleteOfA);
 		String planId = createPlan(coachA, athleteOfA, periodizationId);
 
-		// Coach B tenta remover o plano do coach A pelo id -> 404.
+		// Coach B tenta remover o plano do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(delete("/api/training/plans/{id}", planId)
 						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
@@ -292,7 +291,7 @@ class TrainingAuthorizationTest {
 		String periodizationId = createPeriodization(coachA, athleteOfA);
 		String trainingId = createTraining(coachA, athleteOfA, periodizationId);
 
-		// Coach B consulta o treino do atleta do coach A pelo id -> 404.
+		// Coach B consulta o treino do atleta do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(get("/api/training/trainings/{id}", trainingId)
 						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
@@ -306,7 +305,7 @@ class TrainingAuthorizationTest {
 		String periodizationId = createPeriodization(coachA, athleteOfA);
 		createTraining(coachA, athleteOfA, periodizationId);
 
-		// Coach B lista os treinos da periodização do coach A pelo id -> 404.
+		// Coach B lista os treinos da periodização do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(get("/api/training/trainings/periodization/{periodizationId}", periodizationId)
 						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
@@ -320,7 +319,7 @@ class TrainingAuthorizationTest {
 		String periodizationId = createPeriodization(coachA, athleteOfA);
 		String trainingId = createTraining(coachA, athleteOfA, periodizationId);
 
-		// Coach B tenta prescrever exercício no treino do coach A pelo id -> 404.
+		// Coach B tenta prescrever exercício no treino do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(post("/api/training/trainings/{id}/exercises", trainingId)
 						.header("Authorization", bearer(coachB))
 						.contentType(MediaType.APPLICATION_JSON)
@@ -336,7 +335,7 @@ class TrainingAuthorizationTest {
 		String periodizationId = createPeriodization(coachA, athleteOfA);
 		String trainingId = createTraining(coachA, athleteOfA, periodizationId);
 
-		// Coach B tenta reordenar os exercícios do treino do coach A pelo id -> 404.
+		// Coach B tenta reordenar os exercícios do treino do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(put("/api/training/trainings/{id}/exercises/reorder", trainingId)
 						.header("Authorization", bearer(coachB))
 						.contentType(MediaType.APPLICATION_JSON)
@@ -356,7 +355,7 @@ class TrainingAuthorizationTest {
 		String periodizationId = createPeriodization(coachA, athleteOfA);
 		String trainingId = createTraining(coachA, athleteOfA, periodizationId);
 
-		// Coach B tenta transicionar o treino do coach A pelo id -> 404.
+		// Coach B tenta transicionar o treino do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(post("/api/training/trainings/{id}/transition", trainingId)
 						.header("Authorization", bearer(coachB))
 						.contentType(MediaType.APPLICATION_JSON)
@@ -376,7 +375,7 @@ class TrainingAuthorizationTest {
 		String periodizationId = createPeriodization(coachA, athleteOfA);
 		String trainingId = createTraining(coachA, athleteOfA, periodizationId);
 
-		// Coach B tenta remover o treino do coach A pelo id -> 404.
+		// Coach B tenta remover o treino do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(delete("/api/training/trainings/{id}", trainingId)
 						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
@@ -394,7 +393,7 @@ class TrainingAuthorizationTest {
 
 		String planOfB = createPlan(coachB, athleteOfB, createPeriodization(coachB, athleteOfB));
 
-		// Coach B usa o próprio atleta e o próprio plano, mas a periodização do coach A -> 404.
+		// Coach B usa o próprio atleta e o próprio plano, mas a periodização do coach A -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(post("/api/training/trainings")
 						.header("Authorization", bearer(coachB))
 						.contentType(MediaType.APPLICATION_JSON)

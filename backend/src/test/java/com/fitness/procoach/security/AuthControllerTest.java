@@ -300,10 +300,10 @@ class AuthControllerTest {
 				.andExpect(status().isOk());
 
 		// T-058: coach só lê atletas da própria carteira. athleteB não pertence ao
-		// coach autenticado (nunca foi criado na carteira dele) -> 404.
+		// coach autenticado (nunca foi criado na carteira dele) -> 403 (guard valida posse).
 		mockMvc.perform(get("/api/v1/assessments")
 				.param("athleteId", athleteB.toString())
 				.header("Authorization", bearer(coachToken)))
-				.andExpect(status().isNotFound());
+				.andExpect(status().isForbidden());
 	}
 }
