@@ -85,6 +85,9 @@ public class DietJpaEntity {
 	@OrderBy("orderIndex")
 	private List<MealJpaEntity> meals = new ArrayList<>();
 
+	@OneToMany(mappedBy = "diet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	private List<SupplementJpaEntity> supplements = new ArrayList<>();
+
 	protected DietJpaEntity() {
 	}
 
@@ -248,5 +251,18 @@ public class DietJpaEntity {
 	public void removeMeal(MealJpaEntity meal) {
 		meals.remove(meal);
 		meal.setDiet(null);
+	}
+
+	public List<SupplementJpaEntity> getSupplements() {
+		return supplements;
+	}
+
+	public void setSupplements(List<SupplementJpaEntity> supplements) {
+		this.supplements = supplements;
+	}
+
+	public void addSupplement(SupplementJpaEntity supplement) {
+		supplements.add(supplement);
+		supplement.setDiet(this);
 	}
 }

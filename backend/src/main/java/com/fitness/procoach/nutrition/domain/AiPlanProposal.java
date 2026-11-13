@@ -71,12 +71,13 @@ public class AiPlanProposal {
 
     /**
      * Converte esta proposta de IA em uma nova versão de {@link Diet} em estado DRAFT (v1).
-     * Usa {@link Diet#createFromAiProposal} para criar a dieta com refeições e warnings populados.
+     * Usa {@link Diet#createFromAiProposal} para criar a dieta com refeições, suplementos e warnings populados.
      */
     public Diet toDiet(UUID createdBy) {
         String changeReason = "Proposta gerada por IA (" + generatedAt + "): " + (strategyNotes != null ? strategyNotes : "");
         List<Meal> domainMeals = convertMeals();
-        return Diet.createFromAiProposal(coachId, athleteId, objective, targets, changeReason, createdBy, domainMeals, warnings);
+        List<Supplement> domainSupplements = convertSupplements();
+        return Diet.createFromAiProposal(coachId, athleteId, objective, targets, changeReason, createdBy, domainMeals, domainSupplements, warnings);
     }
 
     /**
@@ -86,7 +87,24 @@ public class AiPlanProposal {
     public Diet toNewVersion(Diet baseDiet, UUID changedBy) {
         String changeReason = "Proposta gerada por IA (" + generatedAt + "): " + (strategyNotes != null ? strategyNotes : "");
         List<Meal> domainMeals = convertMeals();
-        return baseDiet.createNewVersionFromAiProposal(objective, targets, changeReason, changedBy, domainMeals, warnings);
+        List<Supplement> domainSupplements = convertSupplements();
+        return baseDiet.createNewVersionFromAiProposal(objective, targets, changeReason, changedBy, domainMeals, domainSupplements, warnings);
+    }
+
+    /**
+     * Converte os suplementos da proposta para objetos de domínio Supplement (T-090).
+     */
+    private List<Supplement> convertSupplements() {
+        List<Supplement> domainSupplements = new ArrayList<>();
+        for (AiPlanSupplement supplementProposal : supplements) {
+            Supplement supplement = Supplement.create(
+                    supplementProposal.name(),
+                    supplementProposal.dose(),
+                    supplementProposal.timing(),
+                    supplementProposal.countsTowardMacros());
+            domainSupplements.add(supplement);
+        }
+        return domainSupplements;
     }
 
     /**

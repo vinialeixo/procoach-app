@@ -18,6 +18,7 @@ import com.fitness.procoach.nutrition.domain.FoodKind;
 import com.fitness.procoach.nutrition.domain.FoodSource;
 import com.fitness.procoach.nutrition.domain.FoodState;
 import com.fitness.procoach.nutrition.domain.Macronutrients;
+import com.fitness.procoach.nutrition.interfaces.AddSupplementRequest;
 import com.fitness.procoach.nutrition.interfaces.AiPlanProposalRequest;
 import com.fitness.procoach.nutrition.interfaces.AiPlanProposalResponse;
 import com.fitness.procoach.security.application.CoachAthleteAccessGuard;
@@ -441,6 +442,67 @@ public class DietController {
 		double weightKg = getAthleteWeightKg(diet.athleteId().value());
 		
 		// Tenta calcular balanço energético se houver avaliação
+		EnergyBalance balance = null;
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElse(null);
+		if (profile != null) {
+			balance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+		}
+		
+		return DietResponse.from(diet, weightKg, balance);
+	}
+
+	// ===== T-090: Supplement Management Endpoints =====
+
+	@Operation(summary = "Adicionar suplemento à dieta",
+			description = "Adiciona um suplemento a uma versão da dieta (T-090) com balanço energético atualizado (T-089). "
+					+ "Suplementos não calóricos (creatina, multivitamínico) têm countsTowardMacros=false. "
+					+ "Suplementos calóricos (Whey) devem ser adicionados como MealItem com kind=SUPPLEMENT_CALORIC. "
+					+ "Apenas versões não read-only (DRAFT).")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "Suplemento adicionado"),
+			@ApiResponse(responseCode = "404", description = "Dieta não encontrada ou de outro coach"),
+			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida") })
+	@PreAuthorize("hasRole('COACH')")
+	@PostMapping("/{id}/supplements")
+	public ResponseEntity<DietResponse> addSupplement(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador da dieta") @PathVariable UUID id,
+			@Valid @RequestBody AddSupplementRequest request) {
+		Diet diet = service.addSupplement(UUID.fromString(jwt.getSubject()), id,
+				new DietApplicationService.AddSupplementCommand(UUID.fromString(jwt.getSubject()), id,
+						request.name(), request.dose(), request.timing(), request.countsTowardMacros()));
+		URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
+				.path("/api/v1/diets/{id}")
+				.buildAndExpand(diet.id().value())
+				.toUri();
+		double weightKg = getAthleteWeightKg(diet.athleteId().value());
+		
+		EnergyBalance balance = null;
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElse(null);
+		if (profile != null) {
+			balance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+		}
+		
+		return ResponseEntity.created(location).body(DietResponse.from(diet, weightKg, balance));
+	}
+
+	@Operation(summary = "Remover suplemento da dieta",
+			description = "Remove um suplemento da dieta pelo nome (T-090). Apenas versões não read-only (DRAFT).")
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "Suplemento removido"),
+			@ApiResponse(responseCode = "404", description = "Dieta ou suplemento não encontrado"),
+			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida") })
+	@PreAuthorize("hasRole('COACH')")
+	@DeleteMapping("/{id}/supplements/{supplementName}")
+	public DietResponse removeSupplement(@AuthenticationPrincipal Jwt jwt,
+			@Parameter(description = "Identificador da dieta") @PathVariable UUID id,
+			@Parameter(description = "Nome do suplemento") @PathVariable String supplementName) {
+		Diet diet = service.removeSupplement(UUID.fromString(jwt.getSubject()), id, supplementName);
+		double weightKg = getAthleteWeightKg(diet.athleteId().value());
+		
 		EnergyBalance balance = null;
 		AssessmentApplicationService.EnergyProfile profile = assessmentService
 				.latestEnergyProfile(diet.athleteId().value())
