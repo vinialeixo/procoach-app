@@ -6,6 +6,7 @@ import com.fitness.procoach.nutrition.domain.Diet;
 import com.fitness.procoach.nutrition.domain.DietId;
 import com.fitness.procoach.nutrition.domain.DietObjective;
 import com.fitness.procoach.nutrition.domain.DietStatus;
+import com.fitness.procoach.nutrition.domain.DietWarning;
 import com.fitness.procoach.nutrition.domain.FoodKind;
 import com.fitness.procoach.nutrition.domain.FoodSource;
 import com.fitness.procoach.nutrition.domain.FoodState;
@@ -105,6 +106,8 @@ final class DietMapper {
                 meals.add(toDomain(mealEntity));
             }
         }
+        // Warnings are not persisted; they are generated on-the-fly based on current athlete profile
+        List<DietWarning> warnings = List.of();
         return Diet.reconstitute(
                 DietId.of(entity.getId()),
                 CoachId.of(entity.getCoachId()),
@@ -122,7 +125,8 @@ final class DietMapper {
                 entity.getUpdatedAt(),
                 entity.isReadOnly(),
                 entity.isDeleted(),
-                meals);
+                meals,
+                warnings);
     }
 
     private static Meal toDomain(MealJpaEntity mealEntity) {

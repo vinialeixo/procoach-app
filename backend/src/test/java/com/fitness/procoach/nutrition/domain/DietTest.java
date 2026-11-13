@@ -153,19 +153,39 @@ class DietTest {
     }
 
     @Test
-    void macronutrients_shouldRejectNonPositiveValues() {
+    void macronutrients_shouldRejectInvalidValues() {
+        // calories must be > 0
         assertThatThrownBy(() -> Macronutrients.of(0, 180, 250, 80))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("calories");
+        assertThatThrownBy(() -> Macronutrients.of(-100, 180, 250, 80))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("calories");
+        // protein must be > 0
+        assertThatThrownBy(() -> Macronutrients.of(2500, 0, 250, 80))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("protein");
         assertThatThrownBy(() -> Macronutrients.of(2500, -1, 250, 80))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("protein");
-        assertThatThrownBy(() -> Macronutrients.of(2500, 180, 0, 80))
+        // carbohydrates must be >= 0 (zero allowed for ketogenic/peak week)
+        assertThatThrownBy(() -> Macronutrients.of(2500, 180, -1, 80))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("carbohydrates");
+        // fat must be >= 0 (zero allowed for specific strategies)
         assertThatThrownBy(() -> Macronutrients.of(2500, 180, 250, -5))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("fat");
+    }
+
+    @Test
+    void macronutrients_shouldAllowZeroCarbohydratesAndFat() {
+        // Zero carbs (ketogenic)
+        Macronutrients keto = Macronutrients.of(2000, 150, 0, 150);
+        assertThat(keto.carbohydrates()).isZero();
+        // Zero fat (specific strategy)
+        Macronutrients lowFat = Macronutrients.of(2000, 150, 200, 0);
+        assertThat(lowFat.fat()).isZero();
     }
 
     @Test

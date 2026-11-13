@@ -4,11 +4,12 @@ import com.fitness.procoach.nutrition.domain.DietObjective;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Min;
 import java.util.UUID;
 
 /**
  * DTO de entrada da criação da primeira versão (v1) de uma dieta (US-007).
- * Objetivo e macronutrientes são obrigatórios e positivos.
+ * Objetivo e macronutrientes são obrigatórios. Carboidratos e gorduras aceitam zero (T-087).
  */
 @Schema(description = "Dados para criação da primeira versão (v1) de uma dieta. Regra inegociável (US-015): "
 		+ "o recurso criado NUNCA será sobrescrito — alterações posteriores geram uma nova versão encadeada "
@@ -23,8 +24,8 @@ public record CreateDietRequest(
 		@NotNull(message = "calories é obrigatório") @Positive(message = "calories deve ser positivo") Double calories,
 		@Schema(description = "Proteína diária em gramas", example = "180.0")
 		@NotNull(message = "protein é obrigatório") @Positive(message = "protein deve ser positivo") Double protein,
-		@Schema(description = "Carboidratos diários em gramas", example = "350.0")
-		@NotNull(message = "carbohydrates é obrigatório") @Positive(message = "carbohydrates deve ser positivo") Double carbohydrates,
-		@Schema(description = "Gorduras diárias em gramas", example = "90.0")
-		@NotNull(message = "fat é obrigatório") @Positive(message = "fat deve ser positivo") Double fat) {
+		@Schema(description = "Carboidratos diários em gramas (pode ser zero em estratégias cetogênicas/peak week)", example = "350.0")
+		@NotNull(message = "carbohydrates é obrigatório") @Min(value = 0, message = "carbohydrates deve ser >= 0") Double carbohydrates,
+		@Schema(description = "Gorduras diárias em gramas (pode ser zero em estratégias específicas)", example = "90.0")
+		@NotNull(message = "fat é obrigatório") @Min(value = 0, message = "fat deve ser >= 0") Double fat) {
 }
