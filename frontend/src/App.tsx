@@ -13,6 +13,8 @@ import { AthleteCreatePage } from "@/pages/AthleteCreatePage";
 import { AthleteDetailPage } from "@/pages/AthleteDetailPage";
 import { AssessmentCreatePage } from "@/pages/AssessmentCreatePage";
 import { DietEditorPage } from "@/pages/DietEditorPage";
+import { DietDetailPage } from "@/pages/DietDetailPage";
+import { DietMealsPage } from "@/pages/DietMealsPage";
 import { TrainingPage } from "@/pages/TrainingPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleRedirect } from "@/components/RoleRedirect";
@@ -47,6 +49,14 @@ export function App() {
           <Route
             path="/coach/athletes/:id/diets/:versionId/new-version"
             element={<DietEditorPage />}
+          />
+          <Route
+            path="/coach/athletes/:id/diets/:versionId"
+            element={<DietDetailPage />}
+          />
+          <Route
+            path="/coach/athletes/:id/diets/:versionId/meals"
+            element={<DietMealsPage />}
           />
           {/* próximas telas de coach entram aqui: /coach/library... */}
         </Route>

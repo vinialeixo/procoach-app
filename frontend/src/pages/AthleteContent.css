@@ -56,3 +56,70 @@
 .athlete-content__feedback--success { color: var(--color-success); }
 .athlete-content__feedback--error { color: var(--color-danger); }
 .athlete-content__channel:focus-within { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+/* T-095 — refeições, suplementos e lista de compras do atleta */
+.athlete-content__macro-pct {
+  color: var(--color-ink-muted);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+.athlete-content__diet-section { display: grid; gap: 0.85rem; }
+.athlete-content__meals { display: grid; gap: 0.85rem; }
+.athlete-content__meal-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+}
+.athlete-content__meal-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.athlete-content__meal-title h3 { margin: 0; font-size: 1.05rem; }
+.athlete-content__meal-time {
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.athlete-content__meal-totals {
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+}
+.athlete-content__meal-items,
+.athlete-content__shopping-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.athlete-content__meal-item,
+.athlete-content__shopping-item {
+  display: grid;
+  gap: 0.2rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--color-border);
+}
+.athlete-content__meal-item-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+}
+.athlete-content__meal-qty { font-weight: 600; }
+.athlete-content__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: var(--color-ink-muted);
+}
+.athlete-content__meal-item-meta {
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+}

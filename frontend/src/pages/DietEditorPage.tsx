@@ -139,7 +139,7 @@ export function DietEditorPage() {
               objective: values.objective,
               macros,
             });
-      navigate(`/coach/athletes/${athleteId}?tab=dietas`, {
+      navigate(`/coach/athletes/${athleteId}/diets/${created.id}/meals`, {
         state: { dietVersionCreated: created.version },
       });
     } catch {
