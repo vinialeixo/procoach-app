@@ -161,10 +161,7 @@ class DietTest {
         assertThatThrownBy(() -> Macronutrients.of(-100, 180, 250, 80))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("calories");
-        // protein must be > 0
-        assertThatThrownBy(() -> Macronutrients.of(2500, 0, 250, 80))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("protein");
+        // protein must be >= 0 (zero allowed but generates CRITICAL warning)
         assertThatThrownBy(() -> Macronutrients.of(2500, -1, 250, 80))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("protein");
@@ -176,6 +173,17 @@ class DietTest {
         assertThatThrownBy(() -> Macronutrients.of(2500, 180, 250, -5))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("fat");
+        // at least one macro must be positive
+        assertThatThrownBy(() -> Macronutrients.of(100, 0, 0, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("at least one macronutrient");
+    }
+
+    @Test
+    void macronutrients_shouldAllowZeroProtein() {
+        // Zero protein (edge case, generates CRITICAL warning)
+        Macronutrients zeroProtein = Macronutrients.of(2000, 0, 200, 100);
+        assertThat(zeroProtein.protein()).isZero();
     }
 
     @Test

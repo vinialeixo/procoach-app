@@ -25,14 +25,18 @@ public record Macronutrients(double calories, double protein, double carbohydrat
         if (calories <= 0) {
             throw new IllegalArgumentException("calories must be positive");
         }
-        if (protein <= 0) {
-            throw new IllegalArgumentException("protein must be positive");
+        if (protein < 0) {
+            throw new IllegalArgumentException("protein must be >= 0");
         }
         if (carbohydrates < 0) {
             throw new IllegalArgumentException("carbohydrates must be >= 0");
         }
         if (fat < 0) {
             throw new IllegalArgumentException("fat must be >= 0");
+        }
+        // At least one macro must be positive if calories > 0 (but calories already validated > 0)
+        if (protein == 0 && carbohydrates == 0 && fat == 0) {
+            throw new IllegalArgumentException("at least one macronutrient must be positive");
         }
     }
 
