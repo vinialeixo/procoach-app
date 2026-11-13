@@ -96,8 +96,17 @@ describe("Athlete Access & Invites (Issue #98 / T-082)", () => {
 
     // Coluna Acesso e seus badges
     expect(screen.getByText("Tem acesso")).toBeInTheDocument();
-    expect(screen.getByText("Convite pendente")).toBeInTheDocument();
+    const pendingBadge = screen.getByText("Convite pendente");
+    expect(pendingBadge).toBeInTheDocument();
+    expect(pendingBadge).toHaveAttribute(
+      "title",
+      expect.stringMatching(/convite@atleta\.com.*expira em/i)
+    );
     expect(screen.getByText("Sem acesso")).toBeInTheDocument();
+
+    // Ações acessíveis diretamente na listagem
+    expect(screen.getByRole("button", { name: "Convidar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Gerenciar convite" })).toBeInTheDocument();
   });
 
   it("displays access status and pending invite section on AthleteDetailPage", async () => {
@@ -441,5 +450,119 @@ describe("T-098: UX do link de convite após recarregar (sem cache)", () => {
       expect(screen.getByText(/Convidar Maria Santos para o app/)).toBeInTheDocument();
     });
     expect(screen.getByText(/O atleta usa este e-mail para entrar/)).toBeInTheDocument();
+  });
+
+  it("allows inviting an athlete directly from AthleteListPage without navigating", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: [
+        {
+          id: "ath-no-acc",
+          name: "Pedro Sem Acesso",
+          email: "pedro@exemplo.com",
+          sex: "MALE",
+          birthDate: "1997-03-15",
+          height: 180,
+          weight: 80,
+          goal: "HYPERTROPHY",
+          status: "ACTIVE",
+          createdAt: "2026-11-10T10:00:00Z",
+          hasCredential: false,
+          pendingInvite: null,
+        },
+      ],
+    });
+
+    render(
+      <QueryClientProvider client={createClient()}>
+        <MemoryRouter initialEntries={["/coach/athletes"]}>
+          <Routes>
+            <Route path="/coach/athletes" element={<AthleteListPage />} />
+            <Route path="/coach/athletes/:id" element={<div>Detalhe</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Pedro Sem Acesso")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Convidar" }));
+
+    expect(screen.queryByText("Detalhe")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Convidar Pedro Sem Acesso para o app")).toBeInTheDocument();
+    });
+    expect(screen.getByDisplayValue("pedro@exemplo.com")).toBeInTheDocument();
+  });
+
+  it("allows managing a pending invite directly from AthleteListPage", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(apiClient.get).mockImplementation((url: string) => {
+      if (url === "/athletes") {
+        return Promise.resolve({
+          data: [
+            {
+              id: "ath-pend-list",
+              name: "Carla Pendente",
+              sex: "FEMALE",
+              birthDate: "1996-09-10",
+              height: 164,
+              weight: 59,
+              goal: "MAINTENANCE",
+              status: "ACTIVE",
+              createdAt: "2026-11-10T10:00:00Z",
+              hasCredential: false,
+              pendingInvite: {
+                id: "inv-list-1",
+                email: "carla@exemplo.com",
+                expiresAt: "2026-11-19T10:00:00Z",
+              },
+            },
+          ],
+        });
+      }
+      if (url === "/athletes/ath-pend-list/invites") {
+        return Promise.resolve({
+          data: [
+            {
+              id: "inv-list-1",
+              athleteId: "ath-pend-list",
+              email: "carla@exemplo.com",
+              expiresAt: "2026-11-19T10:00:00Z",
+              createdAt: "2026-11-12T10:00:00Z",
+              status: "PENDING",
+            },
+          ],
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
+
+    render(
+      <QueryClientProvider client={createClient()}>
+        <MemoryRouter initialEntries={["/coach/athletes"]}>
+          <Routes>
+            <Route path="/coach/athletes" element={<AthleteListPage />} />
+            <Route path="/coach/athletes/:id" element={<div>Detalhe</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Carla Pendente")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Gerenciar convite" }));
+
+    expect(screen.queryByText("Detalhe")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Convite de Carla Pendente")).toBeInTheDocument();
+      expect(screen.getByText(/Convite pendente: carla@exemplo\.com/)).toBeInTheDocument();
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
 import { COACH_NAV } from "@/lib/coach-nav";
@@ -6,8 +6,17 @@ import { DataTable, Column } from "@/components/ui/DataTable";
 import { AthleteAccessBadge, StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { Modal } from "@/components/ui/Modal";
 import { StateMessage } from "@/components/ui/StateMessage";
-import { GOAL_LABEL, useAthletes, Athlete, AthleteStatus } from "@/lib/athletes";
+import {
+  getAthleteAccessStatus,
+  GOAL_LABEL,
+  useAthletes,
+  Athlete,
+  AthleteStatus,
+} from "@/lib/athletes";
+import { AthleteInvitesSection } from "./AthleteInvitesSection";
+import { InviteAthleteModal } from "./InviteAthleteModal";
 import "./AthleteList.css";
 
 // T-022 — Listagem de atletas (US-003). Persona: Coach.
@@ -22,19 +31,75 @@ const STATUS_OPTIONS: { value: "" | AthleteStatus; label: string }[] = [
   { value: "FINISHED", label: "Finalizado" },
 ];
 
-const columns: Column<Athlete>[] = [
-  { key: "name", header: "Nome", render: (a) => a.name },
-  { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
-  { key: "access", header: "Acesso", render: (a) => <AthleteAccessBadge athlete={a} /> },
-  { key: "goal", header: "Objetivo", render: (a) => GOAL_LABEL[a.goal] },
-];
-
 export function AthleteListPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<"" | AthleteStatus>("");
   const [search, setSearch] = useState("");
+  const [inviteAthleteId, setInviteAthleteId] = useState<string | null>(null);
+  const [manageInvitesAthleteId, setManageInvitesAthleteId] = useState<string | null>(null);
   const { data: athletes, isLoading, isError, refetch } = useAthletes(
     statusFilter || undefined
+  );
+
+  const inviteAthlete = useMemo(
+    () => (athletes ?? []).find((a) => a.id === inviteAthleteId) ?? null,
+    [athletes, inviteAthleteId]
+  );
+  const manageInvitesAthlete = useMemo(
+    () => (athletes ?? []).find((a) => a.id === manageInvitesAthleteId) ?? null,
+    [athletes, manageInvitesAthleteId]
+  );
+
+  const columns: Column<Athlete>[] = useMemo(
+    () => [
+      { key: "name", header: "Nome", render: (a) => a.name },
+      { key: "status", header: "Status", render: (a) => <StatusBadge status={a.status} /> },
+      { key: "access", header: "Acesso", render: (a) => <AthleteAccessBadge athlete={a} /> },
+      { key: "goal", header: "Objetivo", render: (a) => GOAL_LABEL[a.goal] },
+      {
+        key: "actions",
+        header: "Ações",
+        render: (a) => {
+          const accessStatus = getAthleteAccessStatus(a);
+          if (accessStatus === "HAS_ACCESS") {
+            return (
+              <span className="athlete-list__no-action" aria-hidden="true">
+                —
+              </span>
+            );
+          }
+          if (accessStatus === "INVITE_PENDING") {
+            return (
+              <Button
+                type="button"
+                variant="ghost"
+                className="athlete-list__row-action"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setManageInvitesAthleteId(a.id);
+                }}
+              >
+                Gerenciar convite
+              </Button>
+            );
+          }
+          return (
+            <Button
+              type="button"
+              variant="ghost"
+              className="athlete-list__row-action"
+              onClick={(event) => {
+                event.stopPropagation();
+                setInviteAthleteId(a.id);
+              }}
+            >
+              Convidar
+            </Button>
+          );
+        },
+      },
+    ],
+    []
   );
 
   const hasFilters = search.trim() !== "" || statusFilter !== "";
@@ -109,6 +174,35 @@ export function AthleteListPage() {
           />
         )}
       </div>
+
+      <Modal
+        open={Boolean(manageInvitesAthlete)}
+        title={
+          manageInvitesAthlete
+            ? `Convite de ${manageInvitesAthlete.name}`
+            : "Gerenciar convite"
+        }
+        onClose={() => setManageInvitesAthleteId(null)}
+      >
+        {manageInvitesAthlete && (
+          <AthleteInvitesSection
+            athlete={manageInvitesAthlete}
+            onOpenInviteModal={() => {
+              const id = manageInvitesAthlete.id;
+              setManageInvitesAthleteId(null);
+              setInviteAthleteId(id);
+            }}
+          />
+        )}
+      </Modal>
+
+      <InviteAthleteModal
+        open={Boolean(inviteAthlete)}
+        athleteId={inviteAthlete?.id ?? ""}
+        athleteName={inviteAthlete?.name ?? ""}
+        defaultEmail={inviteAthlete?.email ?? inviteAthlete?.pendingInvite?.email}
+        onClose={() => setInviteAthleteId(null)}
+      />
     </AppShell>
   );
 }

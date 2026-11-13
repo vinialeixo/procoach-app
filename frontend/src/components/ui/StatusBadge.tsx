@@ -1,4 +1,5 @@
 import { getAthleteAccessStatus, type Athlete } from "@/lib/athletes";
+import { formatInviteExpiration } from "@/lib/invites";
 import "./StatusBadge.css";
 
 type Tone = "success" | "muted" | "neutral" | "dark";
@@ -21,10 +22,12 @@ const VARIANTS: Record<string, { label: string; tone: Tone }> = {
   NO_ACCESS: { label: "Sem acesso", tone: "neutral" },
 };
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status, title }: { status: string; title?: string }) {
   const variant = VARIANTS[status] ?? { label: status, tone: "neutral" as const };
   return (
-    <span className={`pc-badge pc-badge--${variant.tone}`}>{variant.label}</span>
+    <span className={`pc-badge pc-badge--${variant.tone}`} title={title}>
+      {variant.label}
+    </span>
   );
 }
 
@@ -34,5 +37,9 @@ export function AthleteAccessBadge({
   athlete: Pick<Athlete, "hasCredential" | "pendingInvite">;
 }) {
   const accessStatus = getAthleteAccessStatus(athlete);
-  return <StatusBadge status={accessStatus} />;
+  const title =
+    accessStatus === "INVITE_PENDING" && athlete.pendingInvite
+      ? `Convite para ${athlete.pendingInvite.email} — expira em ${formatInviteExpiration(athlete.pendingInvite.expiresAt)}`
+      : undefined;
+  return <StatusBadge status={accessStatus} title={title} />;
 }
