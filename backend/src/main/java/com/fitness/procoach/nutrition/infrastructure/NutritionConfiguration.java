@@ -6,7 +6,9 @@ import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.notification.application.NotificationService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.nutrition.application.DietApplicationService;
+import com.fitness.procoach.nutrition.application.FoodApplicationService;
 import com.fitness.procoach.nutrition.domain.DietRepository;
+import com.fitness.procoach.nutrition.domain.FoodRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,5 +25,11 @@ public class NutritionConfiguration {
 			NotificationService notificationService) {
 		return new DietApplicationService(repository, coachService, athleteAccessService, assessmentService,
 				auditService, notificationService);
+	}
+
+	@Bean
+	public FoodApplicationService foodApplicationService(FoodRepository repository,
+			CoachApplicationService coachService, AuditService auditService) {
+		return new FoodApplicationService(repository, coachService, auditService);
 	}
 }

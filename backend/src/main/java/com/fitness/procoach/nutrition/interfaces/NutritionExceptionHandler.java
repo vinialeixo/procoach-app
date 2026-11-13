@@ -2,6 +2,7 @@ package com.fitness.procoach.nutrition.interfaces;
 
 import com.fitness.procoach.athlete.application.AthleteNotFoundException;
 import com.fitness.procoach.nutrition.application.DietNotFoundException;
+import com.fitness.procoach.nutrition.application.FoodNotFoundException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * {@code 400 Bad Request} detalhando os campos inválidos/ausentes; dieta
  * inexistente retorna {@code 404 Not Found}.
  */
-@RestControllerAdvice(assignableTypes = DietController.class)
+@RestControllerAdvice(assignableTypes = { DietController.class, FoodController.class })
 public class NutritionExceptionHandler {
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
@@ -66,6 +67,15 @@ public class NutritionExceptionHandler {
 
 	@ExceptionHandler(DietNotFoundException.class)
 	public ResponseEntity<Map<String, Object>> handleNotFound(DietNotFoundException ex) {
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("timestamp", Instant.now());
+		body.put("status", 404);
+		body.put("error", ex.getMessage());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+	}
+
+	@ExceptionHandler(FoodNotFoundException.class)
+	public ResponseEntity<Map<String, Object>> handleFoodNotFound(FoodNotFoundException ex) {
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("timestamp", Instant.now());
 		body.put("status", 404);

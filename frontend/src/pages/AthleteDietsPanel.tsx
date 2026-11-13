@@ -1,16 +1,22 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { useAssessments } from "@/lib/assessments";
 import {
+  CLASSIFICATION_LABEL,
   DietStatus,
   DietVersion,
   DIET_STATUS_FLOW,
+  MacroKey,
   OBJECTIVE_LABEL,
   STATUS_LABEL,
+  computeDerivedMacros,
   findCurrentDietVersion,
+  useDietEnergyBalance,
   useDiets,
   useChangeDietStatus,
 } from "@/lib/diets";
@@ -41,7 +47,8 @@ function formatInstant(iso: string): string {
 }
 
 function formatShortDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("pt-BR", {
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T00:00:00` : iso;
+  return new Date(normalized).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
@@ -51,6 +58,25 @@ function formatShortDate(iso: string): string {
 function formatNumber(value: number, suffix = ""): string {
   return `${value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}${suffix}`;
 }
+
+function formatSignedKcal(value: number): string {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatNumber(value, " kcal")}`;
+}
+
+function isHttpStatus(error: unknown, status: number): boolean {
+  if (error && typeof error === "object" && "response" in error) {
+    const response = (error as { response?: { status?: number } }).response;
+    return response?.status === status;
+  }
+  return false;
+}
+
+const MACRO_LABEL: Record<MacroKey, string> = {
+  protein: "Proteínas",
+  carbohydrates: "Carboidratos",
+  fat: "Gorduras",
+};
 
 function shortId(uuid: string): string {
   return `${uuid.slice(0, 8)}…`;
@@ -105,6 +131,7 @@ function hasDiff(row: CompareRow): boolean {
 
 export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
   const { data: versions, isLoading, isError } = useDiets(athleteId);
+  const { data: assessments } = useAssessments(athleteId);
   const changeStatus = useChangeDietStatus(athleteId);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [pendingTransition, setPendingTransition] = useState<DietStatus | null>(
@@ -122,6 +149,18 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
     .filter((v) => !v.deleted)
     .sort((a, b) => a.version - b.version);
   const current = findCurrentDietVersion(active);
+
+  const latestWeightKg =
+    [...(assessments ?? [])].sort((a, b) =>
+      b.assessmentDate.localeCompare(a.assessmentDate)
+    )[0]?.measurements.weightKg ?? null;
+
+  const energyBalance = useDietEnergyBalance(current?.id ?? "");
+  const derived = current
+    ? computeDerivedMacros(current.macros, latestWeightKg)
+    : null;
+  const energyBalanceMissingAssessment =
+    energyBalance.isError && isHttpStatus(energyBalance.error, 409);
 
   function toggleSelected(id: string) {
     setSelectedIds((prev) =>
@@ -216,6 +255,28 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
           <span className="diets__audit-reason">
             {v.changeReason ? `Motivo: ${v.changeReason}` : "—"}
           </span>
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Ações",
+      render: (v) => (
+        <span className="diets__row-actions">
+          <Link
+            className="diets__link"
+            to={`/coach/athletes/${athleteId}/diets/${v.id}`}
+          >
+            Ver detalhes
+          </Link>
+          {v.status === "DRAFT" && !v.readOnly && (
+            <Link
+              className="diets__link"
+              to={`/coach/athletes/${athleteId}/diets/${v.id}/meals`}
+            >
+              Gerenciar refeições
+            </Link>
+          )}
         </span>
       ),
     },
@@ -321,6 +382,112 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
                   por {shortId(current.createdBy)}
                 </span>
               </div>
+              {derived && (
+                <div className="diets__macros-grid" aria-label="Macronutrientes da versão atual">
+                  <div className="diets__macro-card">
+                    <span className="diets__macro-label">Calorias</span>
+                    <span className="diets__macro-value">
+                      {formatNumber(current.macros.calories, " kcal")}
+                    </span>
+                    {derived.kcalPerKg != null && (
+                      <span className="diets__macro-sub">
+                        {formatNumber(derived.kcalPerKg, " kcal/kg")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="diets__macro-card">
+                    <span className="diets__macro-label">Proteínas</span>
+                    <span className="diets__macro-value">
+                      {formatNumber(current.macros.protein, " g")}
+                    </span>
+                    <span className="diets__macro-sub">
+                      {formatNumber(derived.proteinPct, "% kcal")}
+                      {derived.proteinPerKg != null &&
+                        ` · ${formatNumber(derived.proteinPerKg, " g/kg")}`}
+                    </span>
+                  </div>
+                  <div className="diets__macro-card">
+                    <span className="diets__macro-label">Carboidratos</span>
+                    <span className="diets__macro-value">
+                      {formatNumber(current.macros.carbohydrates, " g")}
+                    </span>
+                    <span className="diets__macro-sub">
+                      {formatNumber(derived.carbsPct, "% kcal")}
+                      {derived.carbsPerKg != null &&
+                        ` · ${formatNumber(derived.carbsPerKg, " g/kg")}`}
+                    </span>
+                  </div>
+                  <div className="diets__macro-card">
+                    <span className="diets__macro-label">Gorduras</span>
+                    <span className="diets__macro-value">
+                      {formatNumber(current.macros.fat, " g")}
+                    </span>
+                    <span className="diets__macro-sub">
+                      {formatNumber(derived.fatPct, "% kcal")}
+                      {derived.fatPerKg != null &&
+                        ` · ${formatNumber(derived.fatPerKg, " g/kg")}`}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {derived && (derived.hasCalorieInconsistency || derived.zeroMacros.length > 0) && (
+                <div className="diets__warnings" role="status" aria-label="Avisos nutricionais">
+                  {derived.hasCalorieInconsistency && (
+                    <div className="diets__warning">
+                      Aviso nutricional: a soma dos macronutrientes pela regra 4/4/9 (
+                      {formatNumber(derived.kcalFromMacros, " kcal")}) diverge das calorias
+                      informadas ({formatNumber(current.macros.calories, " kcal")}) em{" "}
+                      {formatNumber(Math.abs(derived.calorieDeltaPct), "%")}.
+                    </div>
+                  )}
+                  {derived.zeroMacros.length > 0 && (
+                    <div className="diets__warning">
+                      Aviso nutricional: macronutriente(s) zerado(s):{" "}
+                      {derived.zeroMacros.map((k) => MACRO_LABEL[k]).join(", ")}.
+                    </div>
+                  )}
+                </div>
+              )}
+              {energyBalance.data && (
+                <div className="diets__energy" aria-label="Balanço energético">
+                  <div className="diets__energy-row">
+                    <span className="diets__energy-badge">
+                      {CLASSIFICATION_LABEL[energyBalance.data.classification]}
+                    </span>
+                    <span>
+                      GET:{" "}
+                      <strong className="diets__mono">
+                        {formatNumber(energyBalance.data.getKcal, " kcal")}
+                      </strong>
+                    </span>
+                    <span>
+                      Delta:{" "}
+                      <strong className="diets__mono">
+                        {formatSignedKcal(energyBalance.data.balanceKcal)}
+                      </strong>
+                    </span>
+                    <span className="diets__meta">
+                      Avaliação de {formatShortDate(energyBalance.data.basedOnAssessmentDate)}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {energyBalanceMissingAssessment && (
+                <div className="diets__energy diets__energy--empty" role="status">
+                  <div className="diets__energy-row">
+                    <span>
+                      Balanço energético indisponível: registre uma avaliação física para
+                      calcular o GET e comparar com a dieta.
+                    </span>
+                    <ButtonLink
+                      to={`/coach/athletes/${athleteId}/assessments/new`}
+                      variant="ghost"
+                    >
+                      Registrar avaliação
+                    </ButtonLink>
+                  </div>
+                </div>
+              )}
               {nextTransition && (
                 <p className="diets__meta">
                   Próxima transição permitida: {STATUS_LABEL[current.status]} →{" "}
@@ -328,6 +495,20 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
                 </p>
               )}
               <div className="diets__current-actions">
+                <ButtonLink
+                  to={`/coach/athletes/${athleteId}/diets/${current.id}`}
+                  variant="ghost"
+                >
+                  Ver detalhes
+                </ButtonLink>
+                {current.status === "DRAFT" && !current.readOnly && (
+                  <ButtonLink
+                    to={`/coach/athletes/${athleteId}/diets/${current.id}/meals`}
+                    variant="ghost"
+                  >
+                    Gerenciar refeições
+                  </ButtonLink>
+                )}
                 <ButtonLink
                   to={`/coach/athletes/${athleteId}/diets/${current.id}/new-version`} variant="ghost">Nova versão (não sobrescreve)</ButtonLink>
                 {nextTransition ? (
