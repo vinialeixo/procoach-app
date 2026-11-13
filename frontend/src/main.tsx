@@ -6,10 +6,19 @@ import "./styles/global.css";
 
 const queryClient = new QueryClient();
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </React.StrictMode>
-);
+async function prepareMocks() {
+  if (import.meta.env.VITE_USE_MOCKS === "true") {
+    const { worker } = await import("./mocks/browser");
+    await worker.start({ onUnhandledFrame: "bypass" });
+  }
+}
+
+prepareMocks().then(() => {
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+});
