@@ -25,6 +25,7 @@ import com.fitness.procoach.nutrition.domain.Meal;
 import com.fitness.procoach.nutrition.domain.MealId;
 import com.fitness.procoach.nutrition.domain.MealItem;
 import com.fitness.procoach.nutrition.domain.MealItemId;
+import com.fitness.procoach.nutrition.domain.Supplement;
 import java.time.Instant;
 import java.util.List;
 import java.util.Comparator;
@@ -363,6 +364,32 @@ public class DietApplicationService {
 		return saved;
 	}
 
+	/** Adiciona um suplemento à dieta (T-090). */
+	@Transactional
+	public Diet addSupplement(UUID userId, UUID dietId, AddSupplementCommand command) {
+		Diet diet = findOwnedById(new DietId(dietId), userId);
+		Supplement supplement = Supplement.create(command.name(), command.dose(), command.timing(), command.countsTowardMacros());
+		diet.addSupplement(supplement);
+		Diet saved = repository.save(diet);
+		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "SUPPLEMENT_ADDED", userId,
+				AuditData.of("supplementName", supplement.name(), "countsTowardMacros", supplement.countsTowardMacros(), "version", saved.version()));
+		return saved;
+	}
+
+	/** Remove um suplemento da dieta pelo nome (T-090). */
+	@Transactional
+	public Diet removeSupplement(UUID userId, UUID dietId, String supplementName) {
+		Diet diet = findOwnedById(new DietId(dietId), userId);
+		boolean removed = diet.removeSupplement(supplementName);
+		if (!removed) {
+			throw new IllegalArgumentException("Supplement not found: " + supplementName);
+		}
+		Diet saved = repository.save(diet);
+		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "SUPPLEMENT_REMOVED", userId,
+				AuditData.of("supplementName", supplementName, "version", saved.version()));
+		return saved;
+	}
+
 	public record AddMealCommand(UUID userId, UUID dietId, String name, int order, String time, String notes,
 			MealTarget target) {
 	}
@@ -502,5 +529,10 @@ public class DietApplicationService {
 				.phase(proposal.phase())
 				.trainingDay(proposal.trainingDay())
 				.build();
+	}
+
+	/** Comando para adicionar um suplemento à dieta (T-090). */
+	public record AddSupplementCommand(UUID userId, UUID dietId, String name, String dose,
+			String timing, boolean countsTowardMacros) {
 	}
 }

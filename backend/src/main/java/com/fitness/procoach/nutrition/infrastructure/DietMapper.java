@@ -15,6 +15,7 @@ import com.fitness.procoach.nutrition.domain.Meal;
 import com.fitness.procoach.nutrition.domain.MealId;
 import com.fitness.procoach.nutrition.domain.MealItem;
 import com.fitness.procoach.nutrition.domain.MealItemId;
+import com.fitness.procoach.nutrition.domain.Supplement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,6 +56,25 @@ final class DietMapper {
                 entity.addMeal(mealEntity);
             }
         }
+
+        // Map supplements (T-090)
+        if (diet.supplements() != null && !diet.supplements().isEmpty()) {
+            for (Supplement supplement : diet.supplements()) {
+                SupplementJpaEntity supplementEntity = toEntity(supplement);
+                supplementEntity.setDiet(entity);
+                entity.addSupplement(supplementEntity);
+            }
+        }
+        return entity;
+    }
+
+    private static SupplementJpaEntity toEntity(Supplement supplement) {
+        SupplementJpaEntity entity = new SupplementJpaEntity();
+        entity.setId(java.util.UUID.randomUUID());
+        entity.setName(supplement.name());
+        entity.setDose(supplement.dose());
+        entity.setTiming(supplement.timing());
+        entity.setCountsTowardMacros(supplement.countsTowardMacros());
         return entity;
     }
 
@@ -106,6 +126,15 @@ final class DietMapper {
                 meals.add(toDomain(mealEntity));
             }
         }
+
+        // Map supplements (T-090)
+        List<Supplement> supplements = new ArrayList<>();
+        if (entity.getSupplements() != null) {
+            for (SupplementJpaEntity supplementEntity : entity.getSupplements()) {
+                supplements.add(toDomain(supplementEntity));
+            }
+        }
+
         // Warnings are not persisted; they are generated on-the-fly based on current athlete profile
         List<DietWarning> warnings = List.of();
         return Diet.reconstitute(
@@ -126,7 +155,16 @@ final class DietMapper {
                 entity.isReadOnly(),
                 entity.isDeleted(),
                 meals,
+                supplements,
                 warnings);
+    }
+
+    private static Supplement toDomain(SupplementJpaEntity entity) {
+        return Supplement.create(
+                entity.getName(),
+                entity.getDose(),
+                entity.getTiming(),
+                entity.isCountsTowardMacros());
     }
 
     private static Meal toDomain(MealJpaEntity mealEntity) {

@@ -45,6 +45,7 @@ public class Diet {
     private boolean readOnly;
     private boolean deleted;
     private final List<Meal> meals = new ArrayList<>();
+    private final List<Supplement> supplements = new ArrayList<>();
     private final List<DietWarning> warnings = new ArrayList<>();
     private final List<DietEvent> domainEvents = new ArrayList<>();
 
@@ -78,12 +79,16 @@ public class Diet {
                                     DietStatus status, int version, DietId previousVersionId,
                                     String changeReason, UUID createdBy, UUID updatedBy,
                                     Instant createdAt, Instant updatedAt, boolean readOnly,
-                                    boolean deleted, List<Meal> meals, List<DietWarning> warnings) {
+                                    boolean deleted, List<Meal> meals, List<Supplement> supplements,
+                                    List<DietWarning> warnings) {
         Diet diet = new Diet(id, coachId, athleteId, objective, macros, status, version,
                 previousVersionId, changeReason, createdBy, updatedBy, createdAt, updatedAt,
                 readOnly, deleted);
         if (meals != null) {
             diet.meals.addAll(meals);
+        }
+        if (supplements != null) {
+            diet.supplements.addAll(supplements);
         }
         if (warnings != null) {
             diet.warnings.addAll(warnings);
@@ -105,18 +110,22 @@ public class Diet {
 
     /**
      * Cria a primeira versão (v1) de uma dieta a partir de uma proposta de IA (T-088).
-     * A dieta nasce com refeições, itens e warnings já populados.
+     * A dieta nasce com refeições, itens, suplementos e warnings já populados.
      * Emite evento {@code DietCreated}.
      */
     public static Diet createFromAiProposal(CoachId coachId, AthleteId athleteId,
                                             DietObjective objective, Macronutrients macros,
                                             String changeReason, UUID createdBy,
-                                            List<Meal> meals, List<DietWarning> warnings) {
+                                            List<Meal> meals, List<Supplement> supplements,
+                                            List<DietWarning> warnings) {
         Instant now = Instant.now();
         Diet diet = new Diet(DietId.random(), coachId, athleteId, objective, macros,
                 DietStatus.DRAFT, 1, null, changeReason, createdBy, createdBy, now, now, false, false);
         if (meals != null) {
             diet.meals.addAll(meals);
+        }
+        if (supplements != null) {
+            diet.supplements.addAll(supplements);
         }
         if (warnings != null) {
             diet.warnings.addAll(warnings);
@@ -129,12 +138,13 @@ public class Diet {
     /**
      * Cria uma nova versão a partir desta, baseada em uma proposta de IA (T-088).
      * A versão atual torna-se somente leitura (readOnly=true).
-     * As refeições, itens e warnings da proposta são usados na nova versão.
+     * As refeições, itens, suplementos e warnings da proposta são usados na nova versão.
      * Emite evento {@code DietVersioned}.
      */
     public Diet createNewVersionFromAiProposal(DietObjective newObjective, Macronutrients newMacros,
                                                String changeReason, UUID changedBy,
-                                               List<Meal> meals, List<DietWarning> warnings) {
+                                               List<Meal> meals, List<Supplement> supplements,
+                                               List<DietWarning> warnings) {
         if (readOnly) {
             throw new IllegalStateException("Cannot create a new version from a read-only version");
         }
@@ -153,6 +163,9 @@ public class Diet {
                 DietStatus.DRAFT, version + 1, id, changeReason, changedBy, changedBy, now, now, false, false);
         if (meals != null) {
             next.meals.addAll(meals);
+        }
+        if (supplements != null) {
+            next.supplements.addAll(supplements);
         }
         if (warnings != null) {
             next.warnings.addAll(warnings);
@@ -181,7 +194,7 @@ public class Diet {
     /**
      * Cria uma nova versão a partir desta. A versão atual torna-se somente leitura.
      * O motivo da alteração é obrigatório (US-016).
-     * As refeições, itens e warnings são copiados (snapshot) para a nova versão.
+     * As refeições, itens, suplementos e warnings são copiados (snapshot) para a nova versão.
      */
     public Diet createNewVersion(DietObjective newObjective, Macronutrients newMacros,
                                  String changeReason, UUID changedBy) {
@@ -215,12 +228,16 @@ public class Diet {
             copiedMeals.add(copiedMeal);
         }
 
+        // Copia suplementos (snapshot)
+        List<Supplement> copiedSupplements = new ArrayList<>(this.supplements);
+
         // Copia warnings (snapshot)
         List<DietWarning> copiedWarnings = new ArrayList<>(this.warnings);
 
         Diet next = new Diet(DietId.random(), coachId, athleteId, newObjective, newMacros,
                 DietStatus.DRAFT, version + 1, id, changeReason, changedBy, changedBy, now, now, false, false);
         next.meals.addAll(copiedMeals);
+        next.supplements.addAll(copiedSupplements);
         next.warnings.addAll(copiedWarnings);
 
         // Recalcula macros da nova versão a partir dos itens copiados
@@ -263,6 +280,45 @@ public class Diet {
             this.updatedAt = Instant.now();
         }
         return removed;
+    }
+
+    /**
+     * Adiciona um suplemento à dieta (T-090).
+     */
+    public void addSupplement(Supplement supplement) {
+        Objects.requireNonNull(supplement, "supplement");
+        if (readOnly) {
+            throw new IllegalStateException("Cannot add supplement to a read-only version");
+        }
+        if (deleted) {
+            throw new IllegalStateException("Cannot add supplement to a deleted diet");
+        }
+        supplements.add(supplement);
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Remove um suplemento da dieta pelo nome.
+     */
+    public boolean removeSupplement(String name) {
+        if (readOnly) {
+            throw new IllegalStateException("Cannot remove supplement from a read-only version");
+        }
+        if (deleted) {
+            throw new IllegalStateException("Cannot remove supplement from a deleted diet");
+        }
+        boolean removed = supplements.removeIf(s -> s.name().equalsIgnoreCase(name));
+        if (removed) {
+            this.updatedAt = Instant.now();
+        }
+        return removed;
+    }
+
+    /**
+     * Retorna os suplementos da dieta (somente leitura).
+     */
+    public List<Supplement> supplements() {
+        return Collections.unmodifiableList(supplements);
     }
 
     /**

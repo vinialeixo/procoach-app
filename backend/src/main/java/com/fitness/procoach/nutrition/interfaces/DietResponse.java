@@ -7,6 +7,7 @@ import com.fitness.procoach.nutrition.domain.EnergyBalance;
 import com.fitness.procoach.nutrition.domain.Macronutrients;
 import com.fitness.procoach.nutrition.domain.Meal;
 import com.fitness.procoach.nutrition.domain.MealItem;
+import com.fitness.procoach.nutrition.domain.Supplement;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -53,6 +54,8 @@ public record DietResponse(
         @Schema(description = "Último usuário que alterou o registro",
                 example = "2f6b1c3d-7a0e-4b5d-9c8a-1e2f3a4b5c6d") UUID updatedBy,
         @Schema(description = "Refeições da dieta (T-085). Totais derivados dos itens.") List<MealResponse> meals,
+        @Schema(description = "Suplementos da dieta (T-090). Suplementos não calóricos têm countsTowardMacros=false; "
+                + "suplementos calóricos (Whey) entram como MealItem com kind=SUPPLEMENT_CALORIC.") List<SupplementResponse> supplements,
         @Schema(description = "Totais calculados a partir das refeições (somente leitura). Se não houver refeições, igual aos macros informados.") DietTotalsResponse totals,
         @Schema(description = "Warnings nutricionais estruturados (T-087). Informativos — nunca bloqueiam.") List<WarningResponse> warnings,
         @Schema(description = "Macros derivados: g/kg, %kcal, kcal/kg, consistência 4/4/9 (T-087).") DerivedMacrosResponse derived,
@@ -64,6 +67,12 @@ public record DietResponse(
 
     public static DietResponse from(Diet diet, double weightKg, EnergyBalance balance) {
         List<MealResponse> meals = diet.meals().stream().map(DietResponse::mapMeal).toList();
+        
+        // Map supplements (T-090)
+        List<SupplementResponse> supplements = diet.supplements().stream()
+                .map(SupplementResponse::from)
+                .toList();
+        
         Macronutrients totals = diet.calculateTotalsFromMeals();
         DietTotalsResponse totalsResponse = new DietTotalsResponse(totals.calories(), totals.protein(),
                 totals.carbohydrates(), totals.fat());
@@ -94,7 +103,7 @@ public record DietResponse(
                 diet.macros().carbohydrates(), diet.macros().fat(), diet.status(), diet.version(),
                 diet.previousVersionId() == null ? null : diet.previousVersionId().value(),
                 diet.changeReason(), diet.createdAt(), diet.updatedAt(), diet.isReadOnly(),
-                diet.isDeleted(), diet.createdBy(), diet.updatedBy(), meals, totalsResponse,
+                diet.isDeleted(), diet.createdBy(), diet.updatedBy(), meals, supplements, totalsResponse,
                 warnings, derived, energyBalanceResponse);
     }
 
