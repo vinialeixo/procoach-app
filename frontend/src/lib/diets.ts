@@ -46,6 +46,44 @@ export type Macronutrients = {
   fat: number; // g
 };
 
+export type FoodSource = "TACO" | "CUSTOM" | "USDA";
+export type FoodKind = "FOOD" | "SUPPLEMENT_CALORIC";
+export type FoodState = "RAW" | "AS_SERVED";
+
+export type MealTarget = {
+  calories: number;
+  protein: number;
+  carbohydrates: number;
+  fat: number;
+};
+
+export type MealItem = {
+  id: string;
+  foodId: string | null;
+  name: string;
+  source: FoodSource;
+  kind: FoodKind;
+  state: FoodState;
+  quantityG: number;
+  householdMeasure: string | null;
+  preparation: string | null;
+  calories: number;
+  protein: number;
+  carbohydrates: number;
+  fat: number;
+};
+
+export type Meal = {
+  id: string;
+  name: string;
+  order: number;
+  time: string | null;
+  notes: string | null;
+  target: MealTarget | null;
+  items: MealItem[];
+  totals: Macronutrients | null;
+};
+
 // Uma linha = uma versão da dieta (v1, v2, ...). No domínio cada versão é
 // uma instância do agregado Diet encadeada por previousVersionId.
 export type DietVersion = {
@@ -54,6 +92,8 @@ export type DietVersion = {
   athleteId: string; // UUID do atleta — espelho de AthleteId
   objective: DietObjective;
   macros: Macronutrients;
+  meals: Meal[];
+  totals: Macronutrients;
   status: DietStatus;
   version: number; // v1 = 1
   previousVersionId: string | null; // null na v1
@@ -77,6 +117,29 @@ export type CreateDietVersionPayload = CreateDietPayload & {
 
 export type ChangeDietStatusPayload = {
   status: DietStatus;
+};
+
+export type AddMealPayload = {
+  name: string;
+  order: number;
+  time?: string | null;
+  notes?: string | null;
+  target?: MealTarget | null;
+};
+
+export type AddMealItemPayload = {
+  foodId?: string | null;
+  name: string;
+  source: FoodSource;
+  kind: FoodKind;
+  state: FoodState;
+  quantityG: number;
+  householdMeasure?: string | null;
+  preparation?: string | null;
+  calories: number;
+  protein: number;
+  carbohydrates: number;
+  fat: number;
 };
 
 // Espelho client-side da máquina de estados do domínio (US-017, critério 2:
@@ -104,8 +167,24 @@ export const STATUS_LABEL: Record<DietStatus, string> = {
   ARCHIVED: "Arquivada",
 };
 
+export const FOOD_SOURCE_LABEL: Record<FoodSource, string> = {
+  TACO: "TACO",
+  CUSTOM: "Personalizado",
+  USDA: "USDA",
+};
+
+export const FOOD_KIND_LABEL: Record<FoodKind, string> = {
+  FOOD: "Alimento",
+  SUPPLEMENT_CALORIC: "Suplemento calórico",
+};
+
+export const FOOD_STATE_LABEL: Record<FoodState, string> = {
+  RAW: "Cru",
+  AS_SERVED: "Como servido",
+};
+
 // Formato do backend (DietResponse).
-type ApiDiet = {
+export type ApiDiet = {
   id: string;
   coachId: string;
   athleteId: string;
@@ -124,11 +203,19 @@ type ApiDiet = {
   deleted: boolean;
   createdBy: string;
   updatedBy: string;
+  meals?: Meal[];
+  totals?: Macronutrients;
 };
 
-function toDietVersion(d: ApiDiet): DietVersion {
-  const { calories, protein, carbohydrates, fat, ...rest } = d;
-  return { ...rest, macros: { calories, protein, carbohydrates, fat } };
+export function toDietVersion(d: ApiDiet): DietVersion {
+  const { calories, protein, carbohydrates, fat, meals, totals, ...rest } = d;
+  const macros: Macronutrients = { calories, protein, carbohydrates, fat };
+  return {
+    ...rest,
+    macros,
+    meals: meals ?? [],
+    totals: totals ?? macros,
+  };
 }
 
 function toApiBody(payload: CreateDietPayload) {
@@ -224,6 +311,49 @@ async function getEnergyBalance(athleteId: string): Promise<EnergyBalance> {
   return data;
 }
 
+async function getDietById(dietId: string): Promise<DietVersion> {
+  const { data } = await apiClient.get<ApiDiet>(`/diets/${dietId}`);
+  return toDietVersion(data);
+}
+
+async function getDietEnergyBalance(dietId: string): Promise<EnergyBalance> {
+  const { data } = await apiClient.get<EnergyBalance>(`/diets/${dietId}/energy-balance`);
+  return data;
+}
+
+async function addMeal(dietId: string, payload: AddMealPayload): Promise<DietVersion> {
+  const { data } = await apiClient.post<ApiDiet>(`/diets/${dietId}/meals`, payload);
+  return toDietVersion(data);
+}
+
+async function addMealItem(
+  dietId: string,
+  mealId: string,
+  payload: AddMealItemPayload
+): Promise<DietVersion> {
+  const { data } = await apiClient.post<ApiDiet>(
+    `/diets/${dietId}/meals/${mealId}/items`,
+    payload
+  );
+  return toDietVersion(data);
+}
+
+async function removeMealItem(
+  dietId: string,
+  mealId: string,
+  itemId: string
+): Promise<DietVersion> {
+  const { data } = await apiClient.delete<ApiDiet>(
+    `/diets/${dietId}/meals/${mealId}/items/${itemId}`
+  );
+  return toDietVersion(data);
+}
+
+async function removeMeal(dietId: string, mealId: string): Promise<DietVersion> {
+  const { data } = await apiClient.delete<ApiDiet>(`/diets/${dietId}/meals/${mealId}`);
+  return toDietVersion(data);
+}
+
 // Versão corrente da cadeia: a única que o domínio permite mutar (não está
 // readOnly nem deleted). Na prática é sempre a de maior número — v(n) vira
 // readOnly assim que v(n+1) é criada a partir dela.
@@ -305,4 +435,443 @@ export function useEnergyBalance(athleteId: string) {
     enabled: Boolean(athleteId),
     retry: false,
   });
+}
+
+export function useDiet(dietId: string) {
+  return useQuery({
+    queryKey: ["diets", "detail", dietId],
+    queryFn: () => getDietById(dietId),
+    enabled: Boolean(dietId),
+  });
+}
+
+// 404 (dieta não encontrada) e 409 (sem avaliação) são estados esperados da tela.
+export function useDietEnergyBalance(dietId: string) {
+  return useQuery({
+    queryKey: ["diets", "energy-balance", "diet", dietId],
+    queryFn: () => getDietEnergyBalance(dietId),
+    enabled: Boolean(dietId),
+    retry: false,
+  });
+}
+
+function invalidateDietQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  athleteId: string,
+  dietId: string
+) {
+  queryClient.invalidateQueries({ queryKey: ["diets", athleteId] });
+  queryClient.invalidateQueries({ queryKey: ["diets", "detail", dietId] });
+  queryClient.invalidateQueries({ queryKey: ["diets", "energy-balance", athleteId] });
+  queryClient.invalidateQueries({ queryKey: ["diets", "energy-balance", "diet", dietId] });
+}
+
+export function useAddMeal(athleteId: string, dietId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AddMealPayload) => addMeal(dietId, payload),
+    onSuccess: () => invalidateDietQueries(queryClient, athleteId, dietId),
+  });
+}
+
+export function useAddMealItem(athleteId: string, dietId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ mealId, payload }: { mealId: string; payload: AddMealItemPayload }) =>
+      addMealItem(dietId, mealId, payload),
+    onSuccess: () => invalidateDietQueries(queryClient, athleteId, dietId),
+  });
+}
+
+export function useRemoveMealItem(athleteId: string, dietId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ mealId, itemId }: { mealId: string; itemId: string }) =>
+      removeMealItem(dietId, mealId, itemId),
+    onSuccess: () => invalidateDietQueries(queryClient, athleteId, dietId),
+  });
+}
+
+export function useRemoveMeal(athleteId: string, dietId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (mealId: string) => removeMeal(dietId, mealId),
+    onSuccess: () => invalidateDietQueries(queryClient, athleteId, dietId),
+  });
+}
+
+// --- Helpers puros (T-085 / T-092 / T-095) -----------------------------------
+
+export type MacroKey = "protein" | "carbohydrates" | "fat";
+
+export type DerivedMacros = {
+  kcalFromMacros: number;
+  calorieDeltaPct: number;
+  hasCalorieInconsistency: boolean;
+  zeroMacros: MacroKey[];
+  proteinPct: number;
+  carbsPct: number;
+  fatPct: number;
+  proteinPerKg?: number;
+  carbsPerKg?: number;
+  fatPerKg?: number;
+  kcalPerKg?: number;
+};
+
+/**
+ * Calcula métricas derivadas de macronutrientes: calorias pela regra 4/4/9,
+ * divergência percentual em relação às calorias informadas, macros zerados,
+ * distribuição percentual e, opcionalmente, valores por kg de peso corporal.
+ */
+export function computeDerivedMacros(
+  macros: Macronutrients,
+  weightKg?: number | null
+): DerivedMacros {
+  const proteinKcal = macros.protein * 4;
+  const carbsKcal = macros.carbohydrates * 4;
+  const fatKcal = macros.fat * 9;
+  const kcalFromMacros = proteinKcal + carbsKcal + fatKcal;
+
+  const calorieDeltaPct =
+    macros.calories > 0
+      ? ((kcalFromMacros - macros.calories) / macros.calories) * 100
+      : kcalFromMacros > 0
+        ? 100
+        : 0;
+
+  const hasCalorieInconsistency =
+    kcalFromMacros > 0 && (macros.calories <= 0 || Math.abs(calorieDeltaPct) > 5);
+
+  const zeroMacros = (["protein", "carbohydrates", "fat"] as const).filter(
+    (key) => macros[key] === 0
+  );
+
+  const proteinPct = kcalFromMacros > 0 ? (proteinKcal / kcalFromMacros) * 100 : 0;
+  const carbsPct = kcalFromMacros > 0 ? (carbsKcal / kcalFromMacros) * 100 : 0;
+  const fatPct = kcalFromMacros > 0 ? (fatKcal / kcalFromMacros) * 100 : 0;
+
+  const result: DerivedMacros = {
+    kcalFromMacros,
+    calorieDeltaPct,
+    hasCalorieInconsistency,
+    zeroMacros,
+    proteinPct,
+    carbsPct,
+    fatPct,
+  };
+
+  if (weightKg != null && weightKg > 0) {
+    result.proteinPerKg = macros.protein / weightKg;
+    result.carbsPerKg = macros.carbohydrates / weightKg;
+    result.fatPerKg = macros.fat / weightKg;
+    result.kcalPerKg = macros.calories / weightKg;
+  }
+
+  return result;
+}
+
+export type DiffStatus = "ADDED" | "REMOVED" | "CHANGED" | "UNCHANGED";
+
+export type MealItemDiff = {
+  status: DiffStatus;
+  name: string;
+  previous: MealItem | null;
+  current: MealItem | null;
+  quantityDeltaG: number;
+  caloriesDelta: number;
+  proteinDelta: number;
+  carbohydratesDelta: number;
+  fatDelta: number;
+};
+
+export type MealDiff = {
+  status: DiffStatus;
+  name: string;
+  order: number;
+  previous: Meal | null;
+  current: Meal | null;
+  items: MealItemDiff[];
+};
+
+export type DietVersionDiff = {
+  previousVersion: number;
+  currentVersion: number;
+  macroDeltas: Macronutrients;
+  meals: MealDiff[];
+};
+
+function normalizeText(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function targetsEqual(a: MealTarget | null, b: MealTarget | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.calories === b.calories &&
+    a.protein === b.protein &&
+    a.carbohydrates === b.carbohydrates &&
+    a.fat === b.fat
+  );
+}
+
+function mealItemsEqual(a: MealItem, b: MealItem): boolean {
+  return (
+    a.name === b.name &&
+    a.source === b.source &&
+    a.kind === b.kind &&
+    a.state === b.state &&
+    a.quantityG === b.quantityG &&
+    a.householdMeasure === b.householdMeasure &&
+    a.preparation === b.preparation &&
+    a.calories === b.calories &&
+    a.protein === b.protein &&
+    a.carbohydrates === b.carbohydrates &&
+    a.fat === b.fat
+  );
+}
+
+function findMatchingItemIndex(
+  target: MealItem,
+  candidates: MealItem[],
+  usedIndices: Set<number>
+): number {
+  const byId = candidates.findIndex((c, idx) => !usedIndices.has(idx) && c.id === target.id);
+  if (byId !== -1) return byId;
+
+  if (target.foodId) {
+    const byFoodId = candidates.findIndex(
+      (c, idx) =>
+        !usedIndices.has(idx) &&
+        c.foodId === target.foodId &&
+        c.state === target.state &&
+        c.kind === target.kind
+    );
+    if (byFoodId !== -1) return byFoodId;
+  }
+
+  const normalized = normalizeText(target.name);
+  return candidates.findIndex(
+    (c, idx) =>
+      !usedIndices.has(idx) &&
+      normalizeText(c.name) === normalized &&
+      c.state === target.state &&
+      c.kind === target.kind
+  );
+}
+
+function diffMealItems(prevItems: MealItem[], currItems: MealItem[]): MealItemDiff[] {
+  const usedPrev = new Set<number>();
+  const diffs: MealItemDiff[] = [];
+
+  for (const curr of currItems) {
+    const matchIdx = findMatchingItemIndex(curr, prevItems, usedPrev);
+    if (matchIdx === -1) {
+      diffs.push({
+        status: "ADDED",
+        name: curr.name,
+        previous: null,
+        current: curr,
+        quantityDeltaG: curr.quantityG,
+        caloriesDelta: curr.calories,
+        proteinDelta: curr.protein,
+        carbohydratesDelta: curr.carbohydrates,
+        fatDelta: curr.fat,
+      });
+    } else {
+      usedPrev.add(matchIdx);
+      const prev = prevItems[matchIdx];
+      diffs.push({
+        status: mealItemsEqual(prev, curr) ? "UNCHANGED" : "CHANGED",
+        name: curr.name,
+        previous: prev,
+        current: curr,
+        quantityDeltaG: curr.quantityG - prev.quantityG,
+        caloriesDelta: curr.calories - prev.calories,
+        proteinDelta: curr.protein - prev.protein,
+        carbohydratesDelta: curr.carbohydrates - prev.carbohydrates,
+        fatDelta: curr.fat - prev.fat,
+      });
+    }
+  }
+
+  prevItems.forEach((prev, idx) => {
+    if (!usedPrev.has(idx)) {
+      diffs.push({
+        status: "REMOVED",
+        name: prev.name,
+        previous: prev,
+        current: null,
+        quantityDeltaG: -prev.quantityG,
+        caloriesDelta: -prev.calories,
+        proteinDelta: -prev.protein,
+        carbohydratesDelta: -prev.carbohydrates,
+        fatDelta: -prev.fat,
+      });
+    }
+  });
+
+  return diffs;
+}
+
+function findMatchingMealIndex(
+  target: Meal,
+  candidates: Meal[],
+  usedIndices: Set<number>
+): number {
+  const byId = candidates.findIndex((c, idx) => !usedIndices.has(idx) && c.id === target.id);
+  if (byId !== -1) return byId;
+
+  const normalized = normalizeText(target.name);
+  const byNameAndOrder = candidates.findIndex(
+    (c, idx) =>
+      !usedIndices.has(idx) &&
+      normalizeText(c.name) === normalized &&
+      c.order === target.order
+  );
+  if (byNameAndOrder !== -1) return byNameAndOrder;
+
+  return candidates.findIndex(
+    (c, idx) => !usedIndices.has(idx) && normalizeText(c.name) === normalized
+  );
+}
+
+/**
+ * Compara duas versões de dieta (`previous` e `current`), retornando os deltas
+ * de macronutrientes e o diff refeição a refeição e item a item (T-092).
+ */
+export function diffDietVersions(
+  previous: DietVersion,
+  current: DietVersion
+): DietVersionDiff {
+  const prevTotals = previous.totals ?? previous.macros;
+  const currTotals = current.totals ?? current.macros;
+  const macroDeltas: Macronutrients = {
+    calories: currTotals.calories - prevTotals.calories,
+    protein: currTotals.protein - prevTotals.protein,
+    carbohydrates: currTotals.carbohydrates - prevTotals.carbohydrates,
+    fat: currTotals.fat - prevTotals.fat,
+  };
+
+  const prevMeals = previous.meals ?? [];
+  const currMeals = current.meals ?? [];
+  const usedPrev = new Set<number>();
+  const meals: MealDiff[] = [];
+
+  for (const curr of currMeals) {
+    const matchIdx = findMatchingMealIndex(curr, prevMeals, usedPrev);
+    if (matchIdx === -1) {
+      meals.push({
+        status: "ADDED",
+        name: curr.name,
+        order: curr.order,
+        previous: null,
+        current: curr,
+        items: diffMealItems([], curr.items),
+      });
+    } else {
+      usedPrev.add(matchIdx);
+      const prev = prevMeals[matchIdx];
+      const itemDiffs = diffMealItems(prev.items, curr.items);
+      const metadataChanged =
+        prev.name !== curr.name ||
+        prev.order !== curr.order ||
+        prev.time !== curr.time ||
+        prev.notes !== curr.notes ||
+        !targetsEqual(prev.target, curr.target);
+      const itemsChanged = itemDiffs.some((item) => item.status !== "UNCHANGED");
+
+      meals.push({
+        status: metadataChanged || itemsChanged ? "CHANGED" : "UNCHANGED",
+        name: curr.name,
+        order: curr.order,
+        previous: prev,
+        current: curr,
+        items: itemDiffs,
+      });
+    }
+  }
+
+  prevMeals.forEach((prev, idx) => {
+    if (!usedPrev.has(idx)) {
+      meals.push({
+        status: "REMOVED",
+        name: prev.name,
+        order: prev.order,
+        previous: prev,
+        current: null,
+        items: diffMealItems(prev.items, []),
+      });
+    }
+  });
+
+  meals.sort((a, b) => a.order - b.order);
+
+  return {
+    previousVersion: previous.version,
+    currentVersion: current.version,
+    macroDeltas,
+    meals,
+  };
+}
+
+export type ShoppingListItem = {
+  key: string;
+  name: string;
+  state: FoodState;
+  kind: FoodKind;
+  totalQuantityG: number;
+  householdMeasures: string[];
+  occurrences: number;
+};
+
+export type ShoppingList = {
+  foods: ShoppingListItem[];
+  supplements: ShoppingListItem[];
+};
+
+function groupShoppingItems(items: MealItem[]): ShoppingListItem[] {
+  const grouped = new Map<string, ShoppingListItem>();
+
+  for (const item of items) {
+    const key = `${normalizeText(item.name)}::${item.state}`;
+    const existing = grouped.get(key);
+    const measure = item.householdMeasure?.trim();
+
+    if (existing) {
+      existing.totalQuantityG += item.quantityG;
+      existing.occurrences += 1;
+      if (measure && !existing.householdMeasures.includes(measure)) {
+        existing.householdMeasures.push(measure);
+      }
+    } else {
+      grouped.set(key, {
+        key,
+        name: item.name.trim(),
+        state: item.state,
+        kind: item.kind,
+        totalQuantityG: item.quantityG,
+        householdMeasures: measure ? [measure] : [],
+        occurrences: 1,
+      });
+    }
+  }
+
+  return Array.from(grouped.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Gera a lista de compras consolidada a partir das refeições (T-095): agrupa
+ * alimentos (`FOOD`) por nome normalizado + estado somando `quantityG` e
+ * reunindo medidas caseiras, e separa suplementos calóricos (`SUPPLEMENT_CALORIC`).
+ */
+export function buildShoppingList(meals: Meal[]): ShoppingList {
+  const allItems = meals.flatMap((meal) => meal.items);
+  const foodItems = allItems.filter((item) => item.kind === "FOOD");
+  const supplementItems = allItems.filter((item) => item.kind === "SUPPLEMENT_CALORIC");
+
+  return {
+    foods: groupShoppingItems(foodItems),
+    supplements: groupShoppingItems(supplementItems),
+  };
 }
