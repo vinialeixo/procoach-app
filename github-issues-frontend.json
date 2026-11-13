@@ -1,0 +1,74 @@
+[
+  {
+    "title": "[FE] Reintroduzir MFA — etapa 2 no login e tela de ativação com QR Code — T-060",
+    "body": "**Descrição (PO):** Reintroduzir MFA: etapa 2 no login e tela de ativação com QR Code (recuperar `MfaSetupPage`, `useVerifyMfa`, `useStartMfaSetup`, `useConfirmMfaSetup` e a etapa de código do `LoginPage` do histórico do git; `qrcode` segue no `package.json`).\n\n**Critérios de aceitação:**\n- [ ] Etapa de código TOTP no login\n- [ ] Tela de ativação de MFA com QR Code\n- [ ] Hooks `useVerifyMfa`, `useStartMfaSetup`, `useConfirmMfaSetup` funcionando\n- [ ] Biblioteca `qrcode` disponível no `package.json`\n\n**Origem:** frontend/TASKS.md — Adendo MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-059\n**Estimativa:** 2d\n**Prioridade:** Should",
+    "labels": ["frontend", "mfa", "should"],
+    "assignee": "jooaodiasJoão Aleixo"
+  },
+  {
+    "title": "[FE] Estado de acesso do atleta — badge + painel de convites pendentes — T-082",
+    "body": "**Descrição (PO):** Badge \"Tem acesso / Convite pendente / Sem acesso\" na listagem e na ficha do atleta (consumindo `hasCredential`/`pendingInvite` da T-077). Painel de convites pendentes por atleta (listar, copiar link, revogar). Mapear os 409 acionáveis do convite (T-079) para mensagens claras.\n\n**Critérios de aceitação:**\n- [ ] Badge de estado de acesso na listagem de atletas\n- [ ] Badge de estado de acesso na ficha do atleta\n- [ ] Painel de convites pendentes (listar, copiar link, revogar)\n- [ ] Mapeamento de erros 409 (`ATHLETE_HAS_CREDENTIAL`, `EMAIL_IN_USE`) para mensagens claras\n\n**Origem:** frontend/TASKS.md — Adendo MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-077, T-063\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["frontend", "invite", "athlete-access", "must"],
+    "assignee": "jooaodiasJoão Aleixo"
+  },
+  {
+    "title": "[FE] E-mail opcional no Novo Atleta com dedupe acionável — T-083",
+    "body": "**Descrição (PO):** E-mail opcional no \"Novo Atleta\" (`AthleteCreatePage`) enviando no `POST /api/v1/athletes` (T-078). Tratar 409 `EMAIL_ALREADY_REGISTERED` com mensagem acionável (\"esta pessoa já tem conta — convide o atleta com este e-mail\") e atalho para a ficha/convite.\n\n**Critérios de aceitação:**\n- [ ] Campo de e-mail opcional no `AthleteCreatePage`\n- [ ] Envio de e-mail no `POST /api/v1/athletes`\n- [ ] Tratamento de 409 `EMAIL_ALREADY_REGISTERED` com mensagem acionável\n- [ ] Atalho para ficha/convite do atleta existente\n\n**Origem:** frontend/TASKS.md — Adendo MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-078, T-019\n**Estimativa:** 2d\n**Prioridade:** Should",
+    "labels": ["frontend", "athlete", "email", "should"],
+    "assignee": "jooaodiasJoão Aleixo"
+  },
+  {
+    "title": "[FE] Remover arquivo morto `src/lib/auth - Copia.ts` — T-084",
+    "body": "**Descrição (PO):** Remover arquivo morto `src/lib/auth - Copia.ts` (cópia não importada, achada na análise do fluxo de atletas).\n\n**Critérios de aceitação:**\n- [ ] Arquivo `src/lib/auth - Copia.ts` removido\n- [ ] Build/lint continua verde após remoção\n\n**Origem:** frontend/TASKS.md — Adendo MVP — Tarefa pendente (`[ ]`)\n**Depende de:** —\n**Estimativa:** 0.5d\n**Prioridade:** Must",
+    "labels": ["frontend", "cleanup", "must"],
+    "assignee": "jooaodiasJoão Aleixo"
+  },
+  {
+    "title": "[FE] Resumo da versão atual — macros, balanço energético — T-091",
+    "body": "**Descrição (PO):** Resumo da versão atual da dieta: macros completos (P/C/G), g/kg, %kcal, kcal/kg, balanço energético vs GET com classificação e base da avaliação, avisos não bloqueantes e CTA para registrar avaliação quando 409.\n\n**Critérios de aceitação:**\n- [ ] Tela/resumo de macros completos (P/C/G, g/kg, %kcal, kcal/kg)\n- [ ] Balanço energético vs GET com classificação\n- [ ] Base da avaliação exibida\n- [ ] Avisos não bloqueantes (inconsistências nutricionais)\n- [ ] CTA para registrar avaliação quando resposta for 409\n\n**Origem:** frontend/TASKS.md — Nutrição MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-089\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["frontend", "nutrition", "diet", "must"],
+    "assignee": "jooaodiasJoão Aleixo"
+  },
+  {
+    "title": "[FE] Detalhe somente leitura da versão + comparação com derivados — T-092",
+    "body": "**Descrição (PO):** Tela de detalhe somente leitura da versão da dieta + comparação com derivados (g/kg, %kcal) e, quando houver, diff por refeição/item. Auditoria com nome/e-mail.\n\n**Critérios de aceitação:**\n- [ ] Tela de detalhe somente leitura da versão da dieta\n- [ ] Exibição de derivados (g/kg, %kcal)\n- [ ] Diff por refeição/item quando houver versões anteriores\n- [ ] Auditoria com nome e e-mail do autor\n\n**Origem:** frontend/TASKS.md — Nutrição MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-085, T-090\n**Estimativa:** 3d\n**Prioridade:** Should",
+    "labels": ["frontend", "nutrition", "diet", "should"],
+    "assignee": "jooaodiasJoão Aleixo"
+  },
+  {
+    "title": "[FE] Editor de dieta por refeições e itens com catálogo TACO — T-093",
+    "body": "**Descrição (PO):** Editor de dieta por refeições e itens: criar/reordenar refeições, buscar alimento TACO, quantidade em gramas (peso cru), medida caseira, `RAW`/`AS_SERVED`, `SUPPLEMENT_CALORIC`, totais calculados e seção de suplementos.\n\n**Critérios de aceitação:**\n- [ ] Criar e reordenar refeições\n- [ ] Busca de alimento no catálogo TACO\n- [ ] Quantidade em gramas (peso cru) e medida caseira\n- [ ] Estados `RAW`/`AS_SERVED` e `SUPPLEMENT_CALORIC`\n- [ ] Totais calculados automaticamente\n- [ ] Seção de suplementos separada\n\n**Origem:** frontend/TASKS.md — Nutrição MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-085, T-086\n**Estimativa:** 5d\n**Prioridade:** Must",
+    "labels": ["frontend", "nutrition", "diet", "must"],
+    "assignee": "jooaodiasJoão Aleixo"
+  },
+  {
+    "title": "[FE] Avisos nutricionais e faixas de referência no editor — T-094",
+    "body": "**Descrição (PO):** Avisos nutricionais e faixas de referência no editor: inconsistência 4/4/9, macro zerado, kcal vs TMB, déficit agressivo, proteína/gordura/fibras. Confirmação de ciência sem bloquear e sem aprovar sozinho.\n\n**Critérios de aceitação:**\n- [ ] Aviso de inconsistência 4/4/9\n- [ ] Aviso de macro zerado\n- [ ] Aviso kcal vs TMB\n- [ ] Aviso de déficit agressivo\n- [ ] Aviso de proteína/gordura/fibras fora da faixa\n- [ ] Confirmação de ciência (não bloqueia, não aprova sozinho)\n\n**Origem:** frontend/TASKS.md — Nutrição MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-087\n**Estimativa:** 2d\n**Prioridade:** Should",
+    "labels": ["frontend", "nutrition", "diet", "should"],
+    "assignee": "jooaodiasJoão Aleixo"
+  },
+  {
+    "title": "[FE] Visão do atleta por refeição — lista de compras — T-095",
+    "body": "**Descrição (PO):** Visão do atleta por refeição: horários, alimentos, gramaturas (peso cru), medidas caseiras, suplementos separados e lista de compras por categoria. Só versão aprovada; 404 = sem dieta.\n\n**Critérios de aceitação:**\n- [ ] Visualização por refeição com horários\n- [ ] Alimentos, gramaturas (peso cru) e medidas caseiras\n- [ ] Suplementos separados\n- [ ] Lista de compras por categoria\n- [ ] Só exibe versão aprovada da dieta\n- [ ] Tratar 404 como \"sem dieta\"\n\n**Origem:** frontend/TASKS.md — Nutrição MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-093, T-054\n**Estimativa:** 3d\n**Prioridade:** Should",
+    "labels": ["frontend", "nutrition", "athlete-view", "should"],
+    "assignee": "jooaodiasJoão Aleixo"
+  },
+  {
+    "title": "[FE] Gestão da Knowledge Base — M2-004",
+    "body": "**Descrição (PO):** Front: gestão da Knowledge Base (telas para CRUD de conceitos).\n\n**Critérios de aceitação:**\n- [ ] Tela de listagem de conceitos da KB\n- [ ] Tela de criação/edição de conceito\n- [ ] Tela de arquivamento de conceito\n\n**Origem:** frontend/TASKS.md — S7 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-003\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["frontend", "mvp2", "kb", "must"],
+    "assignee": "jooaodiasJoão Aleixo"
+  },
+  {
+    "title": "[FE] Painel de sugestões da IA + citações + ações do coach — M2-017",
+    "body": "**Descrição (PO):** Front: painel de sugestões da IA com citações e ações do coach (aceitar/modificar/recusar).\n\n**Critérios de aceitação:**\n- [ ] Painel exibindo sugestões geradas pela IA\n- [ ] Exibição de citações/origem da sugestão\n- [ ] Ações do coach: aceitar, modificar, recusar sugestão\n- [ ] Decisão final sempre do coach (não automatizar)\n\n**Origem:** frontend/TASKS.md — S9 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-014\n**Estimativa:** 4d\n**Prioridade:** Must",
+    "labels": ["frontend", "mvp2", "rag", "must"],
+    "assignee": "jooaodiasJoão Aleixo"
+  },
+  {
+    "title": "[FE] Envio de check-in (atleta) + visualização (coach) — M2-021",
+    "body": "**Descrição (PO):** Front: envio de check-in pelo atleta (data, peso, medidas, observações, fotos) e visualização pelo coach.\n\n**Critérios de aceitação:**\n- [ ] Tela de envio de check-in para o atleta\n- [ ] Upload de fotos de check-in\n- [ ] Tela de visualização de check-ins para o coach\n\n**Origem:** frontend/TASKS.md — S10 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-020\n**Estimativa:** 3d\n**Prioridade:** Should",
+    "labels": ["frontend", "mvp2", "checkin", "should"],
+    "assignee": "jooaodiasJoão Aleixo"
+  }
+]

@@ -3,11 +3,14 @@ package com.fitness.procoach.nutrition.interfaces;
 import com.fitness.procoach.nutrition.domain.Diet;
 import com.fitness.procoach.nutrition.domain.DietObjective;
 import com.fitness.procoach.nutrition.domain.DietStatus;
+import com.fitness.procoach.nutrition.domain.EnergyBalance;
 import com.fitness.procoach.nutrition.domain.Macronutrients;
 import com.fitness.procoach.nutrition.domain.Meal;
 import com.fitness.procoach.nutrition.domain.MealItem;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,7 +20,8 @@ import java.util.UUID;
 @Schema(description = "Versão de uma dieta. Regra inegociável (US-015): uma dieta NUNCA é sobrescrita — toda "
         + "alteração gera uma nova versão encadeada (v1→v2→v3) e as versões anteriores tornam-se somente "
         + "leitura (readOnly=true). A partir do T-085, inclui refeições e itens com totais derivados. "
-        + "A partir do T-087, inclui warnings estruturados e macros derivados (g/kg, %kcal, consistência 4/4/9).")
+        + "A partir do T-087, inclui warnings estruturados e macros derivados (g/kg, %kcal, consistência 4/4/9). "
+        + "A partir do T-089, inclui balanço energético (déficit/manutenção/superávit vs GET).")
 public record DietResponse(
         @Schema(description = "Identificador desta versão da dieta",
                 example = "5d4c3b2a-1f0e-4d5c-8b7a-6f5e4d3c2b1a") UUID id,
@@ -51,9 +55,14 @@ public record DietResponse(
         @Schema(description = "Refeições da dieta (T-085). Totais derivados dos itens.") List<MealResponse> meals,
         @Schema(description = "Totais calculados a partir das refeições (somente leitura). Se não houver refeições, igual aos macros informados.") DietTotalsResponse totals,
         @Schema(description = "Warnings nutricionais estruturados (T-087). Informativos — nunca bloqueiam.") List<WarningResponse> warnings,
-        @Schema(description = "Macros derivados: g/kg, %kcal, kcal/kg, consistência 4/4/9 (T-087).") DerivedMacrosResponse derived) {
+        @Schema(description = "Macros derivados: g/kg, %kcal, kcal/kg, consistência 4/4/9 (T-087).") DerivedMacrosResponse derived,
+        @Schema(description = "Balanço energético vs GET da avaliação mais recente (T-089). Null se atleta não tem avaliação.") EnergyBalanceResponse energyBalance) {
 
     public static DietResponse from(Diet diet, double weightKg) {
+        return from(diet, weightKg, null);
+    }
+
+    public static DietResponse from(Diet diet, double weightKg, EnergyBalance balance) {
         List<MealResponse> meals = diet.meals().stream().map(DietResponse::mapMeal).toList();
         Macronutrients totals = diet.calculateTotalsFromMeals();
         DietTotalsResponse totalsResponse = new DietTotalsResponse(totals.calories(), totals.protein(),
@@ -74,13 +83,19 @@ public record DietResponse(
                     dm.consistencyDeltaKcal(), dm.consistencyDeltaPercent(), dm.isConsistent());
         }
         
+        EnergyBalanceResponse energyBalanceResponse = null;
+        if (balance != null) {
+            energyBalanceResponse = new EnergyBalanceResponse(
+                    balance.getKcal(), balance.balanceKcal(), balance.balancePercent(), balance.classification().name());
+        }
+        
         return new DietResponse(diet.id().value(), diet.coachId().value(), diet.athleteId().value(),
                 diet.objective(), diet.macros().calories(), diet.macros().protein(),
                 diet.macros().carbohydrates(), diet.macros().fat(), diet.status(), diet.version(),
                 diet.previousVersionId() == null ? null : diet.previousVersionId().value(),
                 diet.changeReason(), diet.createdAt(), diet.updatedAt(), diet.isReadOnly(),
                 diet.isDeleted(), diet.createdBy(), diet.updatedBy(), meals, totalsResponse,
-                warnings, derived);
+                warnings, derived, energyBalanceResponse);
     }
 
     private static MealResponse mapMeal(Meal meal) {
@@ -99,5 +114,16 @@ public record DietResponse(
                 item.kind(), item.state(), item.quantityG(), item.householdMeasure(),
                 item.preparation(), item.macrosSnapshot().calories(), item.macrosSnapshot().protein(),
                 item.macrosSnapshot().carbohydrates(), item.macrosSnapshot().fat());
+    }
+
+    /**
+     * Balanço energético simplificado para inclusão na DietResponse (T-089).
+     */
+    @Schema(description = "Balanço energético da dieta vs GET da avaliação mais recente.")
+    public record EnergyBalanceResponse(
+            @Schema(description = "Gasto energético total (kcal/dia)", example = "1602") BigDecimal getKcal,
+            @Schema(description = "Calorias da dieta menos o GET (kcal/dia); negativo = déficit", example = "-202") BigDecimal balanceKcal,
+            @Schema(description = "Balanço em % do GET", example = "-12.61") BigDecimal balancePercent,
+            @Schema(description = "DEFICIT, MAINTENANCE (±5% do GET) ou SURPLUS", example = "DEFICIT") String classification) {
     }
 }

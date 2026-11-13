@@ -104,12 +104,31 @@ public class DietApplicationService {
 	 * Versão corrente da dieta. Coach: a mais recente (rascunho, revisão ou
 	 * aprovada). Atleta: a versão APROVADA mais recente — o que o coach ainda está
 	 * montando ou revisando não aparece (US-038).
+	 * <p>
+	 * Regra T-089: se a versão mais alta da cadeia estiver ARCHIVED, não cai para
+	 * uma anterior — responde 404 (sem plano ativo). Isso corrige a regressão em
+	 * que o atleta voltava a ver a v1 depois de a v2 ser arquivada.
 	 */
 	public Diet latestByAthlete(UUID athleteId, boolean athleteView) {
 		if (!athleteView) {
 			return latestByAthlete(athleteId);
 		}
-		return historyByAthlete(athleteId, true).stream()
+		List<Diet> athleteHistory = historyByAthlete(athleteId, true);
+		if (athleteHistory.isEmpty()) {
+			throw new DietNotFoundException(athleteId);
+		}
+		// A versão mais alta da cadeia (maior version) define a regra
+		Diet highest = athleteHistory.stream()
+				.max(Comparator.comparingInt(Diet::version))
+				.orElseThrow(() -> new DietNotFoundException(athleteId));
+
+		if (highest.status() == DietStatus.ARCHIVED) {
+			// Regra T-089: versão mais alta arquivada = 404, não cai para anterior
+			throw new DietNotFoundException(athleteId);
+		}
+
+		// Caso contrário, retorna a maior versão APPROVED (como antes)
+		return athleteHistory.stream()
 				.filter(d -> d.status() == DietStatus.APPROVED)
 				.max(Comparator.comparingInt(Diet::version))
 				.orElseThrow(() -> new DietNotFoundException(athleteId));
@@ -208,9 +227,43 @@ public class DietApplicationService {
 	 * Balanço da versão mais recente da dieta do atleta (visão do atleta e do
 	 * coach). A posse/autorização do atleta deve ter sido validada pelo chamador
 	 * (guard do JWT e, para coach, a carteira). Atleta sem dieta resulta em 404.
+	 * Atleta sem avaliação resulta em 409 acionável (T-089).
 	 */
 	public DietEnergyBalance latestEnergyBalance(UUID athleteId, boolean athleteView) {
-		return balanceOf(latestByAthlete(athleteId, athleteView));
+		Diet diet = latestByAthlete(athleteId, athleteView);
+		return balanceOf(diet);
+	}
+
+	/**
+	 * Versão corrente da dieta com balanço energético calculado (T-089).
+	 * Retorna a dieta + balanço, ou lança 404 se não há dieta ativa, 409 se não há avaliação.
+	 */
+	public DietWithEnergyBalance latestWithEnergyBalance(UUID athleteId, boolean athleteView) {
+		Diet diet = latestByAthlete(athleteId, athleteView);
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElseThrow(() -> new NoAssessmentException(diet.athleteId().value()));
+		EnergyBalance balance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+		return new DietWithEnergyBalance(diet, profile, balance);
+	}
+
+	/**
+	 * Versão específica da dieta com balanço energético (coach).
+	 */
+	public DietWithEnergyBalance energyBalanceWithDiet(UUID dietId, UUID userId) {
+		Diet diet = findOwnedById(new DietId(dietId), userId);
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElseThrow(() -> new NoAssessmentException(diet.athleteId().value()));
+		EnergyBalance balance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+		return new DietWithEnergyBalance(diet, profile, balance);
+	}
+
+	/** Exceção lançada quando não há avaliação para calcular o balanço (409 acionável). */
+	public static class NoAssessmentException extends IllegalStateException {
+		public NoAssessmentException(UUID athleteId) {
+			super("Athlete " + athleteId + " has no assessment; register one to calculate the energy balance");
+		}
 	}
 
 	private DietEnergyBalance balanceOf(Diet diet) {
@@ -220,6 +273,13 @@ public class DietApplicationService {
 						"Athlete has no assessment; register one to calculate the energy balance"));
 		return new DietEnergyBalance(diet, profile,
 				EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal()));
+	}
+
+	/**
+	 * Dieta com balanço energético para resposta da API (T-089).
+	 */
+	public record DietWithEnergyBalance(Diet diet, AssessmentApplicationService.EnergyProfile profile,
+			EnergyBalance balance) {
 	}
 
 	/** Adiciona uma refeição à dieta (T-085). */

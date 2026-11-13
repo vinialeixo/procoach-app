@@ -1,0 +1,182 @@
+[
+  {
+    "title": "[BE] Setup repositório Java (Clean Arch) — T-001",
+    "body": "**Descrição (PO):** Inicializar o repositório backend Java 21 + Spring Boot 4 com Clean Architecture e Spring Modulith. Criar estrutura de pastas por bounded context e configurar linters.\n\n**Critérios de aceitação:**\n- [ ] Repositório Java compilável com Spring Boot 4\n- [ ] Estrutura de pastas por módulo (`domain`, `application`, `infrastructure`, `interfaces`)\n- [ ] Spring Modulith configurado com verificação de boundaries\n- [ ] Linters (checkstyle/spotless) rodando no build\n\n**Origem:** backend/TASKS.md — S1 MVP — Tarefa pendente (`[ ]`)\n**Depende de:** —\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "foundation", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Configurar CI/CD e ambientes (dev/staging) — T-002",
+    "body": "**Descrição (PO):** Configurar pipeline de CI/CD para backend, com ambientes dev e staging.\n\n**Critérios de aceitação:**\n- [ ] Pipeline CI rodando testes (`./mvnw test`) em cada push\n- [ ] Ambiente dev provisionado e acessível\n- [ ] Ambiente staging provisionado e acessível\n- [ ] Build falha se testes ou boundaries do Modulith violados\n\n**Origem:** backend/TASKS.md — S1 MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-001\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "devops", "ci-cd", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Provisionar PostgreSQL + pgvector, Object Storage (S3), Message Broker — T-003",
+    "body": "**Descrição (PO):** Provisionar infraestrutura de dados e mensageria do backend.\n\n**Critérios de aceitação:**\n- [ ] PostgreSQL com pgvector provisionado e acessível\n- [ ] Object Storage (S3 ou compatível) provisionado\n- [ ] Message Broker (RabbitMQ) provisionado\n- [ ] Variáveis de ambiente documentadas para conexão local\n\n**Origem:** backend/TASKS.md — S1 MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-001\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "devops", "infrastructure", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Testes de segurança e autorização (RBAC) — T-012",
+    "body": "**Descrição (PO):** Escrever testes cobrindo RBAC (papéis Coach x Atleta) e isolamento de dados (atleta só acessa próprios dados).\n\n**Critérios de aceitação:**\n- [ ] Testes de que COACH não pode acessar dados de atletas de outro coach\n- [ ] Testes de que ATLETA só acessa próprios dados\n- [ ] Testes de endpoints protegidos por `@PreAuthorize`\n- [ ] Relatório de cobertura de segurança entregue\n\n**Origem:** backend/TASKS.md — S1 MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-010\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "qa", "security", "rbac", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Testes de auditoria e versionamento (não-sobrescrita) — T-016",
+    "body": "**Descrição (PO):** Testes cobrindo audit log imutável (append-only) e versionamento sem sobrescrita.\n\n**Critérios de aceitação:**\n- [ ] Testes de que audit_log nunca sofre UPDATE/DELETE/TRUNCATE\n- [ ] Testes de versionamento de agregados (criar nova versão, nunca sobrescrever)\n- [ ] Testes de histórico antes/depois no audit log\n\n**Origem:** backend/TASKS.md — S2 MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-015\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["backend", "qa", "audit", "versioning", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Suporte a múltiplos protocolos por atleta — T-020",
+    "body": "**Descrição (PO):** Permitir que um atleta tenha múltiplos protocolos de avaliação/treino associados.\n\n**Critérios de aceitação:**\n- [ ] Modelo de dados suporta múltiplos protocolos por atleta\n- [ ] Endpoint para listar protocolos de um atleta\n- [ ] Endpoint para associar novo protocolo ao atleta\n\n**Origem:** backend/TASKS.md — S2 MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-017\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "athlete", "protocol", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Testes dos cálculos e comparação de avaliações — T-028",
+    "body": "**Descrição (PO):** Testes dos motores de cálculo (IMC, TMB, GET, evolução) e do endpoint de comparação lado a lado.\n\n**Critérios de aceitação:**\n- [ ] Testes de cálculo de IMC, TMB, GET\n- [ ] Testes de comparação de avaliações (`GET /assessments/compare`)\n- [ ] Testes de variação absoluta e % entre duas avaliações\n\n**Origem:** backend/TASKS.md — S3 MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-027\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "qa", "assessment", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Testes de versionamento e fluxo de aprovação da dieta — T-035",
+    "body": "**Descrição (PO):** Testes do versionamento de dieta (v1→v2→v3) e fluxo de status (Rascunho/Em Revisão/Aprovada/Arquivada).\n\n**Critérios de aceitação:**\n- [ ] Testes de criação de nova versão de dieta sem sobrescrever\n- [ ] Testes de transição de status da dieta\n- [ ] Testes de aprovação de dieta pelo coach\n- [ ] Testes de histórico de alterações (quem/quando/motivo)\n\n**Origem:** backend/TASKS.md — S4 MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-034\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["backend", "qa", "diet", "versioning", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Testes de treino e biblioteca — T-041",
+    "body": "**Descrição (PO):** Testes de treinamento (periodização, plano, sessões, prescrições) e biblioteca de exercícios.\n\n**Critérios de aceitação:**\n- [ ] Testes de CRUD de biblioteca de exercícios\n- [ ] Testes de criação de plano de treino e periodização\n- [ ] Testes de prescrição de exercícios em sessões\n\n**Origem:** backend/TASKS.md — S5 MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-040\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["backend", "qa", "training", "library", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Revisão LGPD (criptografia, soft-delete, consentimento) — T-043",
+    "body": "**Descrição (PO):** Revisar conformidade LGPD: criptografia de dados sensíveis, soft-delete (sem exclusão física) e consentimento.\n\n**Critérios de aceitação:**\n- [ ] Auditoria de conformidade dos agregados vs LGPD\n- [ ] Confirmação de que exclusões são soft-delete (não DELETE físico)\n- [ ] Dados sensíveis criptografados em repouso\n\n**Origem:** backend/TASKS.md — S6 MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-041\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "lgpd", "security", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Hardening, correção de bugs e estabilização — T-044",
+    "body": "**Descrição (PO):** Fase de hardening do MVP: correção de bugs e estabilização antes do UAT.\n\n**Critérios de aceitação:**\n- [ ] Bugs críticos do MVP corrigidos\n- [ ] Build verde (`./mvnw test` com 0 falhas)\n- [ ] Ambiente de staging estável para UAT\n\n**Origem:** backend/TASKS.md — S6 MVP — Tarefa pendente (`[ ]`)\n**Depende de:** T-043\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["backend", "hardening", "mvp", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Reintroduzir MFA/TOTP endurecido — T-059",
+    "body": "**Descrição (PO):** Reintroduzir MFA/TOTP endurecido (desligado em 2026-11-03 por decisão do time).\n\n**Critérios de aceitação:**\n- [ ] `procoach.security.mfa.enabled` religado\n- [ ] Limite de tentativas por desafio TOTP\n- [ ] Rate limit em `/login` e `/mfa/verify`\n- [ ] Anti-replay do código TOTP (guardar último passo aceito)\n- [ ] Segredo TOTP cifrado no banco (AES-GCM, chave via ambiente)\n- [ ] Códigos de recuperação implementados\n\n**Origem:** backend/TASKS.md — Adendo — Tarefa pendente (`[ ]`)\n**Depende de:** T-008\n**Estimativa:** 4d\n**Prioridade:** Should",
+    "labels": ["backend", "security", "mfa", "should"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Envio do convite do atleta por e-mail e reenvio — T-064",
+    "body": "**Descrição (PO):** Envio do convite do atleta por e-mail (hoje o coach copia o link manualmente) e funcionalidade de reenvio.\n\n**Critérios de aceitação:**\n- [ ] Convite enviado por e-mail automaticamente (SMTP)\n- [ ] Funcionalidade de reenvio de convite\n- [ ] Link de uso único (7 dias, apenas hash do token guardado)\n\n**Origem:** backend/TASKS.md — Adendo — Tarefa pendente (`[ ]`)\n**Depende de:** T-062\n**Estimativa:** 2d\n**Prioridade:** Should",
+    "labels": ["backend", "invite", "email", "should"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Provedor de push de verdade (FCM/APNs/Web Push) — T-076",
+    "body": "**Descrição (PO):** Implementar provedor de push real (FCM/APNs/Web Push) como implementação de `PushGateway` (hoje só existe provedor `log`).\n\n**Critérios de aceitação:**\n- [ ] Provedor FCM/APNs/Web Push implementado\n- [ ] Credenciais por ambiente (dev/staging/prod)\n- [ ] Remoção de tokens inválidos\n- [ ] Integração com `notification_delivery` (SENT/FAILED/SKIPPED)\n\n**Origem:** backend/TASKS.md — Adendo — Tarefa pendente (`[ ]`)\n**Depende de:** T-071\n**Estimativa:** 2d\n**Prioridade:** Should",
+    "labels": ["backend", "push", "notifications", "should"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Modelo de conceito (KB) — M2-001",
+    "body": "**Descrição (PO):** Modelo de domínio da Knowledge Base: definição, categoria, referências, nível de evidência.\n\n**Critérios de aceitação:**\n- [ ] Aggregate `Concept` com definição, categoria, referências, nível de evidência\n- [ ] Versionamento e arquivamento (sem exclusão física)\n\n**Origem:** backend/TASKS.md — S7 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** —\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "kb", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Versionamento e arquivamento de conceitos (KB) — M2-002",
+    "body": "**Descrição (PO):** Versionamento e arquivamento de conceitos da KB (sem exclusão).\n\n**Critérios de aceitação:**\n- [ ] Nova versão de conceito criada em vez de sobrescrever\n- [ ] Conceito arquivado (não excluído)\n- [ ] Listagem mostra apenas versão corrente\n\n**Origem:** backend/TASKS.md — S7 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-001\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "kb", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] CRUD + API da Knowledge Base — M2-003",
+    "body": "**Descrição (PO):** CRUD completo e API REST da Knowledge Base.\n\n**Critérios de aceitação:**\n- [ ] Endpoints CRUD de conceitos\n- [ ] Busca e listagem de conceitos\n- [ ] Contrato da API documentado\n\n**Origem:** backend/TASKS.md — S7 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-002\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "kb", "api", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Upload de PDFs para Object Storage + evento de ingestão — M2-005",
+    "body": "**Descrição (PO):** Upload de PDFs para Object Storage e disparo de evento de ingestão para o pipeline RAG.\n\n**Critérios de aceitação:**\n- [ ] Upload de PDF para Object Storage\n- [ ] Evento de ingestão disparado após upload\n- [ ] RAG service consome o evento para processar o PDF\n\n**Origem:** backend/TASKS.md — S7 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-003\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "rag", "pdf", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Testes da Knowledge Base (versionamento/arquivamento) — M2-006",
+    "body": "**Descrição (PO):** Testes da KB cobrindo versionamento e arquivamento de conceitos.\n\n**Critérios de aceitação:**\n- [ ] Testes de versionamento de conceito\n- [ ] Testes de arquivamento (soft-delete)\n- [ ] Testes de CRUD da KB\n\n**Origem:** backend/TASKS.md — S7 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-004\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "qa", "kb", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Setup serviço Python (RAG) + contrato gRPC — M2-007",
+    "body": "**Descrição (PO):** Setup do serviço Python de RAG com LlamaIndex e contrato gRPC com o núcleo.\n\n**Critérios de aceitação:**\n- [ ] Serviço Python RAG rodando com LlamaIndex\n- [ ] Contrato gRPC definido entre núcleo Java e serviço Python\n- [ ] Comunicação read-only (sem escrita no domínio)\n\n**Origem:** backend/TASKS.md — S7 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-005\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "rag", "python", "grpc", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Pipeline de ingestão: parsing de PDF (LlamaParse) + chunking — M2-008",
+    "body": "**Descrição (PO):** Pipeline de ingestão: parsing de PDFs com LlamaParse e chunking para indexação.\n\n**Critérios de aceitação:**\n- [ ] Parsing de PDF com LlamaParse\n- [ ] Chunking de texto extraído\n- [ ] Metadados preservados nos chunks\n\n**Origem:** backend/TASKS.md — S8 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-007\n**Estimativa:** 4d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "rag", "ingestion", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Geração de embeddings + indexação no Vector DB (pgvector) — M2-009",
+    "body": "**Descrição (PO):** Geração de embeddings e indexação no pgvector com metadados.\n\n**Critérios de aceitação:**\n- [ ] Embeddings gerados para chunks de PDF\n- [ ] Indexação no pgvector\n- [ ] Busca semântica funcional\n\n**Origem:** backend/TASKS.md — S8 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-008\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "rag", "vector-db", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Reindexação assíncrona via Message Broker — M2-010",
+    "body": "**Descrição (PO):** Reindexação assíncrona via Message Broker quando KB/PDFs são alterados.\n\n**Critérios de aceitação:**\n- [ ] Evento de alteração de KB/PDF publicado no Message Broker\n- [ ] Consumer de reindexação assíncrona\n- [ ] Vetor atualizado no pgvector após alteração\n\n**Origem:** backend/TASKS.md — S8 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-009\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "rag", "message-broker", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Spike/validação de qualidade de extração com lote piloto de PDFs — M2-011",
+    "body": "**Descrição (PO):** Spike para validar qualidade de extração com lote piloto de PDFs.\n\n**Critérios de aceitação:**\n- [ ] Lote piloto de PDFs processado\n- [ ] Relatório de qualidade de extração\n- [ ] Ajustes de parsing/chunking com base nos resultados\n\n**Origem:** backend/TASKS.md — S8 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-008\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "rag", "spike", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Tratamento de evidências conflitantes — M2-015",
+    "body": "**Descrição (PO):** Tratamento de evidências conflitantes no RAG, apresentando alternativas ao coach.\n\n**Critérios de aceitação:**\n- [ ] Detecção de evidências conflitantes\n- [ ] Apresentação de alternativas ao coach\n- [ ] Decisão final sempre do coach (nunca automatizada)\n\n**Origem:** backend/TASKS.md — S9 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-012\n**Estimativa:** 3d\n**Prioridade:** Should",
+    "labels": ["backend", "mvp2", "rag", "should"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Guardrail técnico: RAG read-only — M2-016",
+    "body": "**Descrição (PO):** Guardrail técnico garantindo que o RAG é read-only (sem credencial de escrita no domínio).\n\n**Critérios de aceitação:**\n- [ ] Serviço RAG sem credencial de escrita\n- [ ] Comunicação apenas via gRPC read-only\n- [ ] Teste confirmando que RAG não pode modificar dados do domínio\n\n**Origem:** backend/TASKS.md — S9 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-013\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "rag", "security", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Testes de IA: citações, guardrail read-only, aceite/recusa — M2-018",
+    "body": "**Descrição (PO):** Testes de IA: citações, guardrail read-only, fluxo de aceite/recusa de sugestões.\n\n**Critérios de aceitação:**\n- [ ] Testes de citações nas sugestões da IA\n- [ ] Testes de guardrail read-only\n- [ ] Testes de fluxo de aceite/modificação/recusa pelo coach\n\n**Origem:** backend/TASKS.md — S9 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-017\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "qa", "rag", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Análise comparativa de check-ins por IA — M2-022",
+    "body": "**Descrição (PO):** Análise comparativa de check-ins por IA (informativa, sem ajuste automático de protocolo).\n\n**Critérios de aceitação:**\n- [ ] Análise de check-ins por IA (informativa)\n- [ ] Sem ajuste automático de protocolo (decisão do coach)\n- [ ] Relatório de comparação entre check-ins\n\n**Origem:** backend/TASKS.md — S10 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-012\n**Estimativa:** 3d\n**Prioridade:** Should",
+    "labels": ["backend", "mvp2", "checkin", "ai", "should"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Testes de check-in + análise comparativa — M2-023",
+    "body": "**Descrição (PO):** Testes de check-in e análise comparativa por IA (não altera protocolo).\n\n**Critérios de aceitação:**\n- [ ] Testes de envio de check-in\n- [ ] Testes de análise comparativa por IA\n- [ ] Confirmação de que protocolo não é alterado automaticamente\n\n**Origem:** backend/TASKS.md — S10 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-022\n**Estimativa:** 2d\n**Prioridade:** Should",
+    "labels": ["backend", "mvp2", "qa", "checkin", "should"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[BE] Hardening, tuning de qualidade do RAG e estabilização — M2-025",
+    "body": "**Descrição (PO):** Hardening do MVP2: tuning de qualidade do RAG e estabilização.\n\n**Critérios de aceitação:**\n- [ ] Tuning de qualidade de respostas RAG\n- [ ] Build verde do MVP2\n- [ ] Estabilização para UAT do MVP2\n\n**Origem:** backend/TASKS.md — S11 MVP2 — Tarefa pendente (`[ ]`)\n**Depende de:** M2-024\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["backend", "mvp2", "hardening", "rag", "must"],
+    "assignee": "vinialeixo"
+  }
+]

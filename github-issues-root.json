@@ -1,0 +1,38 @@
+[
+  {
+    "title": "[QA] Definir plano de testes e estratégia de QA (DoD/CA) — T-007",
+    "body": "**Descrição (PO):** Definir plano de testes e estratégia de QA (Definition of Done / Critérios de Aceite).\n\n**Critérios de aceitação:**\n- [ ] Plano de testes documento\n- [ ] Estratégia de QA definida\n- [ ] DoD e Critérios de Aceite documentados\n\n**Origem:** TASKS.md (raiz) — S1 Transversal — Tarefa pendente (`[ ]`)\n**Depende de:** —\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["qa", "strategy", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[QA] Testes E2E gestão de atletas — T-023",
+    "body": "**Descrição (PO):** Testes E2E de gestão de atletas.\n\n**Critérios de aceitação:**\n- [ ] Testes E2E de cadastro de atleta\n- [ ] Testes E2E de listagem/detalhe do atleta\n- [ ] Testes E2E de troca de status do atleta\n\n**Origem:** TASKS.md (raiz) — S2 Transversal — Tarefa pendente (`[ ]`)\n**Depende de:** T-022\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["qa", "e2e", "athlete", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[QA] Testes E2E integrados de todo o fluxo do MVP — T-042",
+    "body": "**Descrição (PO):** Testes E2E integrados de todo o fluxo do MVP.\n\n**Critérios de aceitação:**\n- [ ] Testes E2E cobrindo fluxo completo MVP (atleta → avaliação → dieta → treino)\n- [ ] Testes executados em ambiente de staging\n\n**Origem:** TASKS.md (raiz) — S6 Transversal — Tarefa pendente (`[ ]`)\n**Depende de:** T-041\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["qa", "e2e", "mvp", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[QA] UAT / testes de aceite final — T-045",
+    "body": "**Descrição (PO):** UAT / testes de aceite final do MVP.\n\n**Critérios de aceitação:**\n- [ ] Testes de aceite executados com o PO/stakeholders\n- [ ] Relatório de UAT assinado\n- [ ] MVP liberado para produção\n\n**Origem:** TASKS.md (raiz) — S6 Transversal — Tarefa pendente (`[ ]`)\n**Depende de:** T-044\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["qa", "uat", "mvp", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[QA] Testes E2E integrados do fluxo IA + KB + check-ins — M2-024",
+    "body": "**Descrição (PO):** Testes E2E integrados do fluxo IA + KB + check-ins do MVP2.\n\n**Critérios de aceitação:**\n- [ ] Testes E2E do fluxo Knowledge Base\n- [ ] Testes E2E do fluxo RAG/IA\n- [ ] Testes E2E do fluxo de check-ins\n\n**Origem:** TASKS.md (raiz) — S11 Transversal — Tarefa pendente (`[ ]`)\n**Depende de:** M2-023\n**Estimativa:** 3d\n**Prioridade:** Must",
+    "labels": ["qa", "e2e", "mvp2", "must"],
+    "assignee": "vinialeixo"
+  },
+  {
+    "title": "[QA] UAT / aceite final do MVP2 — M2-026",
+    "body": "**Descrição (PO):** UAT / aceite final do MVP2.\n\n**Critérios de aceitação:**\n- [ ] Testes de aceite executados com o PO/stakeholders\n- [ ] Relatório de UAT do MVP2 assinado\n- [ ] MVP2 liberado para produção\n\n**Origem:** TASKS.md (raiz) — S11 Transversal — Tarefa pendente (`[ ]`)\n**Depende de:** M2-025\n**Estimativa:** 2d\n**Prioridade:** Must",
+    "labels": ["qa", "uat", "mvp2", "must"],
+    "assignee": "vinialeixo"
+  }
+]
