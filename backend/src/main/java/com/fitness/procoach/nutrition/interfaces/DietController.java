@@ -6,6 +6,8 @@ import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.nutrition.application.DietApplicationService;
 import com.fitness.procoach.nutrition.domain.Diet;
 import com.fitness.procoach.nutrition.domain.DietId;
+import com.fitness.procoach.nutrition.domain.EnergyBalance;
+import com.fitness.procoach.nutrition.domain.EnergyBalanceCalculator;
 import com.fitness.procoach.nutrition.domain.FoodKind;
 import com.fitness.procoach.nutrition.domain.FoodSource;
 import com.fitness.procoach.nutrition.domain.FoodState;
@@ -78,12 +80,13 @@ public class DietController {
 	 * o DTO no corpo e o header {@code Location} apontando para o recurso.
 	 */
 	@Operation(summary = "Criar dieta (v1)",
-			description = "Cria a primeira versão (v1) de uma dieta em estado Rascunho. Retorna 201 Created com o "
-					+ "header Location do recurso. Atenção (US-015): este recurso nunca será sobrescrito — "
-					+ "alterações posteriores devem gerar uma nova versão (POST /api/v1/diets/{dietId}/versions).")
+			description = "Cria a primeira versão (v1) de uma dieta em estado Rascunho com balanço energético (T-089). "
+					+ "Retorna 201 Created com o header Location do recurso. Atenção (US-015): este recurso nunca será "
+					+ "sobrescrito — alterações posteriores devem gerar uma nova versão (POST /api/v1/diets/{dietId}/versions).")
 	@ApiResponses({
 			@ApiResponse(responseCode = "201", description = "Dieta criada com sucesso"),
-			@ApiResponse(responseCode = "400", description = "Campos inválidos ou ausentes") })
+			@ApiResponse(responseCode = "400", description = "Campos inválidos ou ausentes"),
+			@ApiResponse(responseCode = "409", description = "Atleta sem avaliação (energyBalance virá null)") })
 	// T-009/US-037: somente o coach monta/edita protocolos.
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping
@@ -101,17 +104,27 @@ public class DietController {
 				.buildAndExpand(diet.id().value())
 				.toUri();
 		double weightKg = getAthleteWeightKg(diet.athleteId().value());
-		return ResponseEntity.created(location).body(DietResponse.from(diet, weightKg));
+		
+		// Tenta calcular balanço energético se houver avaliação
+		EnergyBalance balance = null;
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElse(null);
+		if (profile != null) {
+			balance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+		}
+		
+		return ResponseEntity.created(location).body(DietResponse.from(diet, weightKg, balance));
 	}
 
 	@Operation(summary = "Criar nova versão da dieta",
-			description = "Cria a próxima versão (v2, v3...) a partir da versão informada. A versão de origem "
-					+ "passa a ser somente leitura e o motivo da alteração é obrigatório (US-015/US-016).")
+			description = "Cria a próxima versão (v2, v3...) a partir da versão informada com balanço energético (T-089). "
+					+ "A versão de origem passa a ser somente leitura e o motivo da alteração é obrigatório (US-015/US-016).")
 	@ApiResponses({
 			@ApiResponse(responseCode = "201", description = "Nova versão criada"),
 			@ApiResponse(responseCode = "400", description = "Campos inválidos ou motivo ausente"),
 			@ApiResponse(responseCode = "404", description = "Dieta não encontrada ou de outro coach"),
-			@ApiResponse(responseCode = "409", description = "Versão de origem somente leitura ou removida") })
+			@ApiResponse(responseCode = "409", description = "Versão de origem somente leitura ou removida; ou atleta sem avaliação (energyBalance virá null)") })
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping("/{id}/versions")
 	public ResponseEntity<DietResponse> createVersion(@AuthenticationPrincipal Jwt jwt,
@@ -125,15 +138,26 @@ public class DietController {
 				.buildAndExpand(next.id().value())
 				.toUri();
 		double weightKg = getAthleteWeightKg(next.athleteId().value());
-		return ResponseEntity.created(location).body(DietResponse.from(next, weightKg));
+		
+		// Tenta calcular balanço energético se houver avaliação
+		EnergyBalance balance = null;
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(next.athleteId().value())
+				.orElse(null);
+		if (profile != null) {
+			balance = EnergyBalanceCalculator.calculate(next.macros().calories(), profile.getKcal());
+		}
+		
+		return ResponseEntity.created(location).body(DietResponse.from(next, weightKg, balance));
 	}
 
 	@Operation(summary = "Alterar status da dieta",
-			description = "Fluxo Rascunho → Em Revisão → Aprovada → Arquivada (US-017). Transição inválida retorna 409.")
+			description = "Fluxo Rascunho → Em Revisão → Aprovada → Arquivada (US-017). Transição inválida retorna 409. "
+					+ "Retorna a dieta com balanço energético atualizado (T-089).")
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "Status alterado"),
 			@ApiResponse(responseCode = "404", description = "Dieta não encontrada ou de outro coach"),
-			@ApiResponse(responseCode = "409", description = "Transição inválida") })
+			@ApiResponse(responseCode = "409", description = "Transição inválida; ou atleta sem avaliação (energyBalance virá null)") })
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping("/{id}/status")
 	public DietResponse changeStatus(@AuthenticationPrincipal Jwt jwt,
@@ -141,7 +165,17 @@ public class DietController {
 			@Valid @RequestBody ChangeDietStatusRequest request) {
 		Diet diet = service.changeStatus(UUID.fromString(jwt.getSubject()), id, request.status());
 		double weightKg = getAthleteWeightKg(diet.athleteId().value());
-		return DietResponse.from(diet, weightKg);
+		
+		// Tenta calcular balanço energético se houver avaliação
+		EnergyBalance balance = null;
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElse(null);
+		if (profile != null) {
+			balance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+		}
+		
+		return DietResponse.from(diet, weightKg, balance);
 	}
 
 	@Operation(summary = "Balanço energético da dieta atual do atleta",
@@ -178,11 +212,13 @@ public class DietController {
 	}
 
 	/**
-	 * Retorna uma dieta pelo identificador.
+	 * Retorna uma dieta pelo identificador com balanço energético se houver avaliação (T-089).
+	 * Não retorna 409 se não houver avaliação — apenas omite o energyBalance.
 	 */
 	@Operation(summary = "Buscar dieta por id",
-			description = "Retorna uma versão específica da dieta pelo identificador. Versões anteriores são "
-					+ "imutáveis (readOnly=true) e nunca sobrescritas (US-015).")
+			description = "Retorna uma versão específica da dieta pelo identificador com balanço energético (se houver avaliação). "
+					+ "Versões anteriores são imutáveis (readOnly=true) e nunca sobrescritas (US-015). "
+					+ "Se atleta não tem avaliação, energyBalance vem null (use /energy-balance para 409 acionável).")
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "Dieta encontrada"),
 			@ApiResponse(responseCode = "404", description = "Dieta não encontrada") })
@@ -196,17 +232,29 @@ public class DietController {
 			@Parameter(description = "Identificador da dieta") @PathVariable UUID id) {
 		Diet diet = service.findOwnedById(new DietId(id), UUID.fromString(jwt.getSubject()));
 		double weightKg = getAthleteWeightKg(diet.athleteId().value());
-		return DietResponse.from(diet, weightKg);
+		
+		// Tenta calcular balanço energético se houver avaliação (não bloqueia se não houver)
+		EnergyBalance balance = null;
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElse(null);
+		if (profile != null) {
+			balance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+		}
+		
+		return DietResponse.from(diet, weightKg, balance);
 	}
 
-	/**
-	 * Versão mais recente da dieta de um atleta (US-007).
-	 */
+	/** Versão mais recente da dieta de um atleta (US-007) com balanço energético (T-089). */
 	@Operation(summary = "Versão mais recente da dieta",
-			description = "Retorna a versão mais recente da dieta de um atleta (US-007).")
+			description = "Retorna a versão mais recente da dieta de um atleta com balanço energético (T-089). "
+					+ "Atleta: só vê dieta APROVADA; coach vê a mais recente (rascunho/revisão/aprovada). "
+					+ "Se versão mais alta for ARCHIVED, responde 404 (sem plano ativo — T-089). "
+					+ "Se atleta não tem avaliação, energyBalance vem null e response 409 no endpoint dedicado.")
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "Versão mais recente retornada"),
-			@ApiResponse(responseCode = "404", description = "Nenhuma dieta encontrada para o atleta") })
+			@ApiResponse(responseCode = "404", description = "Nenhuma dieta ativa para o atleta (ou versão mais alta arquivada)"),
+			@ApiResponse(responseCode = "409", description = "Atleta sem avaliação (apenas no endpoint /energy-balance)") })
 	// T-010/US-038: atleta só consulta os próprios dados (claim athleteId do JWT).
 	// T-058: coach só consulta atletas da própria carteira — o athleteId de outro
 	// coach resulta em 404 (não vaza a existência do recurso).
@@ -215,17 +263,27 @@ public class DietController {
 	public DietResponse latest(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
 		coachAthleteGuard.requireCoachOwnsAthlete(jwt, athleteId);
-		Diet diet = service.latestByAthlete(athleteId, CoachAthleteAccessGuard.isAthlete(jwt));
-		double weightKg = getAthleteWeightKg(athleteId);
-		return DietResponse.from(diet, weightKg);
+		boolean athleteView = CoachAthleteAccessGuard.isAthlete(jwt);
+		try {
+			DietApplicationService.DietWithEnergyBalance result = service.latestWithEnergyBalance(athleteId, athleteView);
+			double weightKg = getAthleteWeightKg(athleteId);
+			return DietResponse.from(result.diet(), weightKg, result.balance());
+		} catch (DietApplicationService.NoAssessmentException e) {
+			// Atleta sem avaliação: retorna dieta sem balanço (energyBalance = null)
+			// O endpoint /energy-balance retornará 409
+			Diet diet = service.latestByAthlete(athleteId, athleteView);
+			double weightKg = getAthleteWeightKg(athleteId);
+			return DietResponse.from(diet, weightKg, null);
+		}
 	}
 
 	/**
-	 * Histórico de versões da dieta de um atleta.
+	 * Histórico de versões da dieta de um atleta com balanço energético (T-089).
 	 */
 	@Operation(summary = "Histórico de versões da dieta",
-			description = "Retorna o histórico encadeado de versões da dieta de um atleta (v1→v2→v3), evidência "
-					+ "da regra de nunca sobrescrever (US-015): cada item aponta para previousVersionId.")
+			description = "Retorna o histórico encadeado de versões da dieta de um atleta (v1→v2→v3) com balanço energético, "
+					+ "evidência da regra de nunca sobrescrever (US-015): cada item aponta para previousVersionId. "
+					+ "Atleta: só versões APPROVED/ARCHIVED não removidas. Coach: todas as versões.")
 	@ApiResponse(responseCode = "200", description = "Histórico retornado com sucesso")
 	// T-010/US-038: atleta só consulta os próprios dados (claim athleteId do JWT).
 	// T-058: coach só consulta atletas da própria carteira.
@@ -234,20 +292,40 @@ public class DietController {
 	public List<DietResponse> history(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
 		coachAthleteGuard.requireCoachOwnsAthlete(jwt, athleteId);
+		boolean athleteView = CoachAthleteAccessGuard.isAthlete(jwt);
 		double weightKg = getAthleteWeightKg(athleteId);
-		return service.historyByAthlete(athleteId, CoachAthleteAccessGuard.isAthlete(jwt)).stream()
-				.map(d -> DietResponse.from(d, weightKg))
+		
+		// Para histórico, calculamos o balanço para cada versão que tem avaliação
+		// Nota: na prática, a avaliação é a mesma para todas as versões (a mais recente)
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(athleteId)
+				.orElse(null);
+		
+		EnergyBalance balance = null;
+		if (profile != null) {
+			// O balanço será calculado por versão no stream abaixo
+		}
+		
+		return service.historyByAthlete(athleteId, athleteView).stream()
+				.map(diet -> {
+					EnergyBalance dietBalance = null;
+					if (profile != null) {
+						dietBalance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+					}
+					return DietResponse.from(diet, weightKg, dietBalance);
+				})
 				.toList();
 	}
 
 	// ===== T-085: Meal Management Endpoints =====
 
 	@Operation(summary = "Adicionar refeição à dieta",
-			description = "Adiciona uma refeição a uma versão da dieta (T-085). Apenas versões não read-only (DRAFT).")
+			description = "Adiciona uma refeição a uma versão da dieta (T-085) com balanço energético atualizado (T-089). "
+					+ "Apenas versões não read-only (DRAFT).")
 	@ApiResponses({
 			@ApiResponse(responseCode = "201", description = "Refeição adicionada"),
 			@ApiResponse(responseCode = "404", description = "Dieta não encontrada ou de outro coach"),
-			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida") })
+			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida; ou atleta sem avaliação (energyBalance virá null)") })
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping("/{id}/meals")
 	public ResponseEntity<DietResponse> addMeal(@AuthenticationPrincipal Jwt jwt,
@@ -264,15 +342,26 @@ public class DietController {
 				.buildAndExpand(diet.id().value())
 				.toUri();
 		double weightKg = getAthleteWeightKg(diet.athleteId().value());
-		return ResponseEntity.created(location).body(DietResponse.from(diet, weightKg));
+		
+		// Tenta calcular balanço energético se houver avaliação
+		EnergyBalance balance = null;
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElse(null);
+		if (profile != null) {
+			balance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+		}
+		
+		return ResponseEntity.created(location).body(DietResponse.from(diet, weightKg, balance));
 	}
 
 	@Operation(summary = "Adicionar item a uma refeição",
-			description = "Adiciona um item de alimento a uma refeição da dieta (T-085). Macros são snapshot no momento da prescrição.")
+			description = "Adiciona um item de alimento a uma refeição da dieta (T-085) com balanço energético atualizado (T-089). "
+					+ "Macros são snapshot no momento da prescrição.")
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "Item adicionado"),
 			@ApiResponse(responseCode = "404", description = "Dieta ou refeição não encontrada"),
-			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida") })
+			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida; ou atleta sem avaliação (energyBalance virá null)") })
 	@PreAuthorize("hasRole('COACH')")
 	@PostMapping("/{id}/meals/{mealId}/items")
 	public DietResponse addMealItem(@AuthenticationPrincipal Jwt jwt,
@@ -286,15 +375,26 @@ public class DietController {
 						request.preparation(), request.calories(), request.protein(),
 						request.carbohydrates(), request.fat()));
 		double weightKg = getAthleteWeightKg(diet.athleteId().value());
-		return DietResponse.from(diet, weightKg);
+		
+		// Tenta calcular balanço energético se houver avaliação
+		EnergyBalance balance = null;
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElse(null);
+		if (profile != null) {
+			balance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+		}
+		
+		return DietResponse.from(diet, weightKg, balance);
 	}
 
 	@Operation(summary = "Remover item de uma refeição",
-			description = "Remove um item de uma refeição da dieta (T-085). Recalcula os totais automaticamente.")
+			description = "Remove um item de uma refeição da dieta (T-085) com balanço energético atualizado (T-089). "
+					+ "Recalcula os totais automaticamente.")
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "Item removido"),
 			@ApiResponse(responseCode = "404", description = "Dieta, refeição ou item não encontrado"),
-			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida") })
+			@ApiResponse(responseCode = "409", description = "Dieta somente leitura ou removida; ou atleta sem avaliação (energyBalance virá null)") })
 	@PreAuthorize("hasRole('COACH')")
 	@DeleteMapping("/{id}/meals/{mealId}/items/{itemId}")
 	public DietResponse removeMealItem(@AuthenticationPrincipal Jwt jwt,
@@ -303,7 +403,17 @@ public class DietController {
 			@Parameter(description = "Identificador do item") @PathVariable UUID itemId) {
 		Diet diet = service.removeMealItem(UUID.fromString(jwt.getSubject()), id, mealId, itemId);
 		double weightKg = getAthleteWeightKg(diet.athleteId().value());
-		return DietResponse.from(diet, weightKg);
+		
+		// Tenta calcular balanço energético se houver avaliação
+		EnergyBalance balance = null;
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElse(null);
+		if (profile != null) {
+			balance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+		}
+		
+		return DietResponse.from(diet, weightKg, balance);
 	}
 
 	@Operation(summary = "Remover refeição da dieta",
@@ -319,7 +429,17 @@ public class DietController {
 			@Parameter(description = "Identificador da refeição") @PathVariable UUID mealId) {
 		Diet diet = service.removeMeal(UUID.fromString(jwt.getSubject()), id, mealId);
 		double weightKg = getAthleteWeightKg(diet.athleteId().value());
-		return DietResponse.from(diet, weightKg);
+		
+		// Tenta calcular balanço energético se houver avaliação
+		EnergyBalance balance = null;
+		AssessmentApplicationService.EnergyProfile profile = assessmentService
+				.latestEnergyProfile(diet.athleteId().value())
+				.orElse(null);
+		if (profile != null) {
+			balance = EnergyBalanceCalculator.calculate(diet.macros().calories(), profile.getKcal());
+		}
+		
+		return DietResponse.from(diet, weightKg, balance);
 	}
 
 	}
