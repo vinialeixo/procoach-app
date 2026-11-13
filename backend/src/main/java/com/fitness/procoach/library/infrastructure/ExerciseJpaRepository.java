@@ -23,6 +23,17 @@ public interface ExerciseJpaRepository extends JpaRepository<ExerciseJpaEntity, 
 			""")
 	List<ExerciseJpaEntity> search(@Param("pattern") String pattern, @Param("muscleGroup") MuscleGroup muscleGroup);
 
+	@Query("""
+			select e from ExerciseJpaEntity e
+			where e.deleted = false
+			  and e.superseded = false
+			  and e.createdBy = :coachUserId
+			  and lower(e.name) like lower(:pattern)
+			  and (:muscleGroup is null or :muscleGroup member of e.muscleGroups)
+			order by e.name
+			""")
+	List<ExerciseJpaEntity> searchByCoach(@Param("coachUserId") UUID coachUserId, @Param("pattern") String pattern, @Param("muscleGroup") MuscleGroup muscleGroup);
+
 	@Query("select e from ExerciseJpaEntity e where e.deleted = false and e.superseded = false order by e.name")
 	List<ExerciseJpaEntity> findAllActive();
 

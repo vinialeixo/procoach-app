@@ -104,7 +104,7 @@ class AssessmentComparisonControllerTest {
 
 		mockMvc.perform(get("/api/v1/assessments/compare").param("athleteId", athleteId)
 						.param("from", first).param("to", second).header("Authorization", bearer(coachB)))
-				.andExpect(status().isNotFound());
+				.andExpect(status().isForbidden());
 	}
 
 	@Test

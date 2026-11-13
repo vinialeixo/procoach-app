@@ -175,7 +175,7 @@ class DietControllerTest {
 		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
 		String athleteOfA = registerAthlete(mockMvc, coachA);
 
-		// Coach B tenta criar dieta para um atleta do coach A -> 404.
+		// Coach B tenta criar dieta para um atleta do coach A -> 404 (service valida posse).
 		mockMvc.perform(post("/api/v1/diets")
 						.header("Authorization", bearer(coachB))
 						.contentType(MediaType.APPLICATION_JSON)
@@ -189,10 +189,10 @@ class DietControllerTest {
 		String coachB = registerCoach(mockMvc, uniqueEmail("coach-b"));
 		String athleteOfA = registerAthlete(mockMvc, coachA);
 
-		// Coach B tenta ler a dieta de um atleta do coach A -> 404.
+		// Coach B tenta ler a dieta de um atleta do coach A -> 403 (guard valida posse via SpEL).
 		mockMvc.perform(get("/api/v1/diets").param("athleteId", athleteOfA)
 						.header("Authorization", bearer(coachB)))
-				.andExpect(status().isNotFound());
+				.andExpect(status().isForbidden());
 	}
 
 	@Test
@@ -202,7 +202,7 @@ class DietControllerTest {
 		String athleteOfA = registerAthlete(mockMvc, coachA);
 
 		// Coach B forja um coachId no body, mas ele é ignorado (resolvido do JWT
-		// = coach B) e o atleta não pertence a B -> 404.
+		// = coach B) e o atleta não pertence a B -> 404 (service valida posse, não vaza existência).
 		String forged = validRequestJson(athleteOfA)
 				.replace("{", "{\"coachId\": \"%s\",".formatted(UUID.randomUUID().toString()));
 		mockMvc.perform(post("/api/v1/diets")
@@ -229,8 +229,7 @@ class DietControllerTest {
 				.andReturn();
 		String dietId = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
 
-		// Coach B tenta ler a dieta do atleta do coach A pelo id -> 404
-		// (mesmo status de "não existe": não vaza a existência do recurso).
+		// Coach B tenta ler a dieta do atleta do coach A pelo id -> 404 (service valida posse, não vaza existência).
 		mockMvc.perform(get("/api/v1/diets/{id}", dietId)
 						.header("Authorization", bearer(coachB)))
 				.andExpect(status().isNotFound());
@@ -370,7 +369,7 @@ class DietControllerTest {
 				.andExpect(status().isOk());
 		mockMvc.perform(get("/api/v1/diets/energy-balance").param("athleteId", athleteId)
 						.header("Authorization", bearer(coachB)))
-				.andExpect(status().isNotFound());
+				.andExpect(status().isForbidden());
 	}
 
 	// ---- visão do atleta: só a dieta que o coach aprovou ----

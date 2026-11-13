@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,6 +83,29 @@ public class ExerciseApplicationService {
 		repository.save(exercise);
 		auditService.record("Exercise", exercise.getId(), null, "EXERCISE_DELETED", requesterId,
 				AuditData.of("name", exercise.getName()));
+	}
+
+	/**
+	 * Busca um exercício por id, validando que pertence ao coach autenticado.
+	 * Retorna 404 se não encontrado ou se pertencer a outro coach.
+	 */
+	@Transactional(readOnly = true)
+	public Exercise findOwnedByCoach(UUID id, UUID coachUserId) {
+		Exercise exercise = repository.findById(id)
+				.orElseThrow(() -> new ExerciseNotFoundException(id));
+		if (!exercise.getCreatedBy().equals(coachUserId)) {
+			throw new ExerciseNotFoundException(id);
+		}
+		return exercise;
+	}
+
+	/**
+	 * Busca exercícios do coach autenticado com filtros opcionais.
+	 * Só retorna exercícios criados pelo coach (createdBy).
+	 */
+	@Transactional(readOnly = true)
+	public List<Exercise> searchByCoach(UUID coachUserId, String name, MuscleGroup muscleGroup) {
+		return repository.searchByCoach(coachUserId, name, muscleGroup);
 	}
 
 	/** Foto dos campos editáveis, para registrar no histórico o que mudou na edição. */

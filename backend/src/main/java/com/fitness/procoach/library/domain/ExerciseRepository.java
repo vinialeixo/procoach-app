@@ -19,6 +19,9 @@ public interface ExerciseRepository {
 	/** Busca por nome (parcial, case-insensitive) ou grupo muscular. */
 	List<Exercise> search(String name, MuscleGroup muscleGroup);
 
+	/** Busca exercícios do coach (createdBy) com filtros opcionais. */
+	List<Exercise> searchByCoach(UUID coachUserId, String name, MuscleGroup muscleGroup);
+
 	void delete(Exercise exercise);
 
 	/** Versão que substituiu {@code previousVersionId}, mesmo que removida; vazio se não há sucessora. */

@@ -48,6 +48,13 @@ public class ExerciseRepositoryAdapter implements ExerciseRepository {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
+	public List<Exercise> searchByCoach(UUID coachUserId, String name, MuscleGroup muscleGroup) {
+		String pattern = (name == null || name.isBlank()) ? "%" : "%" + name.trim() + "%";
+		return jpaRepository.searchByCoach(coachUserId, pattern, muscleGroup).stream().map(this::toDomain).toList();
+	}
+
+	@Override
 	@Transactional
 	public void delete(Exercise exercise) {
 		jpaRepository.save(toJpa(exercise));
