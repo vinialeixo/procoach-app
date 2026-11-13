@@ -16,12 +16,13 @@ import java.util.UUID;
  *   <li>Nunca sobrescrever: cada alteração gera uma nova versão (v1 -> v2 -> v3) com
  *       histórico encadeado via {@code previousVersionId} (US-015).</li>
  *   <li>Versões anteriores tornam-se somente leitura (US-015).</li>
- *   <li>Macronutrientes obrigatórios e positivos (US-014).</li>
+ *   <li>Macronutrientes obrigatórios; carboidratos e gorduras aceitam zero (T-087/US-014).</li>
  *   <li>Objetivo definido na criação (US-011).</li>
  *   <li>Exclusão lógica (soft-delete), nunca DELETE físico.</li>
  *   <li>Referências a outros agregados por UUID (coachId, athleteId).</li>
  *   <li>Totais de macros são <b>derivados dos itens das refeições</b> quando há refeições
  *       (T-085 / docs/nutricao-plano-alimentar.md §3.3).</li>
+ *   <li>Warnings estruturados informativos — nunca bloqueiam (T-087).</li>
  * </ul>
  *
  * <p>Framework-agnostic: nenhuma anotação Spring/JPA neste pacote.
@@ -44,6 +45,7 @@ public class Diet {
     private boolean readOnly;
     private boolean deleted;
     private final List<Meal> meals = new ArrayList<>();
+    private final List<DietWarning> warnings = new ArrayList<>();
     private final List<DietEvent> domainEvents = new ArrayList<>();
 
     private Diet(DietId id, CoachId coachId, AthleteId athleteId, DietObjective objective,
@@ -76,12 +78,15 @@ public class Diet {
                                     DietStatus status, int version, DietId previousVersionId,
                                     String changeReason, UUID createdBy, UUID updatedBy,
                                     Instant createdAt, Instant updatedAt, boolean readOnly,
-                                    boolean deleted, List<Meal> meals) {
+                                    boolean deleted, List<Meal> meals, List<DietWarning> warnings) {
         Diet diet = new Diet(id, coachId, athleteId, objective, macros, status, version,
                 previousVersionId, changeReason, createdBy, updatedBy, createdAt, updatedAt,
                 readOnly, deleted);
         if (meals != null) {
             diet.meals.addAll(meals);
+        }
+        if (warnings != null) {
+            diet.warnings.addAll(warnings);
         }
         return diet;
     }
@@ -101,7 +106,7 @@ public class Diet {
     /**
      * Cria uma nova versão a partir desta. A versão atual torna-se somente leitura.
      * O motivo da alteração é obrigatório (US-016).
-     * As refeições e itens são copiados (snapshot) para a nova versão.
+     * As refeições, itens e warnings são copiados (snapshot) para a nova versão.
      */
     public Diet createNewVersion(DietObjective newObjective, Macronutrients newMacros,
                                  String changeReason, UUID changedBy) {
@@ -135,9 +140,13 @@ public class Diet {
             copiedMeals.add(copiedMeal);
         }
 
+        // Copia warnings (snapshot)
+        List<DietWarning> copiedWarnings = new ArrayList<>(this.warnings);
+
         Diet next = new Diet(DietId.random(), coachId, athleteId, newObjective, newMacros,
                 DietStatus.DRAFT, version + 1, id, changeReason, changedBy, changedBy, now, now, false, false);
         next.meals.addAll(copiedMeals);
+        next.warnings.addAll(copiedWarnings);
 
         // Recalcula macros da nova versão a partir dos itens copiados
         next.recalculateMacrosFromMeals();
@@ -236,6 +245,119 @@ public class Diet {
             return Macronutrients.of(calories, protein, carbohydrates, fat);
         }
         return macros;
+    }
+
+    /**
+     * Gera warnings estruturados para esta dieta com base nos macros e perfil do atleta (T-087).
+     * <p>
+     * Os warnings são informativos — nunca bloqueiam a criação/aprovação.
+     * A decisão final sempre pertence ao coach (regra inegociável).
+     *
+     * @param weightKg           peso do atleta em kg (da avaliação mais recente)
+     * @param tmbKcal            taxa metabólica basal (kcal/dia)
+     * @param getKcal            gasto energético total (kcal/dia)
+     * @param balancePercent     balanço em % do GET
+     * @param classification     classificação do balanço (DEFICIT, MAINTENANCE, SURPLUS)
+     * @return lista de warnings (pode ser vazia)
+     */
+    public List<DietWarning> generateWarnings(double weightKg, double tmbKcal, double getKcal,
+                                              double balancePercent, EnergyBalance.Classification classification) {
+        List<DietWarning> result = new ArrayList<>();
+        Macronutrients totals = calculateTotalsFromMeals();
+
+        // Macros zerados
+        if (totals.carbohydrates() == 0) {
+            result.add(DietWarning.zeroCarbohydrate());
+        }
+        if (totals.fat() == 0) {
+            result.add(DietWarning.zeroFat());
+        }
+        if (totals.protein() == 0) {
+            result.add(DietWarning.zeroProtein());
+        }
+
+        // Consistência 4/4/9
+        if (!totals.isConsistent()) {
+            result.add(DietWarning.macroCalorieMismatch(totals.calories(), totals.calculatedCalories()));
+        }
+
+        // Calorias abaixo da TMB
+        if (totals.calories() < tmbKcal) {
+            result.add(DietWarning.lowCaloriesVsTmb(totals.calories(), tmbKcal));
+        }
+
+        // Déficit agressivo (> 25% do GET)
+        if (classification == EnergyBalance.Classification.DEFICIT && balancePercent < -25) {
+            result.add(DietWarning.aggressiveDeficit(balancePercent));
+        }
+
+        // Proteína abaixo de 1,6 g/kg
+        double proteinGPerKg = totals.proteinGPerKg(weightKg);
+        if (proteinGPerKg > 0 && proteinGPerKg < 1.6) {
+            result.add(DietWarning.proteinBelowRange(proteinGPerKg));
+        }
+
+        // Gordura abaixo de 0,5 g/kg
+        double fatGPerKg = totals.fatGPerKg(weightKg);
+        if (fatGPerKg > 0 && fatGPerKg < 0.5) {
+            result.add(DietWarning.fatBelowRange(fatGPerKg));
+        }
+
+        // Atualiza warnings internos
+        this.warnings.clear();
+        this.warnings.addAll(result);
+        return result;
+    }
+
+    /**
+     * Retorna os warnings atuais da dieta (somente leitura).
+     */
+    public List<DietWarning> warnings() {
+        return Collections.unmodifiableList(warnings);
+    }
+
+    /**
+     * Retorna os macros derivados para resposta da API (T-087).
+     * Inclui: g/kg, %kcal, kcal/kg, consistência 4/4/9.
+     *
+     * @param weightKg peso do atleta em kg
+     * @return objeto com valores derivados
+     */
+    public DerivedMacros derivedMacros(double weightKg) {
+        Macronutrients totals = calculateTotalsFromMeals();
+        return new DerivedMacros(
+                totals.proteinGPerKg(weightKg),
+                totals.carbohydratesGPerKg(weightKg),
+                totals.fatGPerKg(weightKg),
+                totals.proteinPctKcal(),
+                totals.carbohydratesPctKcal(),
+                totals.fatPctKcal(),
+                totals.kcalPerKg(weightKg),
+                totals.calculatedCalories(),
+                totals.calories(),
+                totals.consistencyDeltaKcal(),
+                totals.consistencyDeltaPercent(),
+                totals.isConsistent()
+        );
+    }
+
+    /**
+     * Valores derivados dos macros para exibição (T-087).
+     */
+    public record DerivedMacros(
+            double proteinGPerKg,
+            double carbohydratesGPerKg,
+            double fatGPerKg,
+            double proteinPctKcal,
+            double carbohydratesPctKcal,
+            double fatPctKcal,
+            double kcalPerKg,
+            double calculatedCalories,
+            double declaredCalories,
+            double consistencyDeltaKcal,
+            double consistencyDeltaPercent,
+            boolean isConsistent
+    ) {
     }
 
     /**

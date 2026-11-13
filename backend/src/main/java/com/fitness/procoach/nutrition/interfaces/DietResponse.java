@@ -16,7 +16,8 @@ import java.util.UUID;
  */
 @Schema(description = "Versão de uma dieta. Regra inegociável (US-015): uma dieta NUNCA é sobrescrita — toda "
         + "alteração gera uma nova versão encadeada (v1→v2→v3) e as versões anteriores tornam-se somente "
-        + "leitura (readOnly=true). A partir do T-085, inclui refeições e itens com totais derivados.")
+        + "leitura (readOnly=true). A partir do T-085, inclui refeições e itens com totais derivados. "
+        + "A partir do T-087, inclui warnings estruturados e macros derivados (g/kg, %kcal, consistência 4/4/9).")
 public record DietResponse(
         @Schema(description = "Identificador desta versão da dieta",
                 example = "5d4c3b2a-1f0e-4d5c-8b7a-6f5e4d3c2b1a") UUID id,
@@ -48,19 +49,38 @@ public record DietResponse(
         @Schema(description = "Último usuário que alterou o registro",
                 example = "2f6b1c3d-7a0e-4b5d-9c8a-1e2f3a4b5c6d") UUID updatedBy,
         @Schema(description = "Refeições da dieta (T-085). Totais derivados dos itens.") List<MealResponse> meals,
-        @Schema(description = "Totais calculados a partir das refeições (somente leitura). Se não houver refeições, igual aos macros informados.") DietTotalsResponse totals) {
+        @Schema(description = "Totais calculados a partir das refeições (somente leitura). Se não houver refeições, igual aos macros informados.") DietTotalsResponse totals,
+        @Schema(description = "Warnings nutricionais estruturados (T-087). Informativos — nunca bloqueiam.") List<WarningResponse> warnings,
+        @Schema(description = "Macros derivados: g/kg, %kcal, kcal/kg, consistência 4/4/9 (T-087).") DerivedMacrosResponse derived) {
 
-    public static DietResponse from(Diet diet) {
+    public static DietResponse from(Diet diet, double weightKg) {
         List<MealResponse> meals = diet.meals().stream().map(DietResponse::mapMeal).toList();
         Macronutrients totals = diet.calculateTotalsFromMeals();
         DietTotalsResponse totalsResponse = new DietTotalsResponse(totals.calories(), totals.protein(),
                 totals.carbohydrates(), totals.fat());
+        
+        // Generate warnings and derived macros
+        List<WarningResponse> warnings = diet.warnings().stream()
+                .map(WarningResponse::from)
+                .toList();
+        
+        DerivedMacrosResponse derived = null;
+        if (weightKg > 0) {
+            Diet.DerivedMacros dm = diet.derivedMacros(weightKg);
+            derived = new DerivedMacrosResponse(
+                    dm.proteinGPerKg(), dm.carbohydratesGPerKg(), dm.fatGPerKg(),
+                    dm.proteinPctKcal(), dm.carbohydratesPctKcal(), dm.fatPctKcal(),
+                    dm.kcalPerKg(), dm.calculatedCalories(), dm.declaredCalories(),
+                    dm.consistencyDeltaKcal(), dm.consistencyDeltaPercent(), dm.isConsistent());
+        }
+        
         return new DietResponse(diet.id().value(), diet.coachId().value(), diet.athleteId().value(),
                 diet.objective(), diet.macros().calories(), diet.macros().protein(),
                 diet.macros().carbohydrates(), diet.macros().fat(), diet.status(), diet.version(),
                 diet.previousVersionId() == null ? null : diet.previousVersionId().value(),
                 diet.changeReason(), diet.createdAt(), diet.updatedAt(), diet.isReadOnly(),
-                diet.isDeleted(), diet.createdBy(), diet.updatedBy(), meals, totalsResponse);
+                diet.isDeleted(), diet.createdBy(), diet.updatedBy(), meals, totalsResponse,
+                warnings, derived);
     }
 
     private static MealResponse mapMeal(Meal meal) {
