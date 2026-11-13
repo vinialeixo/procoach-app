@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mocks": "vite --mode mocks",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
@@ -43,11 +44,17 @@
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^15.15.0",
     "jsdom": "^31.0.0",
+    "msw": "^3.0.5",
     "typescript": "^5.9.3",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"
   },
   "overrides": {
     "minimatch": "^11.0.1"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

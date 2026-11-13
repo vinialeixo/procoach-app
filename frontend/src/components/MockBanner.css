@@ -1,0 +1,46 @@
+.mock-banner {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #f8fafc;
+  font-size: 0.75rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+  backdrop-filter: blur(6px);
+}
+
+.mock-banner__badge {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fbbf24;
+}
+
+.mock-banner__btn {
+  border: 1px solid rgba(248, 250, 252, 0.22);
+  background: rgba(248, 250, 252, 0.08);
+  color: #f8fafc;
+  border-radius: 9999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.mock-banner__btn:hover {
+  background: rgba(248, 250, 252, 0.18);
+}
+
+.mock-banner__btn--reset {
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fde68a;
+}
+
+.mock-banner__feedback {
+  color: #86efac;
+  font-weight: 600;
+}

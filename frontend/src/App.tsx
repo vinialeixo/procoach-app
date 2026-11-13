@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -16,6 +17,15 @@ import { DietEditorPage } from "@/pages/DietEditorPage";
 import { TrainingPage } from "@/pages/TrainingPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleRedirect } from "@/components/RoleRedirect";
+
+const MockBanner =
+  import.meta.env.VITE_USE_MOCKS === "true"
+    ? lazy(() =>
+        import("@/components/MockBanner").then((module) => ({
+          default: module.MockBanner,
+        }))
+      )
+    : null;
 
 export function App() {
   return (
@@ -68,6 +78,11 @@ export function App() {
         <Route path="/" element={<RoleRedirect />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      {MockBanner && (
+        <Suspense fallback={null}>
+          <MockBanner />
+        </Suspense>
+      )}
     </BrowserRouter>
   );
 }
