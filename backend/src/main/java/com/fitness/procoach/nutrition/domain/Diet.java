@@ -104,6 +104,81 @@ public class Diet {
     }
 
     /**
+     * Cria a primeira versão (v1) de uma dieta a partir de uma proposta de IA (T-088).
+     * A dieta nasce com refeições, itens e warnings já populados.
+     * Emite evento {@code DietCreated}.
+     */
+    public static Diet createFromAiProposal(CoachId coachId, AthleteId athleteId,
+                                            DietObjective objective, Macronutrients macros,
+                                            String changeReason, UUID createdBy,
+                                            List<Meal> meals, List<DietWarning> warnings) {
+        Instant now = Instant.now();
+        Diet diet = new Diet(DietId.random(), coachId, athleteId, objective, macros,
+                DietStatus.DRAFT, 1, null, changeReason, createdBy, createdBy, now, now, false, false);
+        if (meals != null) {
+            diet.meals.addAll(meals);
+        }
+        if (warnings != null) {
+            diet.warnings.addAll(warnings);
+        }
+        diet.recalculateMacrosFromMeals();
+        diet.registerEvent(new DietCreated(diet.id, coachId, athleteId, objective, diet.macros(), createdBy, now));
+        return diet;
+    }
+
+    /**
+     * Cria uma nova versão a partir desta, baseada em uma proposta de IA (T-088).
+     * A versão atual torna-se somente leitura (readOnly=true).
+     * As refeições, itens e warnings da proposta são usados na nova versão.
+     * Emite evento {@code DietVersioned}.
+     */
+    public Diet createNewVersionFromAiProposal(DietObjective newObjective, Macronutrients newMacros,
+                                               String changeReason, UUID changedBy,
+                                               List<Meal> meals, List<DietWarning> warnings) {
+        if (readOnly) {
+            throw new IllegalStateException("Cannot create a new version from a read-only version");
+        }
+        if (deleted) {
+            throw new IllegalStateException("Cannot create a new version from a deleted diet");
+        }
+        if (changeReason == null || changeReason.isBlank()) {
+            throw new IllegalArgumentException("changeReason is required to create a new version");
+        }
+        Instant now = Instant.now();
+        this.readOnly = true;
+        this.updatedBy = changedBy;
+        this.updatedAt = now;
+
+        Diet next = new Diet(DietId.random(), coachId, athleteId, newObjective, newMacros,
+                DietStatus.DRAFT, version + 1, id, changeReason, changedBy, changedBy, now, now, false, false);
+        if (meals != null) {
+            next.meals.addAll(meals);
+        }
+        if (warnings != null) {
+            next.warnings.addAll(warnings);
+        }
+        next.recalculateMacrosFromMeals();
+
+        next.registerEvent(new DietVersioned(next.id, id, version + 1, newObjective, newMacros,
+                changeReason, changedBy, now));
+        return next;
+    }
+
+    /**
+     * Marca esta versão como somente leitura (freeze) — usado ao criar nova versão.
+     * Retorna this para encadeamento.
+     */
+    public Diet freeze(UUID frozenBy) {
+        if (readOnly) {
+            return this;
+        }
+        this.readOnly = true;
+        this.updatedBy = frozenBy;
+        this.updatedAt = Instant.now();
+        return this;
+    }
+
+    /**
      * Cria uma nova versão a partir desta. A versão atual torna-se somente leitura.
      * O motivo da alteração é obrigatório (US-016).
      * As refeições, itens e warnings são copiados (snapshot) para a nova versão.
