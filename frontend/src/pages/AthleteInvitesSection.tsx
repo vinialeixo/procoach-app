@@ -4,6 +4,7 @@ import { AthleteAccessBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { StateMessage } from "@/components/ui/StateMessage";
 import {
+  formatInviteExpiration,
   getCachedInvitePath,
   inviteUrl,
   useAthleteInvites,
@@ -71,22 +72,6 @@ export function AthleteInvitesSection({ athlete, onOpenInviteModal }: Props) {
     onOpenInviteModal();
   }
 
-  function formatExpiration(iso: string) {
-    try {
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return iso;
-      return d.toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return iso;
-    }
-  }
-
   return (
     <section className="athlete-invites" aria-labelledby="athlete-invites-title">
       <div className="athlete-invites__header">
@@ -141,7 +126,7 @@ export function AthleteInvitesSection({ athlete, onOpenInviteModal }: Props) {
                       Convite pendente: {inv.email}
                     </span>
                     <span className="athlete-invites__item-meta">
-                      Expira em: {formatExpiration(inv.expiresAt)}
+                      Expira em: {formatInviteExpiration(inv.expiresAt)}
                     </span>
                   </div>
                   <div className="athlete-invites__item-actions">
