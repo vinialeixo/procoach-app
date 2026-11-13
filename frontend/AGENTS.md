@@ -1,17 +1,17 @@
-# AGENTS.md — Contexto do projeto ProCoach
+# AGENTS.md — Frontend (ProCoach)
 
-> Lido automaticamente pelo Abacus AI Desktop no início de cada sessão neste projeto.
-> Fontes completas: `AGENT.md`, `SPEC.md`, `ProCoach_System_Design_UML.md`, `TASKS.md`,
-> `USER_STORIES.md` — todos na raiz do repo. Leia-os antes de gerar código.
+> Regras gerais do projeto, invariantes de domínio e configuração das skills ficam em [../AGENTS.md](../AGENTS.md).
+> Antes de implementar telas ou hooks, consulte [README.md](README.md) e [TASKS.md](TASKS.md).
 
-## Sobre o projeto
+## Convenções do Frontend (`frontend/`)
 
-ProCoach é um SaaS B2B coach-led para fisiculturismo. O coach é o cliente (tenant): gerencia
-atletas, monta avaliações, dietas versionadas e treinos, e valida decisões com um serviço de IA
-(RAG) que é apenas consultivo e read-only. Núcleo em Java 21 + Spring Boot 4 (Modular Monolith,
-Spring Modulith), RAG em Python + LlamaIndex, Postgres + pgvector, Flyway, RabbitMQ.
+- **Stack:** React 19, TypeScript, Vite, React Router 7, TanStack Query 5, React Hook Form + Zod, Axios.
+- **Sem UI kit externo:** não usar MUI/Chakra; reutilizar componentes de `src/components/ui` (`Button`, `ButtonLink`, `Field`, `SelectField`, `Modal`, `DataTable`, `StatusBadge`, `StateMessage`) e os design tokens de `src/styles/tokens.css`.
+- **Autorização:** nunca decidir autorização no front; o backend valida RBAC e isolamento multi-tenant. O front apenas oculta UI conforme o papel no JWT e reage a `401`/`403`.
+- **Contratos em desenvolvimento:** se um endpoint ainda não existir no backend, documentar a suposição no código (ver `src/lib/auth.ts` como referência) e nunca mascarar erros com fallbacks silenciosos quando o contrato real já existir.
+- **Ordem de implementação:** componente de UI reutilizável (`src/components/ui`) → hook/serviço (`src/lib`) → página (`src/pages`) → rota (`src/App.tsx`).
 
-## Regras inegociáveis (nunca violar)
+## Fluxo para tasks de `frontend/TASKS.md`
 
 1. A plataforma **não substitui o coach**. O RAG é apenas consultivo.
 2. A **decisão final sempre pertence ao coach** (nunca automatizar aprovação/geração).
@@ -93,8 +93,9 @@ Regras específicas do front:
 ## Comandos úteis
 
 ```bash
-docker compose up -d          # sobe Postgres+pgvector local
-./mvnw flyway:migrate         # roda migrações
-./mvnw test                   # testes + verificação de boundaries do Spring Modulith
-./mvnw spring-boot:run        # roda o núcleo
+npm run dev       # sobe Vite na porta 5173 (proxy /api -> localhost:8080)
+npm test          # Vitest (testes unitários e de integração)
+npm run build     # tsc -b + build de produção
+npm run lint      # ESLint
+npm run test:e2e  # Playwright E2E
 ```

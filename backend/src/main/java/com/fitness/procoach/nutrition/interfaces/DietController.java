@@ -1,5 +1,6 @@
 package com.fitness.procoach.nutrition.interfaces;
 
+import com.fitness.procoach.assessment.application.AssessmentApplicationService;
 import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
 import com.fitness.procoach.nutrition.application.DietApplicationService;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -48,12 +50,23 @@ public class DietController {
 	private final DietApplicationService service;
 	private final CoachApplicationService coachService;
 	private final AthleteAccessService athleteAccessService;
+	private final AssessmentApplicationService assessmentService;
 
 	public DietController(DietApplicationService service, CoachApplicationService coachService,
-			AthleteAccessService athleteAccessService) {
+			AthleteAccessService athleteAccessService, AssessmentApplicationService assessmentService) {
 		this.service = service;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
+		this.assessmentService = assessmentService;
+	}
+
+	/**
+	 * Obtém o peso do atleta da avaliação mais recente (para cálculos derivados g/kg).
+	 */
+	private double getAthleteWeightKg(UUID athleteId) {
+		return assessmentService.latestEnergyProfile(athleteId)
+				.map(p -> p.weightKg().doubleValue())
+				.orElse(0.0);
 	}
 
 	/**
@@ -83,7 +96,8 @@ public class DietController {
 				.path("/{id}")
 				.buildAndExpand(diet.id().value())
 				.toUri();
-		return ResponseEntity.created(location).body(DietResponse.from(diet));
+		double weightKg = getAthleteWeightKg(diet.athleteId().value());
+		return ResponseEntity.created(location).body(DietResponse.from(diet, weightKg));
 	}
 
 	@Operation(summary = "Criar nova versão da dieta",
@@ -106,7 +120,8 @@ public class DietController {
 				.path("/api/v1/diets/{id}")
 				.buildAndExpand(next.id().value())
 				.toUri();
-		return ResponseEntity.created(location).body(DietResponse.from(next));
+		double weightKg = getAthleteWeightKg(next.athleteId().value());
+		return ResponseEntity.created(location).body(DietResponse.from(next, weightKg));
 	}
 
 	@Operation(summary = "Alterar status da dieta",
@@ -120,7 +135,9 @@ public class DietController {
 	public DietResponse changeStatus(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador da dieta") @PathVariable UUID id,
 			@Valid @RequestBody ChangeDietStatusRequest request) {
-		return DietResponse.from(service.changeStatus(UUID.fromString(jwt.getSubject()), id, request.status()));
+		Diet diet = service.changeStatus(UUID.fromString(jwt.getSubject()), id, request.status());
+		double weightKg = getAthleteWeightKg(diet.athleteId().value());
+		return DietResponse.from(diet, weightKg);
 	}
 
 	@Operation(summary = "Balanço energético da dieta atual do atleta",
@@ -173,7 +190,9 @@ public class DietController {
 	@GetMapping("/{id}")
 	public DietResponse findById(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador da dieta") @PathVariable UUID id) {
-		return DietResponse.from(service.findOwnedById(new DietId(id), UUID.fromString(jwt.getSubject())));
+		Diet diet = service.findOwnedById(new DietId(id), UUID.fromString(jwt.getSubject()));
+		double weightKg = getAthleteWeightKg(diet.athleteId().value());
+		return DietResponse.from(diet, weightKg);
 	}
 
 	/**
@@ -192,7 +211,9 @@ public class DietController {
 	public DietResponse latest(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
 		requireCoachOwnsAthlete(jwt, athleteId);
-		return DietResponse.from(service.latestByAthlete(athleteId, isAthlete(jwt)));
+		Diet diet = service.latestByAthlete(athleteId, isAthlete(jwt));
+		double weightKg = getAthleteWeightKg(athleteId);
+		return DietResponse.from(diet, weightKg);
 	}
 
 	/**
@@ -209,7 +230,10 @@ public class DietController {
 	public List<DietResponse> history(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador do atleta") @RequestParam UUID athleteId) {
 		requireCoachOwnsAthlete(jwt, athleteId);
-		return service.historyByAthlete(athleteId, isAthlete(jwt)).stream().map(DietResponse::from).toList();
+		double weightKg = getAthleteWeightKg(athleteId);
+		return service.historyByAthlete(athleteId, isAthlete(jwt)).stream()
+				.map(d -> DietResponse.from(d, weightKg))
+				.toList();
 	}
 
 	// ===== T-085: Meal Management Endpoints =====
@@ -235,7 +259,8 @@ public class DietController {
 				.path("/api/v1/diets/{id}")
 				.buildAndExpand(diet.id().value())
 				.toUri();
-		return ResponseEntity.created(location).body(DietResponse.from(diet));
+		double weightKg = getAthleteWeightKg(diet.athleteId().value());
+		return ResponseEntity.created(location).body(DietResponse.from(diet, weightKg));
 	}
 
 	@Operation(summary = "Adicionar item a uma refeição",
@@ -250,12 +275,14 @@ public class DietController {
 			@Parameter(description = "Identificador da dieta") @PathVariable UUID id,
 			@Parameter(description = "Identificador da refeição") @PathVariable UUID mealId,
 			@Valid @RequestBody AddMealItemRequest request) {
-		return DietResponse.from(service.addMealItem(UUID.fromString(jwt.getSubject()), id, mealId,
+		Diet diet = service.addMealItem(UUID.fromString(jwt.getSubject()), id, mealId,
 				new DietApplicationService.AddMealItemCommand(UUID.fromString(jwt.getSubject()), id, mealId,
 						request.foodId(), request.name(), request.source(), request.kind(),
 						request.state(), request.quantityG(), request.householdMeasure(),
 						request.preparation(), request.calories(), request.protein(),
-						request.carbohydrates(), request.fat())));
+						request.carbohydrates(), request.fat()));
+		double weightKg = getAthleteWeightKg(diet.athleteId().value());
+		return DietResponse.from(diet, weightKg);
 	}
 
 	@Operation(summary = "Remover item de uma refeição",
@@ -270,7 +297,9 @@ public class DietController {
 			@Parameter(description = "Identificador da dieta") @PathVariable UUID id,
 			@Parameter(description = "Identificador da refeição") @PathVariable UUID mealId,
 			@Parameter(description = "Identificador do item") @PathVariable UUID itemId) {
-		return DietResponse.from(service.removeMealItem(UUID.fromString(jwt.getSubject()), id, mealId, itemId));
+		Diet diet = service.removeMealItem(UUID.fromString(jwt.getSubject()), id, mealId, itemId);
+		double weightKg = getAthleteWeightKg(diet.athleteId().value());
+		return DietResponse.from(diet, weightKg);
 	}
 
 	@Operation(summary = "Remover refeição da dieta",
@@ -284,7 +313,9 @@ public class DietController {
 	public DietResponse removeMeal(@AuthenticationPrincipal Jwt jwt,
 			@Parameter(description = "Identificador da dieta") @PathVariable UUID id,
 			@Parameter(description = "Identificador da refeição") @PathVariable UUID mealId) {
-		return DietResponse.from(service.removeMeal(UUID.fromString(jwt.getSubject()), id, mealId));
+		Diet diet = service.removeMeal(UUID.fromString(jwt.getSubject()), id, mealId);
+		double weightKg = getAthleteWeightKg(diet.athleteId().value());
+		return DietResponse.from(diet, weightKg);
 	}
 
 	/**
