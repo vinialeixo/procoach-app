@@ -183,6 +183,49 @@ describe("MSW mock layer", () => {
     );
     expect(lucasEnergy.status).toBe(200);
     expect(lucasEnergy.data.calories).toBe(3100);
+
+    // CRUD de refeições e itens (PR #133): retorna ApiDiet com totals recalculados
+    const addedMeal = await jsonFetch<{
+      id: string;
+      meals: Array<{ id: string; name: string; items: Array<{ id: string }> }>;
+      totals: { calories: number };
+    }>(`/api/v1/diets/${newVersion.data.id}/meals`, {
+      method: "POST",
+      body: JSON.stringify({ name: "Ceia", order: 4, time: "22:00" }),
+    });
+    expect(addedMeal.status).toBe(201);
+    const createdMeal = addedMeal.data.meals.find((m) => m.name === "Ceia");
+    expect(createdMeal).toBeDefined();
+
+    const addedItem = await jsonFetch<{
+      meals: Array<{ id: string; items: Array<{ id: string; name: string }> }>;
+      totals: { calories: number };
+    }>(`/api/v1/diets/${newVersion.data.id}/meals/${createdMeal!.id}/items`, {
+      method: "POST",
+      body: JSON.stringify({
+        name: "Caseína",
+        source: "CUSTOM",
+        kind: "SUPPLEMENT_CALORIC",
+        state: "RAW",
+        quantityG: 30,
+        calories: 110,
+        protein: 24,
+        carbohydrates: 2,
+        fat: 0.5,
+      }),
+    });
+    expect(addedItem.status).toBe(201);
+    expect(addedItem.data.totals.calories).toBe(1355);
+
+    // Versão congelada (readOnly: true) bloqueia edição de refeições com 409
+    const frozenMutation = await jsonFetch<{ message: string }>(
+      "/api/v1/diets/diet-lucas-v2/meals",
+      {
+        method: "POST",
+        body: JSON.stringify({ name: "Bloqueada", order: 5 }),
+      }
+    );
+    expect(frozenMutation.status).toBe(409);
   });
 
   it("supports assessments creation, training versioning, and notifications read state", async () => {

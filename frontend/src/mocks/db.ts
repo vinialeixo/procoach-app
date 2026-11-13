@@ -6,7 +6,7 @@ import type {
 } from "@/lib/athletes";
 import type { AthleteInvite } from "@/lib/invites";
 import type { AssessmentMetrics } from "@/lib/assessments";
-import type { DietObjective, DietStatus } from "@/lib/diets";
+import type { ApiDiet } from "@/lib/diets";
 import type {
   Exercise,
   Periodization,
@@ -58,46 +58,6 @@ export type MockApiAssessment = {
   metrics: AssessmentMetrics;
 };
 
-export type MockApiDiet = {
-  id: string;
-  coachId: string;
-  athleteId: string;
-  objective: DietObjective;
-  calories: number;
-  protein: number;
-  carbohydrates: number;
-  fat: number;
-  status: DietStatus;
-  version: number;
-  previousVersionId: string | null;
-  changeReason: string | null;
-  createdAt: string;
-  updatedAt: string;
-  readOnly: boolean;
-  deleted: boolean;
-  createdBy: string;
-  updatedBy: string;
-};
-
-export type MockMealItem = {
-  id: string;
-  name: string;
-  quantity: string;
-  calories: number;
-  protein: number;
-  carbohydrates: number;
-  fat: number;
-};
-
-export type MockMeal = {
-  id: string;
-  dietId: string;
-  name: string;
-  time: string;
-  orderIndex: number;
-  items: MockMealItem[];
-};
-
 export type MockDeviceRecord = {
   athleteId: string;
   token: string;
@@ -109,8 +69,7 @@ export type MockDbState = {
   athletes: MockApiAthlete[];
   invites: MockInviteRecord[];
   assessments: MockApiAssessment[];
-  diets: MockApiDiet[];
-  meals: MockMeal[];
+  diets: ApiDiet[];
   exercises: Exercise[];
   periodizations: Periodization[];
   plans: TrainingPlan[];
@@ -268,6 +227,35 @@ function createInitialState(): MockDbState {
         deleted: false,
         createdBy: coachId,
         updatedBy: coachId,
+        meals: [
+          {
+            id: "meal-v1-1",
+            name: "Café da manhã",
+            order: 1,
+            time: "07:30",
+            notes: null,
+            target: { calories: 500, protein: 30, carbohydrates: 45, fat: 22 },
+            items: [
+              {
+                id: "item-v1-1",
+                foodId: null,
+                name: "Ovos mexidos",
+                source: "TACO",
+                kind: "FOOD",
+                state: "AS_SERVED",
+                quantityG: 150,
+                householdMeasure: "3 unidades",
+                preparation: "Mexidos sem óleo",
+                calories: 210,
+                protein: 18,
+                carbohydrates: 2,
+                fat: 15,
+              },
+            ],
+            totals: { calories: 210, protein: 18, carbohydrates: 2, fat: 15 },
+          },
+        ],
+        totals: { calories: 210, protein: 18, carbohydrates: 2, fat: 15 },
       },
       {
         id: "diet-lucas-v2",
@@ -288,6 +276,117 @@ function createInitialState(): MockDbState {
         deleted: false,
         createdBy: coachId,
         updatedBy: coachId,
+        meals: [
+          {
+            id: "meal-1",
+            name: "Café da manhã",
+            order: 1,
+            time: "07:30",
+            notes: "Tomar 500 ml de água ao acordar",
+            target: { calories: 550, protein: 35, carbohydrates: 50, fat: 24 },
+            items: [
+              {
+                id: "item-1",
+                foodId: null,
+                name: "Ovos mexidos",
+                source: "TACO",
+                kind: "FOOD",
+                state: "AS_SERVED",
+                quantityG: 200,
+                householdMeasure: "4 unidades",
+                preparation: "Mexidos na frigideira antiaderente",
+                calories: 280,
+                protein: 24,
+                carbohydrates: 2,
+                fat: 20,
+              },
+              {
+                id: "item-2",
+                foodId: null,
+                name: "Aveia em flocos",
+                source: "TACO",
+                kind: "FOOD",
+                state: "RAW",
+                quantityG: 60,
+                householdMeasure: "4 colheres de sopa",
+                preparation: null,
+                calories: 230,
+                protein: 8,
+                carbohydrates: 40,
+                fat: 4,
+              },
+            ],
+            totals: { calories: 510, protein: 32, carbohydrates: 42, fat: 24 },
+          },
+          {
+            id: "meal-2",
+            name: "Almoço",
+            order: 2,
+            time: "12:30",
+            notes: null,
+            target: { calories: 650, protein: 60, carbohydrates: 75, fat: 10 },
+            items: [
+              {
+                id: "item-3",
+                foodId: null,
+                name: "Peito de frango grelhado",
+                source: "TACO",
+                kind: "FOOD",
+                state: "AS_SERVED",
+                quantityG: 180,
+                householdMeasure: "1 filé grande",
+                preparation: "Grelhado",
+                calories: 295,
+                protein: 55,
+                carbohydrates: 0,
+                fat: 6,
+              },
+              {
+                id: "item-4",
+                foodId: null,
+                name: "Arroz branco cozido",
+                source: "TACO",
+                kind: "FOOD",
+                state: "AS_SERVED",
+                quantityG: 250,
+                householdMeasure: "10 colheres de sopa",
+                preparation: null,
+                calories: 320,
+                protein: 6,
+                carbohydrates: 70,
+                fat: 1,
+              },
+            ],
+            totals: { calories: 615, protein: 61, carbohydrates: 70, fat: 7 },
+          },
+          {
+            id: "meal-3",
+            name: "Pós-treino",
+            order: 3,
+            time: "18:00",
+            notes: "Consumir até 30 min após o treino",
+            target: null,
+            items: [
+              {
+                id: "item-5",
+                foodId: null,
+                name: "Whey Protein Concentrado",
+                source: "CUSTOM",
+                kind: "SUPPLEMENT_CALORIC",
+                state: "RAW",
+                quantityG: 30,
+                householdMeasure: "1 scoop",
+                preparation: "Diluído em 250 ml de água",
+                calories: 120,
+                protein: 24,
+                carbohydrates: 3,
+                fat: 1.5,
+              },
+            ],
+            totals: { calories: 120, protein: 24, carbohydrates: 3, fat: 1.5 },
+          },
+        ],
+        totals: { calories: 1245, protein: 117, carbohydrates: 115, fat: 32.5 },
       },
       {
         id: "diet-mariana-v1",
@@ -308,62 +407,8 @@ function createInitialState(): MockDbState {
         deleted: false,
         createdBy: coachId,
         updatedBy: coachId,
-      },
-    ],
-    meals: [
-      {
-        id: "meal-1",
-        dietId: "diet-lucas-v2",
-        name: "Café da manhã",
-        time: "07:30",
-        orderIndex: 1,
-        items: [
-          {
-            id: "item-1",
-            name: "Ovos mexidos",
-            quantity: "4 unidades",
-            calories: 280,
-            protein: 24,
-            carbohydrates: 2,
-            fat: 20,
-          },
-          {
-            id: "item-2",
-            name: "Aveia em flocos",
-            quantity: "60 g",
-            calories: 230,
-            protein: 8,
-            carbohydrates: 40,
-            fat: 4,
-          },
-        ],
-      },
-      {
-        id: "meal-2",
-        dietId: "diet-lucas-v2",
-        name: "Almoço",
-        time: "12:30",
-        orderIndex: 2,
-        items: [
-          {
-            id: "item-3",
-            name: "Peito de frango grelhado",
-            quantity: "180 g",
-            calories: 295,
-            protein: 55,
-            carbohydrates: 0,
-            fat: 6,
-          },
-          {
-            id: "item-4",
-            name: "Arroz branco cozido",
-            quantity: "250 g",
-            calories: 320,
-            protein: 6,
-            carbohydrates: 70,
-            fat: 1,
-          },
-        ],
+        meals: [],
+        totals: { calories: 1750, protein: 140, carbohydrates: 170, fat: 55 },
       },
     ],
     exercises: [

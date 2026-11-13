@@ -1,11 +1,17 @@
 import { http, HttpResponse } from "msw";
 import {
   DIET_STATUS_FLOW,
+  type AddMealItemPayload,
+  type AddMealPayload,
+  type ApiDiet,
   type DietObjective,
   type DietStatus,
   type EnergyClassification,
+  type Macronutrients,
+  type Meal,
+  type MealItem,
 } from "@/lib/diets";
-import { mockDb, nextMockId, type MockApiDiet, type MockMeal, type MockMealItem } from "../db";
+import { mockDb, nextMockId } from "../db";
 
 type CreateDietBody = {
   athleteId: string;
@@ -24,21 +30,56 @@ type ChangeDietStatusBody = {
   status: DietStatus;
 };
 
-type CreateMealBody = {
-  name: string;
-  time: string;
-  orderIndex?: number;
-};
+function sumMacros(items: ReadonlyArray<Macronutrients>): Macronutrients {
+  return items.reduce<Macronutrients>(
+    (acc, item) => ({
+      calories: Number((acc.calories + item.calories).toFixed(1)),
+      protein: Number((acc.protein + item.protein).toFixed(1)),
+      carbohydrates: Number((acc.carbohydrates + item.carbohydrates).toFixed(1)),
+      fat: Number((acc.fat + item.fat).toFixed(1)),
+    }),
+    { calories: 0, protein: 0, carbohydrates: 0, fat: 0 }
+  );
+}
 
-type CreateMealItemBody = Omit<MockMealItem, "id">;
+function recalculateDietTotals(diet: ApiDiet): void {
+  const meals = diet.meals ?? [];
+  for (const meal of meals) {
+    meal.totals = sumMacros(meal.items);
+  }
+  const hasItems = meals.some((meal) => meal.items.length > 0);
+  diet.totals = hasItems
+    ? sumMacros(meals.flatMap((meal) => meal.items))
+    : {
+        calories: diet.calories,
+        protein: diet.protein,
+        carbohydrates: diet.carbohydrates,
+        fat: diet.fat,
+      };
+}
 
-function buildEnergyBalanceResponse(diet: MockApiDiet) {
+function cloneMeals(meals: Meal[] | undefined): Meal[] {
+  return (meals ?? []).map((meal) => ({
+    ...meal,
+    id: nextMockId("meal"),
+    items: meal.items.map((item) => ({
+      ...item,
+      id: nextMockId("item"),
+    })),
+  }));
+}
+
+function buildEnergyBalanceResponse(diet: ApiDiet) {
   const latestAssessment = mockDb.assessments
     .filter((item) => item.athleteId === diet.athleteId)
     .slice()
     .sort((a, b) => b.assessmentDate.localeCompare(a.assessmentDate))[0];
 
-  if (!latestAssessment || latestAssessment.metrics.getKcal === null || latestAssessment.metrics.tmbKcal === null) {
+  if (
+    !latestAssessment ||
+    latestAssessment.metrics.getKcal === null ||
+    latestAssessment.metrics.tmbKcal === null
+  ) {
     return HttpResponse.json(
       {
         code: "ASSESSMENT_REQUIRED",
@@ -142,7 +183,7 @@ export const nutritionHandlers = [
     const body = (await request.json()) as CreateDietBody;
     const now = new Date().toISOString();
 
-    const created: MockApiDiet = {
+    const created: ApiDiet = {
       id: nextMockId("diet"),
       coachId: mockDb.coach.id,
       athleteId: body.athleteId,
@@ -161,6 +202,13 @@ export const nutritionHandlers = [
       deleted: false,
       createdBy: mockDb.coach.id,
       updatedBy: mockDb.coach.id,
+      meals: [],
+      totals: {
+        calories: body.calories,
+        protein: body.protein,
+        carbohydrates: body.carbohydrates,
+        fat: body.fat,
+      },
     };
 
     mockDb.diets.push(created);
@@ -174,7 +222,10 @@ export const nutritionHandlers = [
     );
 
     if (!source) {
-      return HttpResponse.json({ message: "Versão de origem não encontrada." }, { status: 404 });
+      return HttpResponse.json(
+        { message: "Versão de origem não encontrada." },
+        { status: 404 }
+      );
     }
     if (!body.changeReason?.trim()) {
       return HttpResponse.json(
@@ -192,7 +243,8 @@ export const nutritionHandlers = [
       .filter((item) => item.athleteId === source.athleteId && !item.deleted)
       .reduce((max, item) => Math.max(max, item.version), 0);
 
-    const created: MockApiDiet = {
+    const clonedMeals = cloneMeals(source.meals);
+    const created: ApiDiet = {
       id: nextMockId("diet"),
       coachId: source.coachId,
       athleteId: source.athleteId,
@@ -211,7 +263,9 @@ export const nutritionHandlers = [
       deleted: false,
       createdBy: mockDb.coach.id,
       updatedBy: mockDb.coach.id,
+      meals: clonedMeals,
     };
+    recalculateDietTotals(created);
 
     mockDb.diets.push(created);
     return HttpResponse.json(created, { status: 201 });
@@ -248,80 +302,129 @@ export const nutritionHandlers = [
     return HttpResponse.json(diet);
   }),
 
-  // CRUD de refeições e itens (T-085)
-  http.get("/api/v1/diets/:id/meals", ({ params }) => {
-    const meals = mockDb.meals
-      .filter((meal) => meal.dietId === params.id)
-      .slice()
-      .sort((a, b) => a.orderIndex - b.orderIndex);
-    return HttpResponse.json(meals);
-  }),
-
+  // CRUD de refeições e itens (T-085 / T-091 / T-093) — retorna ApiDiet atualizado
   http.post("/api/v1/diets/:id/meals", async ({ params, request }) => {
-    const body = (await request.json()) as CreateMealBody;
-    const dietId = String(params.id);
-    const existingCount = mockDb.meals.filter((meal) => meal.dietId === dietId).length;
-    const created: MockMeal = {
-      id: nextMockId("meal"),
-      dietId,
-      name: body.name,
-      time: body.time,
-      orderIndex: body.orderIndex ?? existingCount + 1,
-      items: [],
-    };
-    mockDb.meals.push(created);
-    return HttpResponse.json(created, { status: 201 });
-  }),
-
-  http.put("/api/v1/diets/:id/meals/:mealId", async ({ params, request }) => {
-    const body = (await request.json()) as Partial<CreateMealBody>;
-    const meal = mockDb.meals.find(
-      (item) => item.dietId === params.id && item.id === params.mealId
-    );
-    if (!meal) {
-      return HttpResponse.json({ message: "Refeição não encontrada." }, { status: 404 });
+    const diet = mockDb.diets.find((item) => item.id === params.id && !item.deleted);
+    if (!diet) {
+      return HttpResponse.json({ message: "Dieta não encontrada." }, { status: 404 });
     }
-    if (body.name !== undefined) meal.name = body.name;
-    if (body.time !== undefined) meal.time = body.time;
-    if (body.orderIndex !== undefined) meal.orderIndex = body.orderIndex;
-    return HttpResponse.json(meal);
+    if (diet.readOnly) {
+      return HttpResponse.json(
+        { message: "Versão congelada não permite editar refeições." },
+        { status: 409 }
+      );
+    }
+
+    const body = (await request.json()) as AddMealPayload;
+    const meals = diet.meals ?? [];
+    const createdMeal: Meal = {
+      id: nextMockId("meal"),
+      name: body.name,
+      order: body.order ?? meals.length + 1,
+      time: body.time ?? null,
+      notes: body.notes ?? null,
+      target: body.target ?? null,
+      items: [],
+      totals: { calories: 0, protein: 0, carbohydrates: 0, fat: 0 },
+    };
+
+    diet.meals = [...meals, createdMeal].sort((a, b) => a.order - b.order);
+    recalculateDietTotals(diet);
+    diet.updatedAt = new Date().toISOString();
+    diet.updatedBy = mockDb.coach.id;
+
+    return HttpResponse.json(diet, { status: 201 });
   }),
 
   http.delete("/api/v1/diets/:id/meals/:mealId", ({ params }) => {
-    const index = mockDb.meals.findIndex(
-      (item) => item.dietId === params.id && item.id === params.mealId
-    );
-    if (index === -1) {
+    const diet = mockDb.diets.find((item) => item.id === params.id && !item.deleted);
+    if (!diet) {
+      return HttpResponse.json({ message: "Dieta não encontrada." }, { status: 404 });
+    }
+    if (diet.readOnly) {
+      return HttpResponse.json(
+        { message: "Versão congelada não permite remover refeições." },
+        { status: 409 }
+      );
+    }
+
+    const meals = diet.meals ?? [];
+    if (!meals.some((meal) => meal.id === params.mealId)) {
       return HttpResponse.json({ message: "Refeição não encontrada." }, { status: 404 });
     }
-    mockDb.meals.splice(index, 1);
-    return new HttpResponse(null, { status: 204 });
+
+    diet.meals = meals.filter((meal) => meal.id !== params.mealId);
+    recalculateDietTotals(diet);
+    diet.updatedAt = new Date().toISOString();
+    diet.updatedBy = mockDb.coach.id;
+
+    return HttpResponse.json(diet);
   }),
 
   http.post("/api/v1/diets/:id/meals/:mealId/items", async ({ params, request }) => {
-    const body = (await request.json()) as CreateMealItemBody;
-    const meal = mockDb.meals.find(
-      (item) => item.dietId === params.id && item.id === params.mealId
-    );
+    const diet = mockDb.diets.find((item) => item.id === params.id && !item.deleted);
+    if (!diet) {
+      return HttpResponse.json({ message: "Dieta não encontrada." }, { status: 404 });
+    }
+    if (diet.readOnly) {
+      return HttpResponse.json(
+        { message: "Versão congelada não permite adicionar itens." },
+        { status: 409 }
+      );
+    }
+
+    const meal = (diet.meals ?? []).find((item) => item.id === params.mealId);
     if (!meal) {
       return HttpResponse.json({ message: "Refeição não encontrada." }, { status: 404 });
     }
-    const createdItem: MockMealItem = {
+
+    const body = (await request.json()) as AddMealItemPayload;
+    const createdItem: MealItem = {
       id: nextMockId("item"),
-      ...body,
+      foodId: body.foodId ?? null,
+      name: body.name,
+      source: body.source,
+      kind: body.kind,
+      state: body.state,
+      quantityG: body.quantityG,
+      householdMeasure: body.householdMeasure ?? null,
+      preparation: body.preparation ?? null,
+      calories: body.calories,
+      protein: body.protein,
+      carbohydrates: body.carbohydrates,
+      fat: body.fat,
     };
+
     meal.items.push(createdItem);
-    return HttpResponse.json(meal, { status: 201 });
+    recalculateDietTotals(diet);
+    diet.updatedAt = new Date().toISOString();
+    diet.updatedBy = mockDb.coach.id;
+
+    return HttpResponse.json(diet, { status: 201 });
   }),
 
   http.delete("/api/v1/diets/:id/meals/:mealId/items/:itemId", ({ params }) => {
-    const meal = mockDb.meals.find(
-      (item) => item.dietId === params.id && item.id === params.mealId
-    );
+    const diet = mockDb.diets.find((item) => item.id === params.id && !item.deleted);
+    if (!diet) {
+      return HttpResponse.json({ message: "Dieta não encontrada." }, { status: 404 });
+    }
+    if (diet.readOnly) {
+      return HttpResponse.json(
+        { message: "Versão congelada não permite remover itens." },
+        { status: 409 }
+      );
+    }
+
+    const meal = (diet.meals ?? []).find((item) => item.id === params.mealId);
     if (!meal) {
       return HttpResponse.json({ message: "Refeição não encontrada." }, { status: 404 });
     }
+
     meal.items = meal.items.filter((item) => item.id !== params.itemId);
-    return HttpResponse.json(meal);
+    recalculateDietTotals(diet);
+    diet.updatedAt = new Date().toISOString();
+    diet.updatedBy = mockDb.coach.id;
+
+    return HttpResponse.json(diet);
   }),
 ];
