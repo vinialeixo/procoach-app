@@ -283,5 +283,24 @@ describe("MSW mock layer", () => {
     });
     expect(readAll.status).toBe(200);
     expect(readAll.data.marked).toBe(2);
+
+    const createdDiet = await jsonFetch<{
+      id: string;
+      warnings: Array<{ code: string; severity: string }>;
+    }>("/api/v1/diets", {
+      method: "POST",
+      body: JSON.stringify({
+        athleteId: lucasId,
+        objective: "CUTTING",
+        calories: 1400,
+        protein: 100,
+        carbohydrates: 0,
+        fat: 30,
+      }),
+    });
+    expect(createdDiet.status).toBe(201);
+    expect(createdDiet.data.warnings.map((w) => w.code)).toEqual(
+      expect.arrayContaining(["ZERO_CARBOHYDRATE", "MACRO_CALORIE_MISMATCH"])
+    );
   });
 });

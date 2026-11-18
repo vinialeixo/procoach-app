@@ -1,4 +1,5 @@
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -10,11 +11,14 @@ import { TextareaField } from "@/components/ui/TextareaField";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { DietWarningsPanel } from "@/components/ui/DietWarningsPanel";
 import { useAthlete } from "@/lib/athletes";
+import { useAssessments } from "@/lib/assessments";
 import {
   DIET_OBJECTIVES,
   OBJECTIVE_LABEL,
   STATUS_LABEL,
+  computeDietWarnings,
   findCurrentDietVersion,
   useCreateDiet,
   useCreateDietVersion,
@@ -42,21 +46,30 @@ function formatNumber(value: number, suffix = ""): string {
   return `${value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}${suffix}`;
 }
 
-const macroField = z.coerce
+const positiveCaloriesField = z.coerce
   .number({ error: "Valor inválido" })
   .positive("Deve ser maior que zero");
 
-const schema = z.object({
-  objective: z.enum(DIET_OBJECTIVES, {
-    error: "Selecione o objetivo da dieta",
-  }),
-  calories: macroField,
-  protein: macroField,
-  carbohydrates: macroField,
-  fat: macroField,
-  // Só é enviado ao criar nova versão (auditoria US-016); na v1 não existe.
-  changeReason: z.string().optional(),
-});
+const nonNegativeMacroField = z.coerce
+  .number({ error: "Valor inválido" })
+  .min(0, "Deve ser >= 0");
+
+const schema = z
+  .object({
+    objective: z.enum(DIET_OBJECTIVES, {
+      error: "Selecione o objetivo da dieta",
+    }),
+    calories: positiveCaloriesField,
+    protein: nonNegativeMacroField,
+    carbohydrates: nonNegativeMacroField,
+    fat: nonNegativeMacroField,
+    // Só é enviado ao criar nova versão (auditoria US-016); na v1 não existe.
+    changeReason: z.string().optional(),
+  })
+  .refine((data) => data.protein > 0 || data.carbohydrates > 0 || data.fat > 0, {
+    message: "Informe ao menos um macronutriente maior que zero",
+    path: ["protein"],
+  });
 type FormInput = z.input<typeof schema>;
 type FormValues = z.output<typeof schema>;
 
@@ -70,8 +83,17 @@ export function DietEditorPage() {
     useAthlete(athleteId);
   const { data: versions, isLoading: dietsLoading, isError: dietsFailed } =
     useDiets(athleteId);
+  const { data: assessments } = useAssessments(athleteId);
   const createDiet = useCreateDiet(athleteId);
   const createVersion = useCreateDietVersion(athleteId);
+  const [warningsAcknowledged, setWarningsAcknowledged] = useState(false);
+
+  const latestAssessment = [...(assessments ?? [])].sort((a, b) =>
+    b.assessmentDate.localeCompare(a.assessmentDate)
+  )[0];
+  const latestWeightKg = latestAssessment?.measurements.weightKg ?? null;
+  const latestTmbKcal = latestAssessment?.metrics.tmbKcal ?? null;
+  const latestGetKcal = latestAssessment?.metrics.getKcal ?? null;
 
   const loading = athleteLoading || dietsLoading;
   const loadFailed = athleteFailed || dietsFailed;
@@ -95,6 +117,7 @@ export function DietEditorPage() {
     register,
     handleSubmit,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
@@ -108,6 +131,45 @@ export function DietEditorPage() {
         }
       : undefined,
   });
+
+  const [watchedCalories, watchedProtein, watchedCarbohydrates, watchedFat] = useWatch({
+    control,
+    name: ["calories", "protein", "carbohydrates", "fat"],
+  });
+
+  const parsedCalories = Number(watchedCalories);
+  const parsedProtein = Number(watchedProtein);
+  const parsedCarbohydrates = Number(watchedCarbohydrates);
+  const parsedFat = Number(watchedFat);
+
+  const hasLiveMacros =
+    watchedCalories !== undefined &&
+    watchedCalories !== "" &&
+    Number.isFinite(parsedCalories) &&
+    Number.isFinite(parsedProtein) &&
+    Number.isFinite(parsedCarbohydrates) &&
+    Number.isFinite(parsedFat) &&
+    parsedCalories > 0 &&
+    parsedProtein >= 0 &&
+    parsedCarbohydrates >= 0 &&
+    parsedFat >= 0;
+
+  const liveMacros = hasLiveMacros
+    ? {
+        calories: parsedCalories,
+        protein: parsedProtein,
+        carbohydrates: parsedCarbohydrates,
+        fat: parsedFat,
+      }
+    : undefined;
+
+  const liveWarnings = liveMacros
+    ? computeDietWarnings(liveMacros, {
+        weightKg: latestWeightKg,
+        tmbKcal: latestTmbKcal,
+        getKcal: latestGetKcal,
+      })
+    : [];
 
   async function onSubmit(values: FormValues) {
     if (isNewVersion && !values.changeReason?.trim()) {
@@ -335,6 +397,16 @@ export function DietEditorPage() {
                 {...register("fat")}
               />
             </div>
+
+            <DietWarningsPanel
+              warnings={liveWarnings}
+              macros={liveMacros}
+              weightKg={latestWeightKg}
+              tmbKcal={latestTmbKcal}
+              getKcal={latestGetKcal}
+              acknowledged={warningsAcknowledged}
+              onAcknowledgeChange={setWarningsAcknowledged}
+            />
 
             {errors.root && (
               <p className="athlete-form__error" role="alert">
