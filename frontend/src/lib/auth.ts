@@ -98,7 +98,24 @@ export function saveSession(token: string, refreshToken?: string) {
 }
 
 export function isAuthenticated(): boolean {
-  return Boolean(localStorage.getItem("procoach.token"));
+  const token = localStorage.getItem("procoach.token");
+  if (!token) {
+    return false;
+  }
+
+  const payload = decodeJwtPayload(token);
+  if (!payload) {
+    return false;
+  }
+
+  if (typeof payload.exp === "number") {
+    const isExpired = payload.exp <= Date.now() / 1000;
+    if (isExpired) {
+      return Boolean(localStorage.getItem("procoach.refreshToken"));
+    }
+  }
+
+  return true;
 }
 
 export function logout() {

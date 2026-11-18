@@ -1,10 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App";
+import { queryClient } from "./lib/query-client";
 import "./styles/global.css";
-
-const queryClient = new QueryClient();
 
 async function prepareMocks() {
   if (import.meta.env.VITE_USE_MOCKS === "true") {
