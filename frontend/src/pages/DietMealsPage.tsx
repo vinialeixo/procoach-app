@@ -10,7 +10,9 @@ import { SelectField } from "@/components/ui/SelectField";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { DietWarningsPanel } from "@/components/ui/DietWarningsPanel";
 import { useAthlete } from "@/lib/athletes";
+import { useAssessments } from "@/lib/assessments";
 import {
   AddMealItemPayload,
   AddMealPayload,
@@ -24,6 +26,8 @@ import {
   OBJECTIVE_LABEL,
   STATUS_LABEL,
   computeDerivedMacros,
+  computeDietWarnings,
+  mergeDietWarnings,
   useAddMeal,
   useAddMealItem,
   useDiet,
@@ -597,6 +601,8 @@ export function DietMealsPage() {
   const { data: athlete, isLoading: athleteLoading, isError: athleteFailed } =
     useAthlete(athleteId);
   const { data: diet, isLoading: dietLoading, isError: dietFailed } = useDiet(versionId);
+  const { data: assessments } = useAssessments(athleteId);
+  const [warningsAcknowledged, setWarningsAcknowledged] = useState(false);
 
   const addMeal = useAddMeal(athleteId, versionId);
   const removeMeal = useRemoveMeal(athleteId, versionId);
@@ -609,6 +615,24 @@ export function DietMealsPage() {
   const isReadOnly = diet ? diet.readOnly || diet.status !== "DRAFT" : true;
   const sortedMeals = diet ? [...diet.meals].sort((a, b) => a.order - b.order) : [];
   const derivedTotals = diet ? computeDerivedMacros(diet.totals) : null;
+
+  const latestAssessment = [...(assessments ?? [])].sort((a, b) =>
+    b.assessmentDate.localeCompare(a.assessmentDate)
+  )[0];
+  const latestWeightKg = latestAssessment?.measurements.weightKg ?? null;
+  const latestTmbKcal = latestAssessment?.metrics.tmbKcal ?? null;
+  const latestGetKcal = latestAssessment?.metrics.getKcal ?? null;
+
+  const mergedWarnings = diet
+    ? mergeDietWarnings(
+        diet.warnings,
+        computeDietWarnings(diet.totals, {
+          weightKg: latestWeightKg,
+          tmbKcal: latestTmbKcal,
+          getKcal: latestGetKcal,
+        })
+      )
+    : [];
 
   return (
     <AppShell navItems={COACH_NAV}>
@@ -720,6 +744,16 @@ export function DietMealsPage() {
                 )}
               </div>
             </section>
+
+            <DietWarningsPanel
+              warnings={mergedWarnings}
+              macros={diet.totals}
+              weightKg={latestWeightKg}
+              tmbKcal={latestTmbKcal}
+              getKcal={latestGetKcal}
+              acknowledged={warningsAcknowledged}
+              onAcknowledgeChange={isReadOnly ? undefined : setWarningsAcknowledged}
+            />
 
             {!isReadOnly && (
               <AddMealForm

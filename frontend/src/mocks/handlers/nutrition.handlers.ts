@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import {
   DIET_STATUS_FLOW,
+  computeDietWarnings,
   type AddMealItemPayload,
   type AddMealPayload,
   type ApiDiet,
@@ -56,6 +57,27 @@ function recalculateDietTotals(diet: ApiDiet): void {
         carbohydrates: diet.carbohydrates,
         fat: diet.fat,
       };
+  refreshDietWarnings(diet);
+}
+
+function refreshDietWarnings(diet: ApiDiet): void {
+  const latestAssessment = mockDb.assessments
+    .filter((item) => item.athleteId === diet.athleteId)
+    .slice()
+    .sort((a, b) => b.assessmentDate.localeCompare(a.assessmentDate))[0];
+
+  const macros = diet.totals ?? {
+    calories: diet.calories,
+    protein: diet.protein,
+    carbohydrates: diet.carbohydrates,
+    fat: diet.fat,
+  };
+
+  diet.warnings = computeDietWarnings(macros, {
+    weightKg: latestAssessment?.weightKg ?? null,
+    tmbKcal: latestAssessment?.metrics.tmbKcal ?? null,
+    getKcal: latestAssessment?.metrics.getKcal ?? null,
+  });
 }
 
 function cloneMeals(meals: Meal[] | undefined): Meal[] {
@@ -210,6 +232,7 @@ export const nutritionHandlers = [
         fat: body.fat,
       },
     };
+    refreshDietWarnings(created);
 
     mockDb.diets.push(created);
     return HttpResponse.json(created, { status: 201 });
