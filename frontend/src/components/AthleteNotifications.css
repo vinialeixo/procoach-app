@@ -74,7 +74,8 @@
 }
 
 .athlete-notifications__item--unread {
-  border-left: 3px solid var(--color-primary);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
 }
 
 .athlete-notifications__item time {
