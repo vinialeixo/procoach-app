@@ -10,7 +10,9 @@ import { SelectField } from "@/components/ui/SelectField";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Modal } from "@/components/ui/Modal";
+import { ProtocolLineageBar } from "@/components/ui/ProtocolLineageBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useAssessments } from "@/lib/assessments";
 import { useAthlete } from "@/lib/athletes";
 import {
   AddMealItemPayload,
@@ -626,6 +628,10 @@ export function DietMealsPage() {
   const { data: athlete, isLoading: athleteLoading, isError: athleteFailed } =
     useAthlete(athleteId);
   const { data: diet, isLoading: dietLoading, isError: dietFailed } = useDiet(versionId);
+  const { data: assessments } = useAssessments(athleteId);
+  const latestAssessment = (assessments ?? [])
+    .slice()
+    .sort((a, b) => b.assessmentDate.localeCompare(a.assessmentDate))[0];
 
   const addMeal = useAddMeal(athleteId, versionId);
   const removeMeal = useRemoveMeal(athleteId, versionId);
@@ -679,6 +685,24 @@ export function DietMealsPage() {
           </div>
         ) : (
           <>
+            <ProtocolLineageBar
+              lineageTag={`v${diet.version}`}
+              title={athlete ? `Referência clínica — ${athlete.name}` : "Referência clínica"}
+              metrics={
+                latestAssessment
+                  ? [
+                      `Peso: ${formatNumber(latestAssessment.measurements.weightKg, " kg")}`,
+                      latestAssessment.metrics.getKcal != null
+                        ? `GET: ${formatNumber(latestAssessment.metrics.getKcal, " kcal")}`
+                        : "GET: —",
+                      latestAssessment.metrics.tmbKcal != null
+                        ? `TMB: ${formatNumber(latestAssessment.metrics.tmbKcal, " kcal")}`
+                        : "TMB: —",
+                    ]
+                  : ["Sem avaliação física registrada"]
+              }
+            />
+
             {isReadOnly && (
               <div className="diet-meals__readonly-alert" role="alert">
                 <strong>Modo somente leitura:</strong>{" "}

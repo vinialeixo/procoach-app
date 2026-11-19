@@ -258,7 +258,7 @@
 }
 
 .diet-meals__group-title--supplement {
-  color: var(--color-accent);
+  color: var(--color-accent-ink);
 }
 
 .diet-meals__item-list {
@@ -283,7 +283,7 @@
 }
 
 .diet-meals__item--supplement {
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-ink);
   background: var(--color-accent-soft);
 }
 
@@ -316,8 +316,8 @@
 }
 
 .diet-meals__badge--raw {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--color-accent-ink);
+  color: var(--color-accent-ink);
 }
 
 .diet-meals__item-details {
