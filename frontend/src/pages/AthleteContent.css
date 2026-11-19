@@ -1,24 +1,53 @@
-.athlete-content { display: grid; gap: 1rem; }
+.athlete-content { display: grid; gap: var(--space-4); }
 .athlete-content h1, .athlete-content h2, .athlete-content p { margin: 0; }
 .athlete-content__card {
-  display: grid; gap: 0.85rem; padding: 1.25rem;
-  border: 1px solid var(--color-border); border-radius: 0.75rem;
+  display: grid; gap: var(--space-3); padding: var(--space-5);
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 .athlete-content__eyebrow, .athlete-content__metrics dt, .athlete-content__exercise-list span {
-  color: var(--color-ink-muted); font-size: 0.9rem;
+  color: var(--color-ink-muted); font-size: var(--text-sm);
 }
 .athlete-content__metrics {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 1rem; margin: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--space-4); margin: 0;
 }
-.athlete-content__metrics div, .athlete-content__exercise-list li { display: grid; gap: 0.3rem; }
-.athlete-content__metrics dd { margin: 0; font-weight: 600; }
+.athlete-content__metrics div, .athlete-content__exercise-list li { display: grid; gap: var(--space-1); }
+.athlete-content__metrics dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.athlete-content__day-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.athlete-content__day-btn {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+.athlete-content__day-btn--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-surface);
+}
 .athlete-content__sessions { display: grid; gap: 1rem; }
 .athlete-content__exercise-list { display: grid; gap: 0.9rem; padding-left: 1.25rem; }
 .athlete-content__history { display: grid; gap: 0.75rem; margin-top: 0.5rem; }
 .athlete-content__history-item {
-  border: 1px solid var(--color-border); border-radius: 0.75rem;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 .athlete-content__history-item > summary {
   display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; justify-content: space-between;
@@ -41,7 +70,7 @@
 .athlete-content__channels { display: grid; gap: 0.75rem; }
 .athlete-content__channel {
   display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.9rem 1rem;
-  border: 1px solid var(--color-border); border-radius: 0.65rem;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
   background: var(--color-surface); cursor: pointer;
 }
 .athlete-content__channel input {
@@ -85,8 +114,9 @@
   font-weight: 500;
 }
 .athlete-content__meal-totals {
+  font-family: var(--font-mono);
   color: var(--color-ink-muted);
-  font-size: 0.85rem;
+  font-size: var(--text-xs);
 }
 .athlete-content__meal-items,
 .athlete-content__shopping-list {
@@ -109,14 +139,17 @@
   align-items: center;
   gap: 0.4rem 0.65rem;
 }
-.athlete-content__meal-qty { font-weight: 600; }
+.athlete-content__meal-qty {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
 .athlete-content__badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.1rem 0.5rem;
+  padding: 2px var(--space-2);
   border: 1px solid var(--color-border);
-  border-radius: 999px;
-  font-size: 0.78rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
   color: var(--color-ink-muted);
 }
 .athlete-content__meal-item-meta {
