@@ -1,6 +1,7 @@
-import { FormEvent } from "react";
+import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
+import { Modal } from "@/components/ui/Modal";
 import { SelectField } from "@/components/ui/SelectField";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
@@ -71,6 +72,8 @@ export function PlanOverviewView({
   onOpenComparing,
   onTransitionPlan,
 }: PlanOverviewViewProps) {
+  const [pendingTransition, setPendingTransition] = useState<TrainingStatus | null>(null);
+
   return (
     <>
       {selectedPeriodization && plans.length === 0 && !plansLoading && !plansError && (
@@ -117,7 +120,7 @@ export function PlanOverviewView({
               <Button
                 variant="ghost"
                 loading={transitionPlanPending}
-                onClick={() => onTransitionPlan(STATUS_NEXT[selectedPlan.status]!)}
+                onClick={() => setPendingTransition(STATUS_NEXT[selectedPlan.status]!)}
               >
                 {PLAN_STATUS_ACTION[STATUS_NEXT[selectedPlan.status]!]}
               </Button>
@@ -226,6 +229,56 @@ export function PlanOverviewView({
             <Button type="submit" loading={createSessionPending}>Adicionar sessão</Button>
           </form>
         </section>
+      )}
+
+      {selectedPlan && (
+        <Modal
+          open={Boolean(pendingTransition)}
+          onClose={() => setPendingTransition(null)}
+          title={
+            pendingTransition
+              ? PLAN_STATUS_ACTION[pendingTransition]
+              : "Confirmar transição do plano"
+          }
+        >
+          {pendingTransition && (
+            <div className="training-page__modal-body">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <StatusBadge status={selectedPlan.status} />
+                <span aria-hidden="true">→</span>
+                <StatusBadge status={pendingTransition} />
+              </div>
+              <p>
+                {pendingTransition === "ACTIVE"
+                  ? `Ao publicar "${selectedPlan.name}" (v${selectedPlan.version}), esta passa a ser a versão corrente visível ao atleta.`
+                  : pendingTransition === "FINISHED"
+                    ? `Ao finalizar "${selectedPlan.name}" (v${selectedPlan.version}), o plano será arquivado no histórico.`
+                    : `Enviar "${selectedPlan.name}" (v${selectedPlan.version}) para revisão antes da publicação?`}
+              </p>
+              <div className="pc-modal__actions">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  fullWidth={false}
+                  onClick={() => setPendingTransition(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  fullWidth={false}
+                  loading={transitionPlanPending}
+                  onClick={() => {
+                    onTransitionPlan(pendingTransition);
+                    setPendingTransition(null);
+                  }}
+                >
+                  Confirmar
+                </Button>
+              </div>
+            </div>
+          )}
+        </Modal>
       )}
     </>
   );

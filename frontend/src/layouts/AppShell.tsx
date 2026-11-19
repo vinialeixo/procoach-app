@@ -17,43 +17,56 @@ export function AppShell({
 }) {
   const navigate = useNavigate();
 
+  function handleLogout() {
+    logout();
+    navigate("/login", { replace: true });
+  }
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#conteudo">
         Pular para o conteúdo
       </a>
-      <header className="app-shell__header">
-        <span className="app-shell__wordmark">ProCoach</span>
+
+      <aside className="app-shell__rail">
+        <div className="app-shell__brand-row">
+          <span className="app-shell__wordmark">ProCoach</span>
+          <span className="app-shell__edition">DOSSIÊ</span>
+        </div>
+
         {navItems.length > 0 && (
           <nav className="app-shell__nav" aria-label="Principal">
             {navItems.map((item) => (
               <NavLink
                 key={item.href}
                 to={item.href}
+                end={item.href === "/coach" || item.href === "/athlete"}
                 className={({ isActive }) =>
                   isActive
                     ? "app-shell__nav-link app-shell__nav-link--active"
                     : "app-shell__nav-link"
                 }
               >
-                {item.label}
+                <span className="app-shell__nav-label">{item.label}</span>
+                <span className="app-shell__nav-dot" aria-hidden="true" />
               </NavLink>
             ))}
           </nav>
         )}
+
         <div className="app-shell__actions">
           {headerActions}
           <Button
             variant="ghost"
-            onClick={() => {
-              logout();
-              navigate("/login", { replace: true });
-            }}
+            fullWidth={false}
+            className="app-shell__logout"
+            onClick={handleLogout}
           >
             Sair
           </Button>
         </div>
-      </header>
+      </aside>
+
       <main id="conteudo" className="app-shell__content">
         {children}
       </main>

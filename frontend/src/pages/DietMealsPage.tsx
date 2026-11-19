@@ -9,6 +9,7 @@ import { Field } from "@/components/ui/Field";
 import { SelectField } from "@/components/ui/SelectField";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useAthlete } from "@/lib/athletes";
 import {
@@ -605,6 +606,7 @@ export function DietMealsPage() {
 
   const loading = athleteLoading || dietLoading;
   const loadFailed = athleteFailed || dietFailed;
+  const [mealPendingRemoval, setMealPendingRemoval] = useState<Meal | null>(null);
 
   const isReadOnly = diet ? diet.readOnly || diet.status !== "DRAFT" : true;
   const sortedMeals = diet ? [...diet.meals].sort((a, b) => a.order - b.order) : [];
@@ -751,7 +753,7 @@ export function DietMealsPage() {
                         ? removeMealItem.variables.itemId
                         : null
                     }
-                    onRemoveMeal={(mealId) => removeMeal.mutate(mealId)}
+                    onRemoveMeal={() => setMealPendingRemoval(meal)}
                     onAddItem={async (mealId, payload) => {
                       await addMealItem.mutateAsync({ mealId, payload });
                     }}
@@ -760,6 +762,48 @@ export function DietMealsPage() {
                 ))
               )}
             </section>
+
+            <Modal
+              open={Boolean(mealPendingRemoval)}
+              onClose={() => setMealPendingRemoval(null)}
+              title="Remover refeição"
+            >
+              {mealPendingRemoval && (
+                <>
+                  <p>
+                    Tem certeza que deseja remover <strong>{mealPendingRemoval.name}</strong>
+                    {mealPendingRemoval.items.length > 0
+                      ? ` e seus ${mealPendingRemoval.items.length} ${
+                          mealPendingRemoval.items.length === 1 ? "item" : "itens"
+                        }`
+                      : ""}
+                    ? Esta ação não pode ser desfeita.
+                  </p>
+                  <div className="pc-modal__actions">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      fullWidth={false}
+                      onClick={() => setMealPendingRemoval(null)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      fullWidth={false}
+                      loading={removeMeal.isPending}
+                      onClick={() => {
+                        const targetId = mealPendingRemoval.id;
+                        setMealPendingRemoval(null);
+                        removeMeal.mutate(targetId);
+                      }}
+                    >
+                      Confirmar remoção
+                    </Button>
+                  </div>
+                </>
+              )}
+            </Modal>
           </>
         )}
       </div>

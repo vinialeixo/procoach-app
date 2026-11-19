@@ -281,8 +281,11 @@ describe("DietMealsPage (T-093)", () => {
       );
     });
 
-    // Remover refeição
+    // Remover refeição (exige confirmação em modal)
     await user.click(screen.getByRole("button", { name: "Remover refeição Desjejum" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(apiClient.delete).not.toHaveBeenCalledWith("/diets/diet-1/meals/meal-1");
+    await user.click(screen.getByRole("button", { name: "Confirmar remoção" }));
     await waitFor(() => {
       expect(apiClient.delete).toHaveBeenCalledWith("/diets/diet-1/meals/meal-1");
     });

@@ -13,6 +13,10 @@
   transition: background-color 120ms ease, border-color 120ms ease;
 }
 
+.pc-button--auto {
+  width: auto;
+}
+
 .pc-button:disabled {
   cursor: not-allowed;
   opacity: 0.6;

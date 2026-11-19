@@ -4,13 +4,32 @@ import "./Button.css";
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "ghost";
   loading?: boolean;
+  fullWidth?: boolean;
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = "primary", loading, children, disabled, ...rest }, ref) => (
+  (
+    {
+      variant = "primary",
+      loading,
+      fullWidth = true,
+      className,
+      children,
+      disabled,
+      ...rest
+    },
+    ref
+  ) => (
     <button
       ref={ref}
-      className={`pc-button pc-button--${variant}`}
+      className={[
+        "pc-button",
+        `pc-button--${variant}`,
+        fullWidth ? "" : "pc-button--auto",
+        className ?? "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       disabled={disabled || loading}
       aria-busy={loading}
       {...rest}
