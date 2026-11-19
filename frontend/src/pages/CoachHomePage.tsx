@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { StateMessage } from "@/components/ui/StateMessage";
-import { useAthletes } from "@/lib/athletes";
+import { GOAL_LABEL, useAthletes } from "@/lib/athletes";
 import { COACH_NAV } from "@/lib/coach-nav";
 import "./HomeCards.css";
 
@@ -88,7 +88,7 @@ export function CoachHomePage() {
                   >
                     <span className="coach-home__athlete-name">{athlete.name}</span>
                     <span className="coach-home__athlete-goal">
-                      {athlete.goal || "Sem objetivo registrado"}
+                      {GOAL_LABEL[athlete.goal] ?? athlete.goal ?? "Sem objetivo registrado"}
                     </span>
                     <StatusBadge status={athlete.status} />
                   </Link>
