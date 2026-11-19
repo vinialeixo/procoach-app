@@ -46,6 +46,7 @@ export function TrainingPage() {
   const rawSessionId = searchParams.get("session") ?? "";
 
   const [periodizationDateError, setPeriodizationDateError] = useState(false);
+  const [periodizationFormOpen, setPeriodizationFormOpen] = useState(false);
   const [versioningPlan, setVersioningPlan] = useState(false);
   const [comparingPlan, setComparingPlan] = useState(false);
   const [focusAddExerciseToken, setFocusAddExerciseToken] = useState(0);
@@ -250,7 +251,6 @@ export function TrainingPage() {
       <div className="training-page">
         <header className="training-page__header">
           <div>
-            <p className="training-page__eyebrow">Planejamento</p>
             <h1>Treinos e biblioteca</h1>
             <p className="training-page__intro">
               Organize um ciclo, monte sessões e prescreva exercícios do catálogo. Cada sessão fica ligada à versão do plano.
@@ -283,12 +283,22 @@ export function TrainingPage() {
           <p className="training-page__alert" role="alert">Não foi possível carregar os atletas.</p>
         )}
 
+        <div className={`training-page__workbench ${selectedSession ? "training-page__workbench--split" : ""}`}>
         <section className="training-page__section" aria-labelledby="training-context-title">
           <div className="training-page__section-heading">
             <div>
-              <p className="training-page__eyebrow">01 / Contexto</p>
-              <h2 id="training-context-title">Escolha o atleta e o plano</h2>
+              <h2 id="training-context-title">Contexto do plano</h2>
             </div>
+            {athleteId && periodizations.length > 0 && !periodizationsQuery.isLoading && !periodizationsQuery.isError && (
+              <Button
+                type="button"
+                variant="ghost"
+                fullWidth={false}
+                onClick={() => setPeriodizationFormOpen((prev) => !prev)}
+              >
+                {periodizationFormOpen ? "Fechar nova periodização" : "+ Nova periodização"}
+              </Button>
+            )}
           </div>
 
           <div className="training-page__selectors">
@@ -350,7 +360,10 @@ export function TrainingPage() {
             </p>
           )}
 
-          {athleteId && !periodizationsQuery.isLoading && !periodizationsQuery.isError && (
+          {athleteId &&
+            !periodizationsQuery.isLoading &&
+            !periodizationsQuery.isError &&
+            (periodizations.length === 0 || periodizationFormOpen) && (
             <form key={`periodization-${athleteId}`} className="training-page__form training-page__form--inline" onSubmit={onCreatePeriodization}>
               <h3>Criar periodização</h3>
               <div className="training-page__form-grid">
@@ -448,6 +461,7 @@ export function TrainingPage() {
             }}
           />
         )}
+        </div>
 
         <PlanVersionModal
           open={versioningPlan && selectedPlan !== undefined}

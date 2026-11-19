@@ -47,7 +47,7 @@ export function LoginPage() {
     <AuthLayout>
       <h1 className="login-page__title">Entrar</h1>
       <p className="login-page__subtitle">
-        Acesse sua conta de coach para continuar.
+        Acesse sua conta ProCoach (coach ou atleta) para continuar.
       </p>
 
       <form

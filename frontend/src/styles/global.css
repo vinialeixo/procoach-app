@@ -17,7 +17,20 @@ body {
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.5;
+  caret-color: var(--color-accent);
   -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-ink);
+}
+
+table,
+code,
+pre,
+.diets__mono {
+  font-variant-numeric: tabular-nums;
 }
 
 h1,

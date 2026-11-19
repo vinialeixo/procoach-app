@@ -9,7 +9,10 @@ import { Field } from "@/components/ui/Field";
 import { SelectField } from "@/components/ui/SelectField";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { Modal } from "@/components/ui/Modal";
+import { ProtocolLineageBar } from "@/components/ui/ProtocolLineageBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useAssessments } from "@/lib/assessments";
 import { useAthlete } from "@/lib/athletes";
 import {
   AddMealItemPayload,
@@ -520,6 +523,7 @@ function MealCard({
   onAddItem,
   onRemoveItem,
 }: MealCardProps) {
+  const [itemFormOpen, setItemFormOpen] = useState(meal.items.length === 0);
   const foodItems = meal.items.filter((i) => i.kind === "FOOD");
   const supplementItems = meal.items.filter((i) => i.kind === "SUPPLEMENT_CALORIC");
 
@@ -586,7 +590,34 @@ function MealCard({
       )}
 
       {!isReadOnly && (
-        <AddMealItemForm mealId={meal.id} isSubmitting={isAddingItem} onAddItem={onAddItem} />
+        itemFormOpen ? (
+          <div className="diet-meals__item-editor">
+            {meal.items.length > 0 && (
+              <div className="diet-meals__item-editor-head">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  fullWidth={false}
+                  onClick={() => setItemFormOpen(false)}
+                >
+                  Fechar formulário
+                </Button>
+              </div>
+            )}
+            <AddMealItemForm mealId={meal.id} isSubmitting={isAddingItem} onAddItem={onAddItem} />
+          </div>
+        ) : (
+          <div className="diet-meals__item-toggle">
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth={false}
+              onClick={() => setItemFormOpen(true)}
+            >
+              + Adicionar alimento
+            </Button>
+          </div>
+        )
       )}
     </article>
   );
@@ -597,6 +628,10 @@ export function DietMealsPage() {
   const { data: athlete, isLoading: athleteLoading, isError: athleteFailed } =
     useAthlete(athleteId);
   const { data: diet, isLoading: dietLoading, isError: dietFailed } = useDiet(versionId);
+  const { data: assessments } = useAssessments(athleteId);
+  const latestAssessment = (assessments ?? [])
+    .slice()
+    .sort((a, b) => b.assessmentDate.localeCompare(a.assessmentDate))[0];
 
   const addMeal = useAddMeal(athleteId, versionId);
   const removeMeal = useRemoveMeal(athleteId, versionId);
@@ -605,6 +640,7 @@ export function DietMealsPage() {
 
   const loading = athleteLoading || dietLoading;
   const loadFailed = athleteFailed || dietFailed;
+  const [mealPendingRemoval, setMealPendingRemoval] = useState<Meal | null>(null);
 
   const isReadOnly = diet ? diet.readOnly || diet.status !== "DRAFT" : true;
   const sortedMeals = diet ? [...diet.meals].sort((a, b) => a.order - b.order) : [];
@@ -649,6 +685,24 @@ export function DietMealsPage() {
           </div>
         ) : (
           <>
+            <ProtocolLineageBar
+              lineageTag={`Dieta v${diet.version}`}
+              title={athlete ? `Referência clínica — ${athlete.name}` : "Referência clínica"}
+              metrics={
+                latestAssessment
+                  ? [
+                      `Peso: ${formatNumber(latestAssessment.measurements.weightKg, " kg")}`,
+                      latestAssessment.metrics.getKcal != null
+                        ? `GET: ${formatNumber(latestAssessment.metrics.getKcal, " kcal")}`
+                        : "GET: —",
+                      latestAssessment.metrics.tmbKcal != null
+                        ? `TMB: ${formatNumber(latestAssessment.metrics.tmbKcal, " kcal")}`
+                        : "TMB: —",
+                    ]
+                  : ["Sem avaliação física registrada"]
+              }
+            />
+
             {isReadOnly && (
               <div className="diet-meals__readonly-alert" role="alert">
                 <strong>Modo somente leitura:</strong>{" "}
@@ -659,7 +713,10 @@ export function DietMealsPage() {
               </div>
             )}
 
-            <section className="diet-meals__macros-panel" aria-label="Metas e totais">
+            <section
+              className="diet-meals__macros-panel diet-meals__macros-panel--sticky"
+              aria-label="Metas e totais"
+            >
               <div className="diet-meals__macro-box">
                 <h2>Metas prescritas</h2>
                 <dl className="diet-meals__macro-grid">
@@ -751,7 +808,7 @@ export function DietMealsPage() {
                         ? removeMealItem.variables.itemId
                         : null
                     }
-                    onRemoveMeal={(mealId) => removeMeal.mutate(mealId)}
+                    onRemoveMeal={() => setMealPendingRemoval(meal)}
                     onAddItem={async (mealId, payload) => {
                       await addMealItem.mutateAsync({ mealId, payload });
                     }}
@@ -760,6 +817,48 @@ export function DietMealsPage() {
                 ))
               )}
             </section>
+
+            <Modal
+              open={Boolean(mealPendingRemoval)}
+              onClose={() => setMealPendingRemoval(null)}
+              title="Remover refeição"
+            >
+              {mealPendingRemoval && (
+                <>
+                  <p>
+                    Tem certeza que deseja remover <strong>{mealPendingRemoval.name}</strong>
+                    {mealPendingRemoval.items.length > 0
+                      ? ` e seus ${mealPendingRemoval.items.length} ${
+                          mealPendingRemoval.items.length === 1 ? "item" : "itens"
+                        }`
+                      : ""}
+                    ? Esta ação não pode ser desfeita.
+                  </p>
+                  <div className="pc-modal__actions">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      fullWidth={false}
+                      onClick={() => setMealPendingRemoval(null)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      fullWidth={false}
+                      loading={removeMeal.isPending}
+                      onClick={() => {
+                        const targetId = mealPendingRemoval.id;
+                        setMealPendingRemoval(null);
+                        removeMeal.mutate(targetId);
+                      }}
+                    >
+                      Confirmar remoção
+                    </Button>
+                  </div>
+                </>
+              )}
+            </Modal>
           </>
         )}
       </div>

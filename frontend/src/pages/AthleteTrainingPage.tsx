@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { getAthleteId } from "@/lib/auth";
 import { AthleteShell } from "@/layouts/AthleteShell";
 import {
@@ -9,6 +10,16 @@ import {
   useTrainingPlans,
 } from "@/lib/training";
 import "./AthleteContent.css";
+
+const DAY_LABELS: Record<number, string> = {
+  1: "Segunda-feira",
+  2: "Terça-feira",
+  3: "Quarta-feira",
+  4: "Quinta-feira",
+  5: "Sexta-feira",
+  6: "Sábado",
+  7: "Domingo",
+};
 
 function RequestError({ status }: { status?: number }) {
   if (status === 401) return <p role="alert">Sua sessão expirou. Entre novamente para consultar seu treino.</p>;
@@ -22,6 +33,7 @@ function sessionOrder(a: TrainingSession, b: TrainingSession) {
 
 export function AthleteTrainingPage() {
   const athleteId = getAthleteId();
+  const [selectedDay, setSelectedDay] = useState<number | "all">("all");
   const plansQuery = useTrainingPlans(athleteId ?? "");
   const plan = currentPlanVersion(plansQuery.data ?? []);
   const history = previousPlanVersions(plansQuery.data ?? [], plan);
@@ -29,6 +41,17 @@ export function AthleteTrainingPage() {
   const error = plansQuery.error ?? sessionsQuery.error;
   const status = error && typeof error === "object" && "response" in error
     ? (error as { response?: { status?: number } }).response?.status : undefined;
+
+  const sortedSessions = [...(sessionsQuery.data ?? [])].sort(sessionOrder);
+  const availableDays = Array.from(new Set(sortedSessions.map((s) => s.dayOfWeek))).sort(
+    (a, b) => a - b
+  );
+  const jsDay = new Date().getDay();
+  const todayDayOfWeek = jsDay === 0 ? 7 : jsDay;
+  const visibleSessions =
+    selectedDay === "all"
+      ? sortedSessions
+      : sortedSessions.filter((s) => s.dayOfWeek === selectedDay);
 
   return (
     <AthleteShell>
@@ -45,11 +68,34 @@ export function AthleteTrainingPage() {
                       <h2>{plan.name}</h2>
                       {plan.description && <p>{plan.description}</p>}
                     </article>
+                    {availableDays.length > 1 && (
+                      <div className="athlete-content__day-filter" role="group" aria-label="Filtrar por dia da semana">
+                        <button
+                          type="button"
+                          className={`athlete-content__day-btn ${selectedDay === "all" ? "athlete-content__day-btn--active" : ""}`}
+                          onClick={() => setSelectedDay("all")}
+                        >
+                          Todos ({sortedSessions.length})
+                        </button>
+                        {availableDays.map((day) => (
+                          <button
+                            key={day}
+                            type="button"
+                            className={`athlete-content__day-btn ${selectedDay === day ? "athlete-content__day-btn--active" : ""}`}
+                            onClick={() => setSelectedDay(day)}
+                          >
+                            {DAY_LABELS[day] ?? `Dia ${day}`}
+                            {day === todayDayOfWeek ? " (Hoje)" : ""}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div className="athlete-content__sessions">
-                      {[...sessionsQuery.data].sort(sessionOrder).map((session) => (
+                      {visibleSessions.map((session) => (
                         <article className="athlete-content__card" key={session.id}>
                           <p className="athlete-content__eyebrow">
-                            Semana {session.weekNumber} · dia {session.dayOfWeek}
+                            Semana {session.weekNumber} · {DAY_LABELS[session.dayOfWeek] ?? `Dia ${session.dayOfWeek}`}
+                            {session.dayOfWeek === todayDayOfWeek ? " · Hoje" : ""}
                             {session.status === "FINISHED" ? " · concluído" : " · ativo"}
                           </p>
                           <h2>{session.name}</h2>

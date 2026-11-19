@@ -258,7 +258,7 @@
 }
 
 .diet-meals__group-title--supplement {
-  color: var(--color-accent);
+  color: var(--color-accent-ink);
 }
 
 .diet-meals__item-list {
@@ -283,7 +283,7 @@
 }
 
 .diet-meals__item--supplement {
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-ink);
   background: var(--color-accent-soft);
 }
 
@@ -316,8 +316,8 @@
 }
 
 .diet-meals__badge--raw {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--color-accent-ink);
+  color: var(--color-accent-ink);
 }
 
 .diet-meals__item-details {
@@ -359,4 +359,46 @@
   font-size: var(--text-sm);
   color: var(--color-ink);
   cursor: pointer;
+}
+
+.diet-editor__live-readout {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--color-ink);
+}
+
+.diet-meals__macros-panel--sticky {
+  position: sticky;
+  top: var(--space-3);
+  z-index: 20;
+}
+
+.diet-meals__item-toggle {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.diet-meals__item-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.diet-meals__item-editor-head {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .diet-meals__macros-panel--sticky {
+    position: static;
+  }
 }

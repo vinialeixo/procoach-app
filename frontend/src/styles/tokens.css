@@ -1,39 +1,45 @@
 /*
-  ProCoach — Design Tokens
-  Conceito: "ledger clínico" — o produto é sobre evidência, versionamento e
-  auditoria; a estética reflete isso (precisão, dados reais, nada decorativo
-  sem função) em vez do padrão genérico de app de academia/consumer SaaS.
+  ProCoach — Design Tokens ("Dossiê de Federação" / Track & Field Federation Dossier)
+  Sistema visual de alta legibilidade: papel calcário, superfícies puras,
+  rail naval profundo e acento terracota restrito a linhagem e estados ativos.
 */
 
 :root {
-  /* Cor */
-  --color-bg: #eef1f4;
+  /* Cor — Superfícies & Tinta */
+  --color-bg: #f3f4f0;
   --color-surface: #ffffff;
-  --color-surface-dark: #121826;
-  --color-surface-dark-raised: #1a2233;
+  --color-surface-dark: #0f1b2d;
+  --color-surface-dark-raised: #192a44;
 
-  --color-ink: #121826;
-  --color-ink-muted: #5b6472;
-  --color-ink-on-dark: #e9ecf1;
-  --color-ink-on-dark-muted: #8891a3;
+  --color-ink: #0f1b2d;
+  --color-ink-muted: #526071;
+  --color-ink-on-dark: #f3f4f0;
+  --color-ink-on-dark-muted: #9fb0c7;
 
-  --color-primary: #1f3b57;
-  --color-primary-hover: #16293d;
-  --color-accent: #c97a2b;
-  --color-accent-soft: #f3e3d1;
-  --color-accent-ink: #8a4f12;
+  /* Cor — Ação & Linhagem */
+  --color-primary: #0f1b2d;
+  --color-primary-hover: #192a44;
+  --color-primary-soft: #e7ecf3;
+  --color-accent: #b84a27;
+  --color-accent-soft: #f7eae4;
+  --color-accent-ink: #8d371b;
 
-  --color-border: #d9dee4;
-  --color-border-on-dark: #2a3346;
+  /* Cor — Bordas */
+  --color-border: #d8dcd3;
+  --color-border-on-dark: #2a3b55;
 
-  --color-success: #2f6e4c;
-  --color-danger: #a23b3b;
-  --color-danger-soft: #f6e4e4;
+  /* Cor — Semânticas (WCAG AA) */
+  --color-success: #1f6e4a;
+  --color-success-soft: #e3f1ea;
+  --color-warning: #8d371b;
+  --color-warning-soft: #f7eae4;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fce8e6;
 
   /* Tipografia */
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font-display: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -54,9 +60,9 @@
 
   /* Forma */
   --radius-sm: 4px;
-  --radius-md: 8px;
-  --shadow-card: 0 1px 2px rgba(18, 24, 38, 0.06), 0 8px 24px rgba(18, 24, 38, 0.06);
+  --radius-md: 6px;
+  --shadow-card: 0 1px 2px rgba(15, 27, 45, 0.05), 0 6px 18px rgba(15, 27, 45, 0.04);
 
-  --focus-ring: 0 0 0 3px rgba(31, 59, 87, 0.25);
-  --focus-ring-accent: 0 0 0 3px rgba(201, 122, 43, 0.3);
+  --focus-ring: 0 0 0 3px rgba(15, 27, 45, 0.25);
+  --focus-ring-accent: 0 0 0 3px rgba(184, 74, 39, 0.3);
 }
