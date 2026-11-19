@@ -1,64 +1,64 @@
 ---
 name: ProCoach
-description: Clinical-ledger visual system for coach-led sports training and nutrition.
+description: Track & Field Federation Dossier visual system for coach-led sports training and nutrition.
 colors:
-  clinical-navy: "#1f3b57"
-  clinical-navy-deep: "#16293d"
-  copper-amber: "#c97a2b"
-  copper-amber-soft: "#f3e3d1"
-  copper-amber-ink: "#8a4f12"
-  cool-paper: "#eef1f4"
-  pure-surface: "#ffffff"
-  graphite-dark: "#121826"
-  graphite-raised: "#1a2233"
-  slate-muted: "#5b6472"
-  ice-ink: "#e9ecf1"
-  slate-on-dark: "#8891a3"
-  hairline-border: "#d9dee4"
-  dark-border: "#2a3346"
-  clinical-green: "#2f6e4c"
-  clinical-red: "#a23b3b"
-  clinical-red-soft: "#f6e4e4"
+  pavilion-navy: "#0f1b2d"
+  pavilion-navy-raised: "#192a44"
+  pavilion-navy-soft: "#e7ecf3"
+  track-rust: "#b84a27"
+  track-rust-soft: "#f7eae4"
+  track-rust-ink: "#8d371b"
+  limestone: "#f3f4f0"
+  pure-chalk: "#ffffff"
+  slate-muted: "#526071"
+  chalk-ink: "#f3f4f0"
+  rail-muted: "#9fb0c7"
+  hairline-border: "#d8dcd3"
+  rail-border: "#2a3b55"
+  clinical-emerald: "#1f6e4a"
+  clinical-emerald-soft: "#e3f1ea"
+  clinical-crimson: "#b3261e"
+  clinical-crimson-soft: "#fce8e6"
 typography:
   display:
-    fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
     fontSize: "2rem"
     fontWeight: 700
     lineHeight: 1.2
-    letterSpacing: "-0.01em"
+    letterSpacing: "-0.02em"
   headline:
-    fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.5rem"
-    fontWeight: 600
+    fontWeight: 700
     lineHeight: 1.25
     letterSpacing: "-0.01em"
   title:
-    fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.125rem"
     fontWeight: 600
     lineHeight: 1.35
     letterSpacing: "-0.01em"
   body:
-    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Public Sans, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: "0em"
   label:
-    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Public Sans, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.75rem"
     fontWeight: 600
     lineHeight: 1.4
-    letterSpacing: "0.04em"
+    letterSpacing: "0.05em"
   mono:
-    fontFamily: "IBM Plex Mono, ui-monospace, SFMono-Regular, monospace"
+    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace"
     fontSize: "0.75rem"
-    fontWeight: 400
+    fontWeight: 500
     lineHeight: 1.4
     letterSpacing: "0em"
 rounded:
   sm: "4px"
-  md: "8px"
+  md: "6px"
 spacing:
   "1": "4px"
   "2": "8px"
@@ -70,38 +70,38 @@ spacing:
   "10": "64px"
 components:
   button-primary:
-    backgroundColor: "{colors.clinical-navy}"
-    textColor: "{colors.pure-surface}"
+    backgroundColor: "{colors.pavilion-navy}"
+    textColor: "{colors.pure-chalk}"
     rounded: "{rounded.sm}"
     padding: "0 24px"
     height: "44px"
   button-primary-hover:
-    backgroundColor: "{colors.clinical-navy-deep}"
+    backgroundColor: "{colors.pavilion-navy-raised}"
   button-ghost:
     backgroundColor: "transparent"
-    textColor: "{colors.clinical-navy}"
+    textColor: "{colors.pavilion-navy}"
     rounded: "{rounded.sm}"
     padding: "0 24px"
     height: "44px"
   input-default:
-    backgroundColor: "{colors.pure-surface}"
-    textColor: "{colors.graphite-dark}"
+    backgroundColor: "{colors.pure-chalk}"
+    textColor: "{colors.pavilion-navy}"
     rounded: "{rounded.sm}"
     padding: "0 16px"
     height: "44px"
   card-default:
-    backgroundColor: "{colors.pure-surface}"
-    textColor: "{colors.graphite-dark}"
+    backgroundColor: "{colors.pure-chalk}"
+    textColor: "{colors.pavilion-navy}"
     rounded: "{rounded.md}"
     padding: "24px"
   badge-success:
-    backgroundColor: "{colors.clinical-green}"
-    textColor: "{colors.pure-surface}"
+    backgroundColor: "{colors.clinical-emerald}"
+    textColor: "{colors.pure-chalk}"
     rounded: "{rounded.sm}"
     padding: "2px 8px"
   badge-muted:
-    backgroundColor: "{colors.copper-amber-soft}"
-    textColor: "{colors.copper-amber-ink}"
+    backgroundColor: "{colors.track-rust-soft}"
+    textColor: "{colors.track-rust-ink}"
     rounded: "{rounded.sm}"
     padding: "2px 8px"
   badge-neutral:
@@ -115,129 +115,87 @@ components:
 
 ## Overview
 
-**Creative North Star: "O Ledger Clínico"**
+**Creative North Star: "Dossiê de Federação"**
 
-ProCoach is built around the visual discipline of a clinical ledger: an instrument for evidence, immutable protocol versioning, and auditability. Rather than borrowing the loud, consumer-oriented tropes of generic fitness apps, the interface treats training plans, anthropometric assessments, and nutrition prescriptions as structured clinical records.
-
-The system pairs a cool, high-legibility paper canvas with deep navy primary actions and restrained copper-amber accents reserved for active state indicators and version markers. Controls are precise and restrained—firm 4px and 8px geometry, crisp 1px borders, and fast 120ms transitions without decorative flourishes.
+ProCoach adopts the visual discipline of an international athletics federation dossier: high-clarity tabular precision, warm limestone ground, a committed deep pavilion navy navigation rail, and Track Rust markers reserved strictly for version lineage and active states. Every prescription screen opens with live clinical context (`ProtocolLineageBar`) so coaches never lose physiological baselines (`Peso`, `GET`, `TMB`) mid-consultation.
 
 **Key Characteristics:**
-- Precision and restraint over decoration: every visual element serves scannability, data comparison, or state clarity.
-- Monospace typography is strictly reserved for real data (versions, timestamps, IDs, metrics) and never used as ornament.
-- Contained hybrid elevation: 1px hairline borders anchor the layout, supported by subtle ambient card shadows only on elevated containers, tables, and modals.
+- Precision over ornament: `1px` hairline borders, `tabular-nums`, and `JetBrains Mono` strictly for real clinical data.
+- Committed desktop navigation rail (`248px`, `#0f1b2d`) collapsing to a thumb-zone bottom bar (`44px+` touch targets) on mobile (`<= 640px`).
+- WCAG AA contrast discipline: small text and badges use `--color-accent-ink` (`#8d371b`) rather than raw `--color-accent` (`#b84a27`).
 - Zero external UI kits (no MUI or Chakra); all primitives live in `src/components/ui` and consume `src/styles/tokens.css`.
 
 ## Colors
 
-The palette is anchored in cool neutral paper and deep graphite ink, paired with a single primary navy and a disciplined copper-amber accent.
-
 ### Primary
-- **Navy Clínico** (`clinical-navy`): Primary actions, active focus outlines, and interactive card hover borders.
-- **Navy Clínico Profundo** (`clinical-navy-deep`): Hover state for primary buttons.
+- **Pavilion Navy** (`pavilion-navy`): Primary actions, desktop navigation rail, and focus outlines.
+- **Pavilion Navy Raised** (`pavilion-navy-raised`): Hover state for primary buttons and active rail navigation items.
+- **Pavilion Navy Soft** (`pavilion-navy-soft`): Subtle unread notification surface tint.
 
 ### Secondary
-- **Âmbar Cobre** (`copper-amber`): Active navigation underline indicator and version tags in the authentication ledger panel.
-- **Âmbar Cobre Suave** (`copper-amber-soft`) & **Âmbar Cobre Escuro** (`copper-amber-ink`): Muted/draft status badge background and high-contrast label ink.
+- **Track Rust** (`track-rust`): Active navigation dot indicator and version lineage accents.
+- **Track Rust Soft** (`track-rust-soft`) & **Track Rust Ink** (`track-rust-ink`): High-contrast WCAG AA background and text for lineage tags (`v2 -> v3`), raw-weight badges, and supplement headers.
 
 ### Neutral
-- **Papel Frio** (`cool-paper`): Global application canvas and table header background.
-- **Superfície Pura** (`pure-surface`): Cards, form inputs, data table rows, modals, and top navigation bar.
-- **Grafite Escuro** (`graphite-dark`): Primary body/heading ink and the dark brand panel background on authentication screens.
-- **Grafite Elevado** (`graphite-raised`): Subtle radial highlight on the dark authentication panel.
-- **Ardósia Neutra** (`slate-muted`): Secondary descriptions, table column headers, and inactive navigation links.
-- **Tinta Gelo** (`ice-ink`) & **Ardósia sobre Escuro** (`slate-on-dark`): Primary and muted text on dark surfaces.
-- **Borda Fina** (`hairline-border`) & **Borda Escura** (`dark-border`): 1px structural dividers on light and dark surfaces respectively.
+- **Limestone** (`limestone`): Global application canvas and table header ground.
+- **Pure Chalk** (`pure-chalk`): Work cards, form inputs, modals, and data table rows.
+- **Slate Muted** (`slate-muted`): Secondary descriptions, table column headers, and muted labels.
+- **Chalk Ink** (`chalk-ink`) & **Rail Muted** (`rail-muted`): Primary and secondary text inside the dark navigation rail and `AuthLayout` ledger panel.
+- **Hairline Border** (`hairline-border`) & **Rail Border** (`rail-border`): `1px` structural dividers on light and dark surfaces.
 
 ### Semantic
-- **Verde Clínico** (`clinical-green`): Approved/active status badges and success state messages.
-- **Vermelho Clínico** (`clinical-red`) & **Vermelho Clínico Suave** (`clinical-red-soft`): Validation errors, `aria-invalid` field borders, and error banners.
+- **Clinical Emerald** (`clinical-emerald`) & **Clinical Emerald Soft** (`clinical-emerald-soft`): Approved/active protocol badges and success states.
+- **Clinical Crimson** (`clinical-crimson`) & **Clinical Crimson Soft** (`clinical-crimson-soft`): Validation errors and alert banners.
 
 ### Named Rules
-**The Restrained Accent Rule.** Copper-amber (`copper-amber`) is reserved strictly for active navigation indicators, version markers, and muted status badges—never for primary buttons or large surface fills.
+**The Restrained Lineage Rule.** Track Rust (`track-rust` / `track-rust-ink`) is reserved for version lineage, active navigation dots, and high-contrast clinical tags—never for primary CTAs or decorative fills.
 
 ## Typography
 
-**Display Font:** Space Grotesk (with ui-sans-serif, system-ui, sans-serif fallback)
-**Body Font:** Inter (with ui-sans-serif, system-ui, sans-serif fallback)
-**Label/Mono Font:** IBM Plex Mono (with ui-monospace, SFMono-Regular, monospace fallback)
-
-**Character:** Space Grotesk brings geometric authority to page titles and section headings, Inter keeps dense clinical tables and forms effortless to scan, and IBM Plex Mono gives version numbers, timestamps, and audit entries unmistakable tabular precision.
+**Display Font:** Archivo (with ui-sans-serif, system-ui, sans-serif fallback)
+**Body Font:** Public Sans (with ui-sans-serif, system-ui, sans-serif fallback)
+**Label/Mono Font:** JetBrains Mono (with ui-monospace, SFMono-Regular, monospace fallback)
 
 ### Hierarchy
-- **Display** (700, 2rem / 32px, line-height 1.2, letter-spacing -0.02em): Brand wordmark on authentication split screens.
-- **Headline** (600–700, 1.5rem / 24px, line-height 1.25, letter-spacing -0.01em): Page-level `<h1>` headings inside the main shell.
-- **Title** (600, 1.125rem / 18px, line-height 1.35, letter-spacing -0.01em): Card titles, modal titles, and shell header wordmark.
-- **Body** (400, 1rem / 16px, line-height 1.5): Default prose, form input values, and descriptions.
-- **Label** (600, 0.75rem / 12px, line-height 1.4, letter-spacing 0.04em, uppercase): Data table column headers and compact status badges.
-- **Mono** (400, 0.75rem / 12px, line-height 1.4): Version identifiers, audit actions, and real clinical/numeric metadata.
+- **Display** (700, 2rem / 32px, line-height 1.2, letter-spacing -0.02em): Authentication split-screen wordmark and primary KPI figures.
+- **Headline** (700, 1.5rem / 24px, line-height 1.25): Page-level `<h1>` headings.
+- **Title** (600, 1.125rem / 18px, line-height 1.35): Card titles, modal titles, and `ProtocolLineageBar` headings.
+- **Body** (400, 1rem / 16px, line-height 1.5): Default UI copy and form inputs.
+- **Label** (600, 0.75rem / 12px, line-height 1.4, letter-spacing 0.05em, uppercase): Table headers and KPI labels.
+- **Mono** (500, 0.75rem / 12px, `tabular-nums`): Version tags, `kcal`, `g/kg`, weights, loads, and audit timestamps.
 
 ### Named Rules
-**The Real-Data Mono Rule.** `IBM Plex Mono` is used exclusively for real structured data (versions, IDs, timestamps, audit logs) and never as decorative styling on headings or marketing copy.
+**The Real-Data Mono Rule.** `JetBrains Mono` with `tabular-nums` is reserved exclusively for real structured metrics, versions, and timestamps.
 
 ## Layout
 
-The application shell uses a full-width sticky-feeling top header (`pure-surface` with a bottom `hairline-border`) and a centered single-column content container constrained to `960px` max-width with `64px` vertical margin (`48px`/`24px`–`32px` horizontal padding on desktop).
-
-Dashboard card grids use responsive CSS Grid (`repeat(auto-fit, minmax(14rem, 1fr))`) with a `16px` gap. Authentication flows use a 50/50 split grid (`AuthLayout`) pairing the dark `graphite-dark` audit-ledger panel with a centered `380px` form column on `cool-paper`.
-
-Two responsive breakpoints govern layout shifts:
-- **Mobile (`max-width: 640px`):** The header wraps so the navigation bar drops to row 3 with horizontal scroll and `44px` minimum touch-target link height; content margins tighten to `24px` vertical and `16px` horizontal padding.
-- **Auth split (`max-width: 860px`):** Collapses the 50/50 authentication grid to a single column, hiding the dark brand panel to prioritize the form.
+Desktop (`> 640px`) uses a `248px` sticky left navigation rail (`pavilion-navy`) paired with a `1120px` max-width main content area on `limestone`. Multi-pane workbenches (`TrainingPage`) expand into a 2-column master-detail split (`1fr 1.15fr`) at `>= 960px`. Mobile (`<= 640px`) collapses the rail into a compact top utility header and a fixed bottom navigation bar with `44px+` touch targets.
 
 ## Elevation & Depth
 
-ProCoach follows a contained hybrid elevation model: surfaces are flat by default and anchored by `1px` `hairline-border` strokes, while elevated containers (data tables, home action cards, and modals) carry a single subtle ambient shadow (`--shadow-card`: `0 1px 2px rgba(18, 24, 38, 0.06), 0 8px 24px rgba(18, 24, 38, 0.06)`). Modals sit over a `50%` `graphite-dark` backdrop (`rgba(18, 24, 38, 0.5)`).
+Surfaces are flat by default and anchored by `1px` `hairline-border` strokes, with a quiet ambient `--shadow-card` (`0 1px 2px rgba(15, 27, 45, 0.05), 0 6px 18px rgba(15, 27, 45, 0.04)`) on cards, tables, lineage bars, and modals.
 
 ### Named Rules
-**The Border-First Rule.** Structural hierarchy comes from `1px` borders and surface contrast (`cool-paper` vs. `pure-surface`) first; `--shadow-card` is a quiet ambient lift for cards, tables, and modals, never a heavy drop shadow.
+**The Border-First Rule.** Structural hierarchy comes from `1px` borders and surface contrast (`limestone` vs. `pure-chalk`) first; `--shadow-card` provides subtle lift without heavy drop shadows.
 
 ## Shapes
 
-The form language is crisp and architectural with a tight two-step radius scale:
-- **Small (`4px`):** Interactive controls—buttons, form inputs, textareas, status badges, and skip links.
-- **Medium (`8px`):** Container surfaces—cards, data table wrappers, state message banners, and modals.
-
-Borders are consistently `1px solid`, switching to `1px dashed` only for empty table states to signal an unpopulated slot.
+Tight two-step architectural radius scale: `4px` (`--radius-sm`) for buttons, inputs, badges, and rail links; `6px` (`--radius-md`) for cards, tables, lineage bars, and modals.
 
 ## Components
 
-Components are precise and restrained: firm `4px`/`8px` geometry, crisp `1px` borders, `44px` minimum touch targets on primary controls, and fast `120ms ease` transitions (honoring `prefers-reduced-motion: reduce`).
-
-### Buttons
-- **Shape:** Tight architectural corner (`4px` radius), `44px` height (`36px` in compact header actions), `0 24px` horizontal padding, `600` weight `0.875rem` text.
-- **Primary:** `clinical-navy` background with `pure-surface` text; transitions to `clinical-navy-deep` on hover. Full-width by default inside forms; content-width when rendered as a `ButtonLink`.
-- **Ghost:** Transparent background, `clinical-navy` text, `1px` `hairline-border`; border shifts to `clinical-navy` on hover.
-- **Focus / Disabled:** Global `2px solid` `clinical-navy` outline with `2px` offset on `:focus-visible`; `0.6` opacity and `not-allowed` cursor when disabled.
-
-### Chips / Status Badges
-- **Style:** Compact `4px` radius pill-free tag (`2px 8px` padding, `0.75rem` `600` weight, `1px` border).
-- **Variants:** `success` (`clinical-green` fill, `pure-surface` text), `muted` (`copper-amber-soft` fill, `copper-amber-ink` text and border), `neutral` (transparent fill, `slate-muted` text, `hairline-border`), and `dark` (`graphite-dark` fill, `slate-on-dark` text).
-
-### Cards / Containers
-- **Corner Style:** Softened architectural corner (`8px` radius).
-- **Background & Border:** `pure-surface` background with `1px solid` `hairline-border` and `--shadow-card`.
-- **Hover:** Interactive home cards shift border color to `clinical-navy`.
-- **Internal Padding:** `24px` (`--space-5`) for cards; `32px` (`--space-6`) for modals.
-
-### Inputs / Fields
-- **Style:** `44px` height (`96px` min-height for vertical-resize textareas), `0 16px` padding, `4px` radius, `1px solid` `hairline-border` on `pure-surface`.
-- **Focus:** Removes default outline in favor of `clinical-navy` border and `--focus-ring` (`0 0 0 3px rgba(31, 59, 87, 0.25)`).
-- **Error:** `aria-invalid="true"` shifts border to `clinical-red` paired with a `0.75rem` `clinical-red` error message below.
-
-### Navigation
-- **Style:** Horizontal header bar on `pure-surface` with `1px` bottom `hairline-border`, `Space Grotesk` `700` wordmark, and `0.875rem` `500` weight nav links in `slate-muted`.
-- **Active State:** Shifts text to `graphite-dark` and adds a `2px` bottom `copper-amber` indicator (`box-shadow: 0 2px 0 var(--color-accent)`).
-- **Mobile:** Wraps onto a horizontally scrollable row with `44px` minimum link height below `640px`.
+- **Buttons:** `44px` height, `4px` radius, `fullWidth` opt-in (`pc-button--auto`), fast `120ms ease` transitions.
+- **ProtocolLineageBar:** Clinical context strip (`lineageTag`, `title`, `metrics` in `JetBrains Mono`, optional `action`) anchored at the top of diet/training workflows.
+- **Navigation Rail / Bottom Bar:** `248px` sticky dark rail on desktop with `6px` Track Rust active dot; fixed bottom bar on `<= 640px`.
+- **Confirmation Modals:** Required for irreversible protocol transitions (`PlanOverviewView`) and meal removals (`DietMealsPage`).
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** reuse `src/components/ui` primitives and `src/styles/tokens.css` variables for every new screen.
-- **Do** preserve `44px` minimum height on buttons, inputs, and mobile navigation links for reliable touch and desktop ergonomics.
-- **Do** use `IBM Plex Mono` only for real structured data (versions, IDs, timestamps, clinical metrics).
-- **Do** keep `1px` `hairline-border` strokes and `--shadow-card` subtle so data density stays calm and readable.
+- **Do** reuse `src/components/ui` primitives (`ProtocolLineageBar`, `Modal`, `Button`, `DataTable`, `StateMessage`) and `tokens.css`.
+- **Do** use `--color-accent-ink` (`#8d371b`) for small text and badges to preserve WCAG AA contrast.
+- **Do** maintain `>= 44px` touch targets on all buttons, inputs, day-filter pills, and mobile nav links.
 
 ### Don't:
-- **Don't** introduce external UI kits (MUI, Chakra, etc.) or generic consumer-fitness aesthetics (neon gradients, heavily rounded pill cards, decorative illustrations).
-- **Don't** use `copper-amber` for primary CTAs or large background fills; keep it for active nav underlines, version markers, and muted badges.
-- **Don't** invent new radius, shadow, or font-family values outside `tokens.css`.
+- **Don't** use `border-left` or `border-right` thicker than `1px` on cards, list items, or callouts.
+- **Don't** introduce external UI kits (MUI, Chakra) or generic consumer-fitness aesthetics.
