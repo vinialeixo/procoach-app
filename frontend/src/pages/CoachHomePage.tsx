@@ -59,7 +59,7 @@ export function CoachHomePage() {
           <strong className="coach-home__kpi-value">
             {isLoading ? "—" : allAthletes.length}
           </strong>
-          <span className="coach-home__kpi-meta">Isolamento por coach</span>
+          <span className="coach-home__kpi-meta">Carteira sob sua gestão</span>
         </div>
       </section>
 
