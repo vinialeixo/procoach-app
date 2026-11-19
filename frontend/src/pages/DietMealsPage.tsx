@@ -521,6 +521,7 @@ function MealCard({
   onAddItem,
   onRemoveItem,
 }: MealCardProps) {
+  const [itemFormOpen, setItemFormOpen] = useState(meal.items.length === 0);
   const foodItems = meal.items.filter((i) => i.kind === "FOOD");
   const supplementItems = meal.items.filter((i) => i.kind === "SUPPLEMENT_CALORIC");
 
@@ -587,7 +588,34 @@ function MealCard({
       )}
 
       {!isReadOnly && (
-        <AddMealItemForm mealId={meal.id} isSubmitting={isAddingItem} onAddItem={onAddItem} />
+        itemFormOpen ? (
+          <div className="diet-meals__item-editor">
+            {meal.items.length > 0 && (
+              <div className="diet-meals__item-editor-head">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  fullWidth={false}
+                  onClick={() => setItemFormOpen(false)}
+                >
+                  Fechar formulário
+                </Button>
+              </div>
+            )}
+            <AddMealItemForm mealId={meal.id} isSubmitting={isAddingItem} onAddItem={onAddItem} />
+          </div>
+        ) : (
+          <div className="diet-meals__item-toggle">
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth={false}
+              onClick={() => setItemFormOpen(true)}
+            >
+              + Adicionar alimento
+            </Button>
+          </div>
+        )
       )}
     </article>
   );
@@ -661,7 +689,10 @@ export function DietMealsPage() {
               </div>
             )}
 
-            <section className="diet-meals__macros-panel" aria-label="Metas e totais">
+            <section
+              className="diet-meals__macros-panel diet-meals__macros-panel--sticky"
+              aria-label="Metas e totais"
+            >
               <div className="diet-meals__macro-box">
                 <h2>Metas prescritas</h2>
                 <dl className="diet-meals__macro-grid">
