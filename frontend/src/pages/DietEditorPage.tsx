@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -9,7 +9,9 @@ import { SelectField } from "@/components/ui/SelectField";
 import { TextareaField } from "@/components/ui/TextareaField";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { ProtocolLineageBar } from "@/components/ui/ProtocolLineageBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useAssessments } from "@/lib/assessments";
 import { useAthlete } from "@/lib/athletes";
 import {
   DIET_OBJECTIVES,
@@ -70,8 +72,13 @@ export function DietEditorPage() {
     useAthlete(athleteId);
   const { data: versions, isLoading: dietsLoading, isError: dietsFailed } =
     useDiets(athleteId);
+  const { data: assessments } = useAssessments(athleteId);
   const createDiet = useCreateDiet(athleteId);
   const createVersion = useCreateDietVersion(athleteId);
+
+  const latestAssessment = (assessments ?? [])
+    .slice()
+    .sort((a, b) => b.assessmentDate.localeCompare(a.assessmentDate))[0];
 
   const loading = athleteLoading || dietsLoading;
   const loadFailed = athleteFailed || dietsFailed;
@@ -95,6 +102,7 @@ export function DietEditorPage() {
     register,
     handleSubmit,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
@@ -153,6 +161,28 @@ export function DietEditorPage() {
   const submitLabel = isNewVersion ? `Criar v${nextVersion}` : "Criar dieta (v1)";
   const saving = createDiet.isPending || createVersion.isPending;
 
+  const [rawCalories, rawProtein, rawCarbs, rawFat] = useWatch({
+    control,
+    name: ["calories", "protein", "carbohydrates", "fat"],
+  });
+  const watchedCalories = Number(rawCalories) || 0;
+  const watchedProtein = Number(rawProtein) || 0;
+  const watchedCarbs = Number(rawCarbs) || 0;
+  const watchedFat = Number(rawFat) || 0;
+  const live449Kcal = watchedProtein * 4 + watchedCarbs * 4 + watchedFat * 9;
+  const weightKg = latestAssessment?.measurements.weightKg ?? null;
+  const lineageMetrics = latestAssessment
+    ? [
+        `Peso: ${formatNumber(latestAssessment.measurements.weightKg, " kg")}`,
+        latestAssessment.metrics.getKcal != null
+          ? `GET: ${formatNumber(latestAssessment.metrics.getKcal, " kcal")}`
+          : "GET: —",
+        latestAssessment.metrics.tmbKcal != null
+          ? `TMB: ${formatNumber(latestAssessment.metrics.tmbKcal, " kcal")}`
+          : "TMB: —",
+      ]
+    : ["Sem avaliação física registrada"];
+
   return (
     <AppShell navItems={COACH_NAV}>
       <div className="athlete-form">
@@ -168,6 +198,16 @@ export function DietEditorPage() {
             : "Nova dieta"}
           {athlete ? ` — ${athlete.name}` : ""}
         </h1>
+
+        {!loading && !loadFailed && (
+          <ProtocolLineageBar
+            lineageTag={
+              isNewVersion && previous ? `v${previous.version} → v${nextVersion}` : "v1"
+            }
+            title={athlete ? `Referência clínica — ${athlete.name}` : "Referência clínica"}
+            metrics={lineageMetrics}
+          />
+        )}
 
         {loading ? (
           <p>Carregando...</p>
@@ -335,6 +375,18 @@ export function DietEditorPage() {
                 {...register("fat")}
               />
             </div>
+
+            {(live449Kcal > 0 || watchedCalories > 0) && (
+              <p className="diet-editor__live-readout diets__mono" role="status">
+                Soma 4/4/9: {formatNumber(live449Kcal, " kcal")}
+                {weightKg && weightKg > 0
+                  ? ` · P ${formatNumber(watchedProtein / weightKg, " g/kg")} · C ${formatNumber(
+                      watchedCarbs / weightKg,
+                      " g/kg"
+                    )} · G ${formatNumber(watchedFat / weightKg, " g/kg")}`
+                  : ""}
+              </p>
+            )}
 
             {errors.root && (
               <p className="athlete-form__error" role="alert">
