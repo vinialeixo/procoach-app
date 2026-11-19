@@ -686,7 +686,7 @@ export function DietMealsPage() {
         ) : (
           <>
             <ProtocolLineageBar
-              lineageTag={`v${diet.version}`}
+              lineageTag={`Dieta v${diet.version}`}
               title={athlete ? `Referência clínica — ${athlete.name}` : "Referência clínica"}
               metrics={
                 latestAssessment
