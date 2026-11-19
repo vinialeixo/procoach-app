@@ -1,5 +1,5 @@
 # Profile "postgres": roda com o Postgres real local (docker compose up -d),
-# igual a SPEC.md/AGENT.md pedem.-flyway executa as migrations de verdade
+# igual a SPEC.md/AGENTS.md pedem.-flyway executa as migrations de verdade
 # (Postgres-only: TIMESTAMPTZ etc.) e o Hibernate só valida o schema.
 #
 # Requer o container do backend/docker-compose.yml no ar:
