@@ -1,7 +1,7 @@
 # ProCoach — Especificação (SPEC)
 
 > Plataforma **coach-led** baseada em evidências para profissionais de fisiculturismo.
-> Alta rastreabilidade e auditabilidade. Núcleo em Java 21 + Spring Boot 3.x; RAG read-only em Python.
+> Alta rastreabilidade e auditabilidade. Núcleo em Java 17 + Spring Boot 4.1.2 + Spring Modulith 2.1.2; RAG read-only em Python (planejado para MVP2).
 
 ---
 
@@ -102,14 +102,15 @@ Referências entre agregados são feitas por **ID** (DDD), não por objeto aninh
 | POST | `/api/v1/advisory/validate` | (MVP2) Validar dieta/treino com RAG |
 | GET | `/api/v1/audit` | Consultar trilha de auditoria |
 
-Comunicação Core ↔ RAG: **gRPC read-only**.
+Comunicação atual do núcleo: **REST/JSON** (`/api/v1`, `/api/training`, `/api/library`).
+Comunicação Core ↔ RAG: **gRPC read-only** (planejada para o MVP2; no MVP1 ainda não há serviço RAG ativo).
 
 ---
 
 ## 8. Stack
 
-Java 21, Spring Boot 3.x, Spring Modulith, JPA/Hibernate, Flyway, Spring Security (RBAC; MFA desligado),
-RabbitMQ/Kafka, PostgreSQL + pgvector, S3 (MinIO/AWS), Python + LlamaIndex + LlamaParse (RAG), gRPC.
+- **Atual (MVP):** Java 17, Spring Boot 4.1.2, Spring Modulith 2.1.2, Spring Data JPA / Hibernate, Flyway, Spring Security + OAuth2 Resource Server (JWT HMAC SHA-256; RBAC; MFA desligado por flag), Spring Mail, RabbitMQ (starter AMQP), PostgreSQL 16 (`pgvector/pgvector:pg16`) / H2 (perfil `h2`), SpringDoc OpenAPI, Testcontainers, API REST.
+- **Planejado (MVP2):** Object Storage S3 (MinIO/AWS), Python + LlamaIndex + LlamaParse (RAG) e comunicação Core ↔ RAG via gRPC read-only.
 
 ---
 
