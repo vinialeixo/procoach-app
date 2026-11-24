@@ -19,7 +19,7 @@ apiClient.interceptors.request.use((config) => {
 });
 
 // Em 401, limpa a sessão local — o RBAC/isolamento multi-tenant é sempre
-// validado no núcleo (ver AGENT.md / RN-01), o front nunca decide autorização.
+// validado no núcleo (ver AGENTS.md / RN-01), o front nunca decide autorização.
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
