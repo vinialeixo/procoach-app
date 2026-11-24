@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.2</version>
+		<version>4.2.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.fitness</groupId>
@@ -32,7 +32,7 @@
 		     ${spring-modulith.version} sem ela existir em lugar nenhum, o que
 		     quebraria o build com "must not be empty". Boot 4 -> Spring Framework 7
 		     exige Spring Modulith 2.x (a série 1.x é só para Boot 3). -->
-		<spring-modulith.version>2.1.2</spring-modulith.version>
+		<spring-modulith.version>2.2.0</spring-modulith.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -83,7 +83,7 @@
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>3.2.0</version>
+			<version>3.2.1</version>
 		</dependency>
 
 		<!-- ADICIONADO: Postgres é o banco real (AGENT.md/SPEC.md), H2 abaixo
