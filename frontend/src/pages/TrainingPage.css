@@ -51,9 +51,22 @@
   gap: var(--space-4);
   padding: var(--space-5);
   border: 1px solid var(--color-border);
-  border-top: 3px solid var(--color-primary);
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
+  align-content: start;
+}
+
+.training-page__workbench {
+  display: grid;
+  gap: var(--space-5);
+}
+
+@media (min-width: 960px) {
+  .training-page__workbench--split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: start;
+  }
 }
 
 .training-page__section-heading {
@@ -91,7 +104,7 @@
 }
 
 .training-page__form--inline {
-  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-sm);
 }
 
 .training-page__form-grid--session {
@@ -106,7 +119,8 @@
   align-items: flex-start;
   flex-wrap: wrap;
   padding: var(--space-4);
-  border-left: 3px solid var(--color-accent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   background: var(--color-bg);
 }
 
@@ -162,15 +176,15 @@
   gap: var(--space-2);
   padding: var(--space-3);
   border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-ink-muted);
+  border-radius: var(--radius-sm);
 }
 
 .training-page__compare-session--added {
-  border-left-color: var(--color-success);
+  border-color: var(--color-success);
 }
 
 .training-page__compare-session--removed {
-  border-left-color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .training-page__compare-session--changed {
@@ -388,7 +402,8 @@
   gap: var(--space-2);
   margin-top: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border-left: 3px solid var(--color-accent);
+  border: 1px solid var(--color-accent-ink);
+  border-radius: var(--radius-sm);
   background: var(--color-accent-soft);
 }
 
@@ -487,20 +502,22 @@
 
 .training-page__alert {
   padding: var(--space-3);
-  border-left: 3px solid var(--color-danger);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
   background: var(--color-danger-soft);
   color: var(--color-danger);
 }
 
 .training-page__notice {
   padding: var(--space-3);
-  border-left: 3px solid var(--color-accent);
+  border: 1px solid var(--color-accent-ink);
+  border-radius: var(--radius-sm);
   background: var(--color-accent-soft);
   color: var(--color-ink);
 }
 
 .training-page__notice--success {
-  border-left-color: var(--color-success);
+  border-color: var(--color-success);
   background: var(--color-success-soft, rgba(34, 197, 94, 0.1));
   color: var(--color-ink);
 }

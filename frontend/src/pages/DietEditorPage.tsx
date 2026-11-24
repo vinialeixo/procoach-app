@@ -10,6 +10,7 @@ import { SelectField } from "@/components/ui/SelectField";
 import { TextareaField } from "@/components/ui/TextareaField";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { ProtocolLineageBar } from "@/components/ui/ProtocolLineageBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DietWarningsPanel } from "@/components/ui/DietWarningsPanel";
 import { useAthlete } from "@/lib/athletes";
@@ -132,34 +133,35 @@ export function DietEditorPage() {
       : undefined,
   });
 
-  const [watchedCalories, watchedProtein, watchedCarbohydrates, watchedFat] = useWatch({
+  const [rawCalories, rawProtein, rawCarbohydrates, rawFat] = useWatch({
     control,
     name: ["calories", "protein", "carbohydrates", "fat"],
   });
 
-  const parsedCalories = Number(watchedCalories);
-  const parsedProtein = Number(watchedProtein);
-  const parsedCarbohydrates = Number(watchedCarbohydrates);
-  const parsedFat = Number(watchedFat);
+  const watchedCalories = Number(rawCalories) || 0;
+  const watchedProtein = Number(rawProtein) || 0;
+  const watchedCarbs = Number(rawCarbohydrates) || 0;
+  const watchedFat = Number(rawFat) || 0;
+  const live449Kcal = watchedProtein * 4 + watchedCarbs * 4 + watchedFat * 9;
 
   const hasLiveMacros =
-    watchedCalories !== undefined &&
-    watchedCalories !== "" &&
-    Number.isFinite(parsedCalories) &&
-    Number.isFinite(parsedProtein) &&
-    Number.isFinite(parsedCarbohydrates) &&
-    Number.isFinite(parsedFat) &&
-    parsedCalories > 0 &&
-    parsedProtein >= 0 &&
-    parsedCarbohydrates >= 0 &&
-    parsedFat >= 0;
+    rawCalories !== undefined &&
+    rawCalories !== "" &&
+    Number.isFinite(watchedCalories) &&
+    Number.isFinite(watchedProtein) &&
+    Number.isFinite(watchedCarbs) &&
+    Number.isFinite(watchedFat) &&
+    watchedCalories > 0 &&
+    watchedProtein >= 0 &&
+    watchedCarbs >= 0 &&
+    watchedFat >= 0;
 
   const liveMacros = hasLiveMacros
     ? {
-        calories: parsedCalories,
-        protein: parsedProtein,
-        carbohydrates: parsedCarbohydrates,
-        fat: parsedFat,
+        calories: watchedCalories,
+        protein: watchedProtein,
+        carbohydrates: watchedCarbs,
+        fat: watchedFat,
       }
     : undefined;
 
@@ -215,6 +217,19 @@ export function DietEditorPage() {
   const submitLabel = isNewVersion ? `Criar v${nextVersion}` : "Criar dieta (v1)";
   const saving = createDiet.isPending || createVersion.isPending;
 
+  const weightKg = latestAssessment?.measurements.weightKg ?? null;
+  const lineageMetrics = latestAssessment
+    ? [
+        `Peso: ${formatNumber(latestAssessment.measurements.weightKg, " kg")}`,
+        latestAssessment.metrics.getKcal != null
+          ? `GET: ${formatNumber(latestAssessment.metrics.getKcal, " kcal")}`
+          : "GET: —",
+        latestAssessment.metrics.tmbKcal != null
+          ? `TMB: ${formatNumber(latestAssessment.metrics.tmbKcal, " kcal")}`
+          : "TMB: —",
+      ]
+    : ["Sem avaliação física registrada"];
+
   return (
     <AppShell navItems={COACH_NAV}>
       <div className="athlete-form">
@@ -230,6 +245,16 @@ export function DietEditorPage() {
             : "Nova dieta"}
           {athlete ? ` — ${athlete.name}` : ""}
         </h1>
+
+        {!loading && !loadFailed && (
+          <ProtocolLineageBar
+            lineageTag={
+              isNewVersion && previous ? `v${previous.version} → v${nextVersion}` : "v1"
+            }
+            title={athlete ? `Referência clínica — ${athlete.name}` : "Referência clínica"}
+            metrics={lineageMetrics}
+          />
+        )}
 
         {loading ? (
           <p>Carregando...</p>
@@ -397,6 +422,18 @@ export function DietEditorPage() {
                 {...register("fat")}
               />
             </div>
+
+            {(live449Kcal > 0 || watchedCalories > 0) && (
+              <p className="diet-editor__live-readout diets__mono" role="status">
+                Soma 4/4/9: {formatNumber(live449Kcal, " kcal")}
+                {weightKg && weightKg > 0
+                  ? ` · P ${formatNumber(watchedProtein / weightKg, " g/kg")} · C ${formatNumber(
+                      watchedCarbs / weightKg,
+                      " g/kg"
+                    )} · G ${formatNumber(watchedFat / weightKg, " g/kg")}`
+                  : ""}
+              </p>
+            )}
 
             <DietWarningsPanel
               warnings={liveWarnings}

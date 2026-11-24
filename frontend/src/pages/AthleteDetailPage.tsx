@@ -10,7 +10,9 @@ import { Modal } from "@/components/ui/Modal";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextareaField } from "@/components/ui/TextareaField";
 import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import { GOAL_LABEL, SEX_LABEL, useAthlete, useChangeAthleteStatus } from "@/lib/athletes";
+import { currentPlanVersion, usePeriodizations, useTrainingPlans } from "@/lib/training";
 import { AthleteAssessmentsPanel } from "./AthleteAssessmentsPanel";
 import { AthleteDietsPanel } from "./AthleteDietsPanel";
 import { AthleteInvitesSection } from "./AthleteInvitesSection";
@@ -31,6 +33,21 @@ const statusSchema = z.object({
   reason: z.string().min(3, "Informe o motivo da alteração"),
 });
 type StatusForm = z.infer<typeof statusSchema>;
+
+function formatBirthDateWithAge(isoDate: string): string {
+  const parts = isoDate.split("-");
+  if (parts.length !== 3) return isoDate;
+  const [y, m, d] = parts.map(Number);
+  if (!y || !m || !d) return isoDate;
+  const formatted = `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  const monthDiff = today.getMonth() + 1 - m;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) {
+    age -= 1;
+  }
+  return age >= 0 && age < 130 ? `${formatted} (${age} anos)` : formatted;
+}
 
 const TABS: { id: string; label: string }[] = [
   { id: "avaliacoes", label: "Avaliações" }, // T-027 — conteúdo real
@@ -55,6 +72,12 @@ export function AthleteDetailPage() {
   const assessmentCreated = navState.assessmentCreated ?? false;
   const dietVersionCreated = navState.dietVersionCreated ?? null;
   const { data: athlete, isLoading, isError } = useAthlete(id);
+  const { data: periodizations } = usePeriodizations(id);
+  const { data: trainingPlans } = useTrainingPlans(id);
+  const activePlan = currentPlanVersion(trainingPlans ?? []);
+  const activePeriodization = activePlan
+    ? (periodizations ?? []).find((p) => p.id === activePlan.periodizationId)
+    : (periodizations ?? [])[0];
   const changeStatus = useChangeAthleteStatus(id);
 
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -165,7 +188,7 @@ export function AthleteDetailPage() {
 
         <dl className="athlete-detail__grid">
           <div><dt>Sexo</dt><dd>{SEX_LABEL[athlete.sex]}</dd></div>
-          <div><dt>Nascimento</dt><dd>{athlete.birthDate}</dd></div>
+          <div><dt>Nascimento</dt><dd>{formatBirthDateWithAge(athlete.birthDate)}</dd></div>
           <div><dt>Altura</dt><dd>{athlete.heightCm} cm</dd></div>
           <div><dt>Peso</dt><dd>{athlete.weightKg} kg</dd></div>
           <div className="athlete-detail__goal"><dt>Objetivo</dt><dd>{GOAL_LABEL[athlete.goal]}</dd></div>
@@ -222,13 +245,41 @@ export function AthleteDetailPage() {
           ) : activeTab === "dietas" ? (
             <AthleteDietsPanel athleteId={athlete.id} />
           ) : activeTab === "treinos" ? (
-            <p className="athlete-detail__placeholder">
-              Monte e acompanhe os treinos deste atleta em{" "}
-              <Link to={`/coach/training?athlete=${athlete.id}`}>
-                Treinos e biblioteca
-              </Link>
-              .
-            </p>
+            <div className="athlete-detail__training-summary">
+              {activePlan ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <span className="diets__ver diets__ver--current">v{activePlan.version}</span>
+                    <strong>{activePlan.name}</strong>
+                    <StatusBadge status={activePlan.status} />
+                  </div>
+                  {activePeriodization && (
+                    <p style={{ marginTop: "8px" }}>
+                      Periodização: <strong>{activePeriodization.name}</strong>
+                    </p>
+                  )}
+                  {activePlan.description && (
+                    <p style={{ marginTop: "6px" }}>{activePlan.description}</p>
+                  )}
+                  <div style={{ marginTop: "16px" }}>
+                    <ButtonLink
+                      to={`/coach/training?athlete=${athlete.id}&periodization=${activePlan.periodizationId}&plan=${activePlan.id}`}
+                      variant="ghost"
+                    >
+                      Abrir no workbench de treinos
+                    </ButtonLink>
+                  </div>
+                </>
+              ) : (
+                <p className="athlete-detail__placeholder">
+                  Nenhum plano de treino cadastrado para este atleta.{" "}
+                  <Link to={`/coach/training?athlete=${athlete.id}`}>
+                    Abrir Treinos e biblioteca
+                  </Link>
+                  .
+                </p>
+              )}
+            </div>
           ) : (
             <p className="athlete-detail__placeholder">
               Os check-ins do atleta estarão disponíveis em breve.

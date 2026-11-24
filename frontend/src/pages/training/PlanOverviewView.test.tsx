@@ -168,4 +168,46 @@ describe("PlanOverviewView (Issue #42)", () => {
     expect(shortcutButtons[0]).toBeEnabled();
     expect(shortcutButtons[1]).toBeDisabled();
   });
+
+  it("exige confirmação em modal antes de publicar um plano em revisão", async () => {
+    const user = userEvent.setup();
+    const handleTransition = vi.fn();
+    const reviewPlan: TrainingPlan = { ...mockPlan, status: "IN_REVIEW" };
+
+    render(
+      <PlanOverviewView
+        athleteId="ath-1"
+        periodizationId="per-1"
+        planId="plan-1"
+        sessionId="ses-1"
+        selectedPeriodization={mockPeriodization}
+        plans={[reviewPlan]}
+        selectedPlan={reviewPlan}
+        previousPlan={undefined}
+        sessions={mockSessions}
+        planComparison={null}
+        plansLoading={false}
+        plansError={false}
+        createPlanPending={false}
+        createPlanError={null}
+        transitionPlanPending={false}
+        transitionPlanError={null}
+        createSessionPending={false}
+        createSessionError={null}
+        onCreatePlan={vi.fn()}
+        onCreateSession={vi.fn()}
+        onSelectSession={vi.fn()}
+        onOpenVersioning={vi.fn()}
+        onOpenComparing={vi.fn()}
+        onTransitionPlan={handleTransition}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Finalizar versão" }));
+    expect(handleTransition).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(handleTransition).toHaveBeenCalledWith("ACTIVE");
+  });
 });
