@@ -84,6 +84,28 @@ export type Meal = {
   totals: Macronutrients | null;
 };
 
+export type DietWarningCode =
+  | "ZERO_CARBOHYDRATE"
+  | "ZERO_FAT"
+  | "ZERO_PROTEIN"
+  | "MACRO_CALORIE_MISMATCH"
+  | "LOW_CALORIES_VS_TMB"
+  | "AGGRESSIVE_DEFICIT"
+  | "PROTEIN_BELOW_RANGE"
+  | "FAT_BELOW_RANGE"
+  | "FIBER_BELOW_RECOMMENDATION"
+  | "RESTRICTION_CONFLICT"
+  | "RAW_WEIGHT_ASSUMED"
+  | "SUPPLEMENT_EXCLUDED_FROM_MACROS";
+
+export type DietWarningSeverity = "INFO" | "WARNING" | "CRITICAL";
+
+export type DietWarning = {
+  code: DietWarningCode;
+  severity: DietWarningSeverity;
+  message: string;
+};
+
 // Uma linha = uma versão da dieta (v1, v2, ...). No domínio cada versão é
 // uma instância do agregado Diet encadeada por previousVersionId.
 export type DietVersion = {
@@ -94,6 +116,7 @@ export type DietVersion = {
   macros: Macronutrients;
   meals: Meal[];
   totals: Macronutrients;
+  warnings: DietWarning[];
   status: DietStatus;
   version: number; // v1 = 1
   previousVersionId: string | null; // null na v1
@@ -205,16 +228,18 @@ export type ApiDiet = {
   updatedBy: string;
   meals?: Meal[];
   totals?: Macronutrients;
+  warnings?: DietWarning[];
 };
 
 export function toDietVersion(d: ApiDiet): DietVersion {
-  const { calories, protein, carbohydrates, fat, meals, totals, ...rest } = d;
+  const { calories, protein, carbohydrates, fat, meals, totals, warnings, ...rest } = d;
   const macros: Macronutrients = { calories, protein, carbohydrates, fat };
   return {
     ...rest,
     macros,
     meals: meals ?? [],
     totals: totals ?? macros,
+    warnings: warnings ?? [],
   };
 }
 
@@ -874,4 +899,153 @@ export function buildShoppingList(meals: Meal[]): ShoppingList {
     foods: groupShoppingItems(foodItems),
     supplements: groupShoppingItems(supplementItems),
   };
+}
+
+// --- Avisos nutricionais e faixas de referência (T-094 / DietWarning) ---------
+
+export type DietWarningContext = {
+  weightKg?: number | null;
+  tmbKcal?: number | null;
+  getKcal?: number | null;
+  fiberG?: number | null;
+};
+
+const SEVERITY_RANK: Record<DietWarningSeverity, number> = {
+  CRITICAL: 0,
+  WARNING: 1,
+  INFO: 2,
+};
+
+/**
+ * Calcula avisos nutricionais imediatos no editor/painel, mantendo coerência
+ * com `Diet.generateWarnings` e `Macronutrients.isConsistent` do backend (T-087).
+ * Os avisos são informativos e nunca bloqueiam a decisão do coach.
+ */
+export function computeDietWarnings(
+  macros: Macronutrients,
+  context: DietWarningContext = {}
+): DietWarning[] {
+  const warnings: DietWarning[] = [];
+  const { weightKg, tmbKcal, getKcal, fiberG } = context;
+
+  if (macros.carbohydrates === 0) {
+    warnings.push({
+      code: "ZERO_CARBOHYDRATE",
+      severity: "WARNING",
+      message:
+        "Carboidrato zerado por estratégia (ex.: cetogênica, peak week); monitorar desempenho e hidratação.",
+    });
+  }
+
+  if (macros.fat === 0) {
+    warnings.push({
+      code: "ZERO_FAT",
+      severity: "WARNING",
+      message:
+        "Gordura zerada; risco de deficiência de ácidos graxos essenciais e vitaminas lipossolúveis.",
+    });
+  }
+
+  if (macros.protein === 0) {
+    warnings.push({
+      code: "ZERO_PROTEIN",
+      severity: "CRITICAL",
+      message:
+        "Proteína zerada é incompatível com saúde e performance; revisar prescrição.",
+    });
+  }
+
+  const calculatedCalories =
+    macros.protein * 4 + macros.carbohydrates * 4 + macros.fat * 9;
+  if (macros.calories > 0 && calculatedCalories > 0) {
+    const delta = Math.abs(macros.calories - calculatedCalories);
+    const tolerance = Math.max(macros.calories * 0.05, 50);
+    if (delta > tolerance) {
+      const pct = (delta / calculatedCalories) * 100;
+      warnings.push({
+        code: "MACRO_CALORIE_MISMATCH",
+        severity: "WARNING",
+        message: `Calorias declaradas (${Math.round(macros.calories)}) divergem de 4/4/9 (${Math.round(calculatedCalories)}): delta ${Math.round(delta)} kcal (${pct.toFixed(1)}%).`,
+      });
+    }
+  }
+
+  if (tmbKcal != null && tmbKcal > 0 && macros.calories > 0 && macros.calories < tmbKcal) {
+    warnings.push({
+      code: "LOW_CALORIES_VS_TMB",
+      severity: "WARNING",
+      message: `Calorias da dieta (${Math.round(macros.calories)}) abaixo da TMB (${Math.round(tmbKcal)}); risco de adaptação metabólica.`,
+    });
+  }
+
+  if (getKcal != null && getKcal > 0 && macros.calories > 0) {
+    const balancePercent = ((macros.calories - getKcal) / getKcal) * 100;
+    if (balancePercent < -25) {
+      warnings.push({
+        code: "AGGRESSIVE_DEFICIT",
+        severity: "WARNING",
+        message: `Déficit agressivo (${balancePercent.toFixed(1)}% do GET); considerar abordagem mais conservadora.`,
+      });
+    }
+  }
+
+  if (weightKg != null && weightKg > 0) {
+    const proteinGPerKg = macros.protein / weightKg;
+    if (proteinGPerKg > 0 && proteinGPerKg < 1.6) {
+      warnings.push({
+        code: "PROTEIN_BELOW_RANGE",
+        severity: "WARNING",
+        message: `Proteína (${proteinGPerKg.toFixed(1)} g/kg) abaixo da faixa recomendada (1,6–2,2 g/kg).`,
+      });
+    }
+
+    const fatGPerKg = macros.fat / weightKg;
+    if (fatGPerKg > 0 && fatGPerKg < 0.5) {
+      warnings.push({
+        code: "FAT_BELOW_RANGE",
+        severity: "WARNING",
+        message: `Gordura (${fatGPerKg.toFixed(1)} g/kg) abaixo do mínimo recomendado (0,5 g/kg).`,
+      });
+    }
+  }
+
+  if (fiberG != null && fiberG >= 0 && fiberG < 25) {
+    warnings.push({
+      code: "FIBER_BELOW_RECOMMENDATION",
+      severity: "INFO",
+      message: `Fibras (${Math.round(fiberG)} g) abaixo da recomendação (25–38 g/dia).`,
+    });
+  }
+
+  return sortDietWarnings(warnings);
+}
+
+export function sortDietWarnings(warnings: DietWarning[]): DietWarning[] {
+  return [...warnings].sort(
+    (a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]
+  );
+}
+
+/**
+ * Mescla warnings vindos do backend com warnings calculados localmente no editor,
+ * evitando duplicidade pelo código e ordenando por severidade (CRITICAL -> WARNING -> INFO).
+ */
+export function mergeDietWarnings(
+  backendWarnings: DietWarning[],
+  computedWarnings: DietWarning[]
+): DietWarning[] {
+  const byCode = new Map<DietWarningCode, DietWarning>();
+  for (const warning of computedWarnings) {
+    byCode.set(warning.code, warning);
+  }
+  for (const warning of backendWarnings) {
+    byCode.set(warning.code, warning);
+  }
+  return sortDietWarnings(Array.from(byCode.values()));
+}
+
+export function hasRelevantDietWarnings(warnings: DietWarning[]): boolean {
+  return warnings.some(
+    (warning) => warning.severity === "WARNING" || warning.severity === "CRITICAL"
+  );
 }

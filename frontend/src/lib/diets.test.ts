@@ -3,6 +3,7 @@ import {
   ApiDiet,
   buildShoppingList,
   computeDerivedMacros,
+  computeDietWarnings,
   DIET_STATUS_FLOW,
   DietVersion,
   diffDietVersions,
@@ -10,8 +11,10 @@ import {
   FOOD_KIND_LABEL,
   FOOD_SOURCE_LABEL,
   FOOD_STATE_LABEL,
+  hasRelevantDietWarnings,
   Meal,
   MealItem,
+  mergeDietWarnings,
   toDietVersion,
 } from "./diets";
 
@@ -25,6 +28,7 @@ function diet(overrides: Partial<DietVersion> = {}): DietVersion {
     macros,
     meals: [],
     totals: macros,
+    warnings: [],
     status: "DRAFT",
     version: 1,
     previousVersionId: null,
@@ -403,5 +407,71 @@ describe("buildShoppingList", () => {
       householdMeasures: ["1 scoop"],
       occurrences: 2,
     });
+  });
+});
+
+describe("computeDietWarnings, mergeDietWarnings & hasRelevantDietWarnings (T-094)", () => {
+  it("detecta macros zerados, inconsistência 4/4/9, kcal < TMB, déficit agressivo, g/kg e fibras", () => {
+    const warnings = computeDietWarnings(
+      { calories: 1400, protein: 0, carbohydrates: 0, fat: 20 },
+      { weightKg: 80, tmbKcal: 1700, getKcal: 2400, fiberG: 15 }
+    );
+
+    const codes = warnings.map((w) => w.code);
+    expect(codes).toContain("ZERO_PROTEIN");
+    expect(codes).toContain("ZERO_CARBOHYDRATE");
+    expect(codes).toContain("MACRO_CALORIE_MISMATCH");
+    expect(codes).toContain("LOW_CALORIES_VS_TMB");
+    expect(codes).toContain("AGGRESSIVE_DEFICIT");
+    expect(codes).toContain("FAT_BELOW_RANGE");
+    expect(codes).toContain("FIBER_BELOW_RECOMMENDATION");
+
+    // Ordenado por severidade: CRITICAL primeiro, INFO por último
+    expect(warnings[0].severity).toBe("CRITICAL");
+    expect(warnings[warnings.length - 1].severity).toBe("INFO");
+    expect(hasRelevantDietWarnings(warnings)).toBe(true);
+  });
+
+  it("detecta proteína abaixo de 1,6 g/kg e gordura zerada", () => {
+    const warnings = computeDietWarnings(
+      { calories: 2000, protein: 100, carbohydrates: 400, fat: 0 },
+      { weightKg: 80, tmbKcal: 1600, getKcal: 2200 }
+    );
+
+    expect(warnings.map((w) => w.code)).toEqual(
+      expect.arrayContaining(["ZERO_FAT", "PROTEIN_BELOW_RANGE"])
+    );
+  });
+
+  it("não gera avisos relevantes quando tudo está dentro das faixas e 4/4/9 consistente", () => {
+    // 160*4 + 220*4 + 60*9 = 640 + 880 + 540 = 2060 kcal (dentro de ±5% de 2050)
+    const warnings = computeDietWarnings(
+      { calories: 2050, protein: 160, carbohydrates: 220, fat: 60 },
+      { weightKg: 80, tmbKcal: 1700, getKcal: 2300, fiberG: 30 }
+    );
+
+    expect(warnings).toEqual([]);
+    expect(hasRelevantDietWarnings(warnings)).toBe(false);
+  });
+
+  it("mescla warnings do backend com calculados localmente sem duplicar código", () => {
+    const backend = [
+      { code: "RESTRICTION_CONFLICT" as const, severity: "CRITICAL" as const, message: "Conflito com lactose" },
+      { code: "ZERO_CARBOHYDRATE" as const, severity: "WARNING" as const, message: "Mensagem do backend" },
+    ];
+    const computed = computeDietWarnings(
+      { calories: 1320, protein: 150, carbohydrates: 0, fat: 80 },
+      { fiberG: 18 }
+    );
+
+    const merged = mergeDietWarnings(backend, computed);
+    expect(merged.map((w) => w.code)).toEqual([
+      "RESTRICTION_CONFLICT",
+      "ZERO_CARBOHYDRATE",
+      "FIBER_BELOW_RECOMMENDATION",
+    ]);
+    expect(merged.find((w) => w.code === "ZERO_CARBOHYDRATE")?.message).toBe(
+      "Mensagem do backend"
+    );
   });
 });
