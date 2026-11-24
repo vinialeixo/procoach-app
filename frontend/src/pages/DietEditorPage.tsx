@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,12 +12,14 @@ import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { ProtocolLineageBar } from "@/components/ui/ProtocolLineageBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { useAssessments } from "@/lib/assessments";
+import { DietWarningsPanel } from "@/components/ui/DietWarningsPanel";
 import { useAthlete } from "@/lib/athletes";
+import { useAssessments } from "@/lib/assessments";
 import {
   DIET_OBJECTIVES,
   OBJECTIVE_LABEL,
   STATUS_LABEL,
+  computeDietWarnings,
   findCurrentDietVersion,
   useCreateDiet,
   useCreateDietVersion,
@@ -44,21 +47,30 @@ function formatNumber(value: number, suffix = ""): string {
   return `${value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}${suffix}`;
 }
 
-const macroField = z.coerce
+const positiveCaloriesField = z.coerce
   .number({ error: "Valor inválido" })
   .positive("Deve ser maior que zero");
 
-const schema = z.object({
-  objective: z.enum(DIET_OBJECTIVES, {
-    error: "Selecione o objetivo da dieta",
-  }),
-  calories: macroField,
-  protein: macroField,
-  carbohydrates: macroField,
-  fat: macroField,
-  // Só é enviado ao criar nova versão (auditoria US-016); na v1 não existe.
-  changeReason: z.string().optional(),
-});
+const nonNegativeMacroField = z.coerce
+  .number({ error: "Valor inválido" })
+  .min(0, "Deve ser >= 0");
+
+const schema = z
+  .object({
+    objective: z.enum(DIET_OBJECTIVES, {
+      error: "Selecione o objetivo da dieta",
+    }),
+    calories: positiveCaloriesField,
+    protein: nonNegativeMacroField,
+    carbohydrates: nonNegativeMacroField,
+    fat: nonNegativeMacroField,
+    // Só é enviado ao criar nova versão (auditoria US-016); na v1 não existe.
+    changeReason: z.string().optional(),
+  })
+  .refine((data) => data.protein > 0 || data.carbohydrates > 0 || data.fat > 0, {
+    message: "Informe ao menos um macronutriente maior que zero",
+    path: ["protein"],
+  });
 type FormInput = z.input<typeof schema>;
 type FormValues = z.output<typeof schema>;
 
@@ -75,10 +87,14 @@ export function DietEditorPage() {
   const { data: assessments } = useAssessments(athleteId);
   const createDiet = useCreateDiet(athleteId);
   const createVersion = useCreateDietVersion(athleteId);
+  const [warningsAcknowledged, setWarningsAcknowledged] = useState(false);
 
-  const latestAssessment = (assessments ?? [])
-    .slice()
-    .sort((a, b) => b.assessmentDate.localeCompare(a.assessmentDate))[0];
+  const latestAssessment = [...(assessments ?? [])].sort((a, b) =>
+    b.assessmentDate.localeCompare(a.assessmentDate)
+  )[0];
+  const latestWeightKg = latestAssessment?.measurements.weightKg ?? null;
+  const latestTmbKcal = latestAssessment?.metrics.tmbKcal ?? null;
+  const latestGetKcal = latestAssessment?.metrics.getKcal ?? null;
 
   const loading = athleteLoading || dietsLoading;
   const loadFailed = athleteFailed || dietsFailed;
@@ -116,6 +132,46 @@ export function DietEditorPage() {
         }
       : undefined,
   });
+
+  const [rawCalories, rawProtein, rawCarbohydrates, rawFat] = useWatch({
+    control,
+    name: ["calories", "protein", "carbohydrates", "fat"],
+  });
+
+  const watchedCalories = Number(rawCalories) || 0;
+  const watchedProtein = Number(rawProtein) || 0;
+  const watchedCarbs = Number(rawCarbohydrates) || 0;
+  const watchedFat = Number(rawFat) || 0;
+  const live449Kcal = watchedProtein * 4 + watchedCarbs * 4 + watchedFat * 9;
+
+  const hasLiveMacros =
+    rawCalories !== undefined &&
+    rawCalories !== "" &&
+    Number.isFinite(watchedCalories) &&
+    Number.isFinite(watchedProtein) &&
+    Number.isFinite(watchedCarbs) &&
+    Number.isFinite(watchedFat) &&
+    watchedCalories > 0 &&
+    watchedProtein >= 0 &&
+    watchedCarbs >= 0 &&
+    watchedFat >= 0;
+
+  const liveMacros = hasLiveMacros
+    ? {
+        calories: watchedCalories,
+        protein: watchedProtein,
+        carbohydrates: watchedCarbs,
+        fat: watchedFat,
+      }
+    : undefined;
+
+  const liveWarnings = liveMacros
+    ? computeDietWarnings(liveMacros, {
+        weightKg: latestWeightKg,
+        tmbKcal: latestTmbKcal,
+        getKcal: latestGetKcal,
+      })
+    : [];
 
   async function onSubmit(values: FormValues) {
     if (isNewVersion && !values.changeReason?.trim()) {
@@ -161,15 +217,6 @@ export function DietEditorPage() {
   const submitLabel = isNewVersion ? `Criar v${nextVersion}` : "Criar dieta (v1)";
   const saving = createDiet.isPending || createVersion.isPending;
 
-  const [rawCalories, rawProtein, rawCarbs, rawFat] = useWatch({
-    control,
-    name: ["calories", "protein", "carbohydrates", "fat"],
-  });
-  const watchedCalories = Number(rawCalories) || 0;
-  const watchedProtein = Number(rawProtein) || 0;
-  const watchedCarbs = Number(rawCarbs) || 0;
-  const watchedFat = Number(rawFat) || 0;
-  const live449Kcal = watchedProtein * 4 + watchedCarbs * 4 + watchedFat * 9;
   const weightKg = latestAssessment?.measurements.weightKg ?? null;
   const lineageMetrics = latestAssessment
     ? [
@@ -387,6 +434,16 @@ export function DietEditorPage() {
                   : ""}
               </p>
             )}
+
+            <DietWarningsPanel
+              warnings={liveWarnings}
+              macros={liveMacros}
+              weightKg={latestWeightKg}
+              tmbKcal={latestTmbKcal}
+              getKcal={latestGetKcal}
+              acknowledged={warningsAcknowledged}
+              onAcknowledgeChange={setWarningsAcknowledged}
+            />
 
             {errors.root && (
               <p className="athlete-form__error" role="alert">

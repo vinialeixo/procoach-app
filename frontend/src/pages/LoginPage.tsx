@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthLayout } from "@/components/ui/AuthLayout";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { StateMessage } from "@/components/ui/StateMessage";
 import { useLogin } from "@/lib/auth";
 import "./LoginPage.css";
 
@@ -18,7 +19,13 @@ type CredentialsForm = z.infer<typeof credentialsSchema>;
 // MFA/TOTP fora do fluxo por enquanto (backlog T-059/T-060).
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(null);
+
+  const sessionExpired =
+    Boolean((location.state as { sessionExpired?: boolean } | null)?.sessionExpired) ||
+    searchParams.get("reason") === "session-expired";
 
   const loginMutation = useLogin();
 
@@ -49,6 +56,14 @@ export function LoginPage() {
       <p className="login-page__subtitle">
         Acesse sua conta ProCoach (coach ou atleta) para continuar.
       </p>
+
+      {sessionExpired && (
+        <StateMessage
+          kind="warning"
+          title="Sessão expirada"
+          description="Sua sessão expirou. Faça login novamente para continuar."
+        />
+      )}
 
       <form
         className="login-page__form"

@@ -340,5 +340,54 @@ describe("DietMealsPage (T-093)", () => {
     expect(screen.queryByRole("button", { name: /Remover refeição/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Remover item/i })).not.toBeInTheDocument();
   });
+
+  it("exibe avisos estruturados INFO, WARNING e CRITICAL do backend e ciência explícita sem bloquear (T-094)", async () => {
+    const user = userEvent.setup();
+    const dietWithWarnings = makeDiet({
+      totals: { calories: 1180, protein: 160, carbohydrates: 0, fat: 60 },
+      warnings: [
+        {
+          code: "RESTRICTION_CONFLICT",
+          severity: "CRITICAL",
+          message: "Alimento contém lactose (restrição registrada).",
+        },
+        {
+          code: "ZERO_CARBOHYDRATE",
+          severity: "WARNING",
+          message: "Carboidrato zerado por estratégia.",
+        },
+        {
+          code: "FIBER_BELOW_RECOMMENDATION",
+          severity: "INFO",
+          message: "Fibras (14 g) abaixo da recomendação (25–38 g/dia).",
+        },
+      ],
+    });
+
+    vi.mocked(apiClient.get).mockImplementation((url: string) => {
+      if (url === "/athletes/ath-1") return Promise.resolve({ data: mockAthlete });
+      if (url === "/diets/diet-1") return Promise.resolve({ data: dietWithWarnings });
+      if (url === "/assessments") return Promise.resolve({ data: [] });
+      return Promise.resolve({ data: null });
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText("Alimento contém lactose (restrição registrada).")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Carboidrato zerado por estratégia.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Fibras (14 g) abaixo da recomendação (25–38 g/dia).")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Crítico")).toBeInTheDocument();
+    expect(screen.getByText("Aviso")).toBeInTheDocument();
+    expect(screen.getByText("Info")).toBeInTheDocument();
+
+    const ackCheckbox = screen.getByLabelText(/Estou ciente dos avisos nutricionais/i);
+    expect(ackCheckbox).not.toBeChecked();
+    await user.click(ackCheckbox);
+    expect(ackCheckbox).toBeChecked();
+  });
 });
 

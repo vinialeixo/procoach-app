@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { AcceptInvitePage } from "@/pages/AcceptInvitePage";
@@ -19,6 +19,8 @@ import { DietMealsPage } from "@/pages/DietMealsPage";
 import { TrainingPage } from "@/pages/TrainingPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleRedirect } from "@/components/RoleRedirect";
+import { GlobalForbiddenBanner } from "@/components/GlobalForbiddenBanner";
+import { setSessionExpiredHandler } from "@/lib/api-client";
 
 const MockBanner =
   import.meta.env.VITE_USE_MOCKS === "true"
@@ -29,9 +31,29 @@ const MockBanner =
       )
     : null;
 
+function AuthNavigationBridge() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      navigate("/login?reason=session-expired", {
+        replace: true,
+        state: { sessionExpired: true },
+      });
+    });
+    return () => {
+      setSessionExpiredHandler(null);
+    };
+  }, [navigate]);
+
+  return null;
+}
+
 export function App() {
   return (
     <BrowserRouter>
+      <AuthNavigationBridge />
+      <GlobalForbiddenBanner />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
