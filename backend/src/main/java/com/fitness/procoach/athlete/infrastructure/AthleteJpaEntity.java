@@ -48,6 +48,10 @@ public class AthleteJpaEntity {
 	@Column(nullable = false, length = 30)
 	private Goal goal;
 
+	/** E-mail opcional informado no cadastro (T-096). */
+	@Column(length = 255)
+	private String email;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private AthleteStatus status;
@@ -129,6 +133,14 @@ public class AthleteJpaEntity {
 
 	public void setGoal(Goal goal) {
 		this.goal = goal;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
 	}
 
 	public AthleteStatus getStatus() {

@@ -70,6 +70,45 @@ class AthleteAccessStateTest {
 	}
 
 	@Test
+	void cadastroPersisteEExpoeEmailDoAtleta() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String email = uniqueEmail("atleta");
+
+		MvcResult result = mockMvc.perform(post("/api/v1/athletes")
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "name": "Ana Souza",
+								  "sex": "FEMALE",
+								  "birthDate": "1995-07-20",
+								  "height": 165.50,
+								  "weight": 60.20,
+								  "goal": "HYPERTROPHY",
+								  "email": "%s"
+								}
+								""".formatted(email)))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.email").value(email))
+				.andReturn();
+		String athleteId = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
+
+		// T-096: o e-mail persiste e volta na ficha e na listagem (pré-preenche o convite).
+		mockMvc.perform(get("/api/v1/athletes/{id}", athleteId).header("Authorization", bearer(coach)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.email").value(email));
+		mockMvc.perform(get("/api/v1/athletes").header("Authorization", bearer(coach)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].email").value(email));
+
+		// Cadastro sem e-mail continua válido e o campo volta nulo.
+		String semEmail = com.fitness.procoach.CoachAthleteTestSupport.registerAthlete(mockMvc, coach);
+		mockMvc.perform(get("/api/v1/athletes/{id}", semEmail).header("Authorization", bearer(coach)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.email").value(org.hamcrest.Matchers.nullValue()));
+	}
+
+	@Test
 	void listEFichaTrazemEstadoDeAcessoSemConvite() throws Exception {
 		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
 		String athleteId = registerAthleteWithEmail(coach, uniqueEmail("atleta"));

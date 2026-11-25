@@ -37,7 +37,8 @@ class AthleteRepositoryTest {
 				LocalDate.of(1992, 3, 15),
 				new Height(new BigDecimal("178.00")),
 				new Weight(new BigDecimal("82.00")),
-				Goal.CUTTING);
+				Goal.CUTTING,
+				"carlos@test.com");
 	}
 
 	@Test
@@ -57,6 +58,7 @@ class AthleteRepositoryTest {
 		assertThat(found.get().height().value()).isEqualByComparingTo("178.00");
 		assertThat(found.get().weight().value()).isEqualByComparingTo("82.00");
 		assertThat(found.get().goal()).isEqualTo(Goal.CUTTING);
+		assertThat(found.get().email()).isEqualTo("carlos@test.com");
 		assertThat(found.get().coachId()).isEqualTo(athlete.coachId());
 	}
 

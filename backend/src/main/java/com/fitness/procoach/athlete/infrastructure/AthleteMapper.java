@@ -24,6 +24,7 @@ final class AthleteMapper {
 		entity.setHeight(athlete.height().value());
 		entity.setWeight(athlete.weight().value());
 		entity.setGoal(athlete.goal());
+		entity.setEmail(athlete.email());
 		entity.setStatus(athlete.status());
 		entity.setCreatedAt(athlete.createdAt());
 		entity.setUpdatedAt(athlete.updatedAt());
@@ -42,6 +43,7 @@ final class AthleteMapper {
 				new Height(entity.getHeight()),
 				new Weight(entity.getWeight()),
 				entity.getGoal(),
+				entity.getEmail(),
 				entity.getStatus(),
 				entity.getCreatedAt(),
 				entity.getUpdatedAt(),
