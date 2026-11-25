@@ -314,19 +314,18 @@ class AuthControllerTest {
 		String athleteId = registerAthleteViaHttp(coachToken);
 		String athleteEmail = uniqueEmail("athlete-del");
 
-		// Cria um convite pendente e também testa revogação do convite ao remover
-		MvcResult inviteRes = mockMvc.perform(post("/api/v1/athletes/{athleteId}/invites", athleteId)
+		// Cria um convite e aceita para gerar credencial ativa
+		MvcResult inviteRes = mockMvc.perform(post("/api/v1/auth/invites")
 						.header("Authorization", bearer(coachToken))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
-								{"email": "%s"}
-								""".formatted(athleteEmail)))
+								{"athleteId": "%s", "email": "%s"}
+								""".formatted(athleteId, athleteEmail)))
 				.andExpect(status().isCreated())
 				.andReturn();
 		String inviteToken = JsonPath.read(inviteRes.getResponse().getContentAsString(), "$.token");
 
-		// Aceita o convite para gerar credencial ativa
-		MvcResult acceptRes = mockMvc.perform(post("/api/v1/invites/{token}/accept", inviteToken)
+		MvcResult acceptRes = mockMvc.perform(post("/api/v1/auth/invites/{token}/accept", inviteToken)
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{"password": "senha123!"}
@@ -335,6 +334,25 @@ class AuthControllerTest {
 				.andReturn();
 		String accessToken = JsonPath.read(acceptRes.getResponse().getContentAsString(), "$.accessToken");
 		String refreshToken = JsonPath.read(acceptRes.getResponse().getContentAsString(), "$.refreshToken");
+
+		// Também cria um atleta com convite PENDING (ainda não aceito) e valida revogação ao deletar
+		String pendingAthleteId = registerAthleteViaHttp(coachToken);
+		MvcResult pendingInviteRes = mockMvc.perform(post("/api/v1/auth/invites")
+						.header("Authorization", bearer(coachToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"athleteId": "%s", "email": "%s"}
+								""".formatted(pendingAthleteId, uniqueEmail("pending"))))
+				.andExpect(status().isCreated())
+				.andReturn();
+		String pendingToken = JsonPath.read(pendingInviteRes.getResponse().getContentAsString(), "$.token");
+
+		mockMvc.perform(delete("/api/v1/athletes/{id}", pendingAthleteId)
+						.header("Authorization", bearer(coachToken)))
+				.andExpect(status().isNoContent());
+
+		mockMvc.perform(get("/api/v1/auth/invites/{token}", pendingToken))
+				.andExpect(status().isNotFound());
 
 		// Antes da remoção, atleta acessa normalmente
 		mockMvc.perform(get("/api/v1/assessments")
