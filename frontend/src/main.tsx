@@ -13,6 +13,18 @@ async function prepareMocks() {
 }
 
 prepareMocks().then(() => {
+  if (
+    "serviceWorker" in navigator &&
+    import.meta.env.PROD &&
+    import.meta.env.VITE_USE_MOCKS !== "true"
+  ) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        // Falha silenciosa: PWA é aprimoramento progressivo e não bloqueia a SPA.
+      });
+    });
+  }
+
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
