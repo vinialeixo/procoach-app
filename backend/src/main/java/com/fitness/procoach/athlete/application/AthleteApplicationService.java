@@ -143,6 +143,7 @@ public class AthleteApplicationService implements ApplicationContextAware {
 		}
 		athlete.softDelete();
 		repository.save(athlete);
+		accessInfo.revokeAccess(athlete.id().value(), command.userId());
 		auditService.record("Athlete", athlete.id().value(), athlete.id().value(), "ATHLETE_DELETED",
 				command.userId(), AuditData.of());
 	}
@@ -243,6 +244,11 @@ public class AthleteApplicationService implements ApplicationContextAware {
 		AthleteStatus previous = athlete.status();
 		athlete.changeStatus(command.status());
 		Athlete saved = repository.save(athlete);
+		if (saved.status() == AthleteStatus.FINISHED) {
+			accessInfo.revokeAccess(saved.id().value(), command.userId());
+		} else if (previous == AthleteStatus.FINISHED) {
+			accessInfo.restoreAccess(saved.id().value());
+		}
 		auditService.record("Athlete", saved.id().value(), saved.id().value(), "ATHLETE_STATUS_CHANGED",
 				command.userId(), AuditData.of("from", previous.name(), "to", saved.status().name(), "reason",
 						command.reason()));

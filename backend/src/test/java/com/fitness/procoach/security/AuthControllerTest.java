@@ -2,6 +2,7 @@ package com.fitness.procoach.security;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -280,12 +281,12 @@ class AuthControllerTest {
 
 	@Test
 	void athleteCanOnlyAccessOwnData() throws Exception {
-		UUID athleteA = UUID.randomUUID();
+		String coachToken = registerCoachViaHttp(uniqueEmail("coach"));
+		UUID athleteA = UUID.fromString(registerAthleteViaHttp(coachToken));
 		UUID athleteB = UUID.randomUUID();
 		String tokenA = authService.registerAthleteCredential(uniqueEmail("athlete-a"), "senha123!", athleteA)
 				.tokens()
 				.accessToken();
-		String coachToken = registerCoachViaHttp(uniqueEmail("coach"));
 
 		// Atleta A tentando ler dados do atleta B -> 403 (T-010/US-038).
 		mockMvc.perform(get("/api/v1/assessments")
@@ -304,6 +305,117 @@ class AuthControllerTest {
 		mockMvc.perform(get("/api/v1/assessments")
 				.param("athleteId", athleteB.toString())
 				.header("Authorization", bearer(coachToken)))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void softDeleteRevokesAthleteAccessAndPendingInvites() throws Exception {
+		String coachToken = registerCoachViaHttp(uniqueEmail("coach"));
+		String athleteId = registerAthleteViaHttp(coachToken);
+		String athleteEmail = uniqueEmail("athlete-del");
+
+		// Cria um convite pendente e também testa revogação do convite ao remover
+		MvcResult inviteRes = mockMvc.perform(post("/api/v1/athletes/{athleteId}/invites", athleteId)
+						.header("Authorization", bearer(coachToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"email": "%s"}
+								""".formatted(athleteEmail)))
+				.andExpect(status().isCreated())
+				.andReturn();
+		String inviteToken = JsonPath.read(inviteRes.getResponse().getContentAsString(), "$.token");
+
+		// Aceita o convite para gerar credencial ativa
+		MvcResult acceptRes = mockMvc.perform(post("/api/v1/invites/{token}/accept", inviteToken)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"password": "senha123!"}
+								"""))
+				.andExpect(status().isOk())
+				.andReturn();
+		String accessToken = JsonPath.read(acceptRes.getResponse().getContentAsString(), "$.accessToken");
+		String refreshToken = JsonPath.read(acceptRes.getResponse().getContentAsString(), "$.refreshToken");
+
+		// Antes da remoção, atleta acessa normalmente
+		mockMvc.perform(get("/api/v1/assessments")
+						.param("athleteId", athleteId)
+						.header("Authorization", bearer(accessToken)))
+				.andExpect(status().isOk());
+
+		// Coach remove o atleta (soft-delete)
+		mockMvc.perform(delete("/api/v1/athletes/{id}", athleteId)
+						.header("Authorization", bearer(coachToken)))
+				.andExpect(status().isNoContent());
+
+		// Login, refresh e access token remanescente são recusados
+		mockMvc.perform(post("/api/v1/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"email": "%s", "password": "senha123!"}
+								""".formatted(athleteEmail)))
+				.andExpect(status().isUnauthorized());
+
+		mockMvc.perform(post("/api/v1/auth/refresh")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"refreshToken": "%s"}
+								""".formatted(refreshToken)))
+				.andExpect(status().isUnauthorized());
+
+		mockMvc.perform(get("/api/v1/assessments")
+						.param("athleteId", athleteId)
+						.header("Authorization", bearer(accessToken)))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void finishedStatusRevokesAthleteAccessWhilePausedKeepsReadAccess() throws Exception {
+		String coachToken = registerCoachViaHttp(uniqueEmail("coach"));
+		String athleteId = registerAthleteViaHttp(coachToken);
+		String athleteEmail = uniqueEmail("athlete-fin");
+		var tokens = authService.registerAthleteCredential(athleteEmail, "senha123!", UUID.fromString(athleteId))
+				.tokens();
+
+		// PAUSED mantém login e leitura histórica
+		mockMvc.perform(post("/api/v1/athletes/{id}/status", athleteId)
+						.header("Authorization", bearer(coachToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"status": "PAUSED", "reason": "Férias"}
+								"""))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(get("/api/v1/assessments")
+						.param("athleteId", athleteId)
+						.header("Authorization", bearer(tokens.accessToken())))
+				.andExpect(status().isOk());
+
+		// FINISHED bloqueia login, refresh e access token remanescente
+		mockMvc.perform(post("/api/v1/athletes/{id}/status", athleteId)
+						.header("Authorization", bearer(coachToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"status": "FINISHED", "reason": "Encerramento"}
+								"""))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(post("/api/v1/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"email": "%s", "password": "senha123!"}
+								""".formatted(athleteEmail)))
+				.andExpect(status().isUnauthorized());
+
+		mockMvc.perform(post("/api/v1/auth/refresh")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"refreshToken": "%s"}
+								""".formatted(tokens.refreshToken())))
+				.andExpect(status().isUnauthorized());
+
+		mockMvc.perform(get("/api/v1/assessments")
+						.param("athleteId", athleteId)
+						.header("Authorization", bearer(tokens.accessToken())))
 				.andExpect(status().isForbidden());
 	}
 }

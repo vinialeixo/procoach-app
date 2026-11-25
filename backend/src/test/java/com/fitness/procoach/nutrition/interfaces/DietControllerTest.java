@@ -4,6 +4,7 @@ import static com.fitness.procoach.CoachAthleteTestSupport.bearer;
 import static com.fitness.procoach.CoachAthleteTestSupport.registerAthlete;
 import static com.fitness.procoach.CoachAthleteTestSupport.registerCoach;
 import static com.fitness.procoach.CoachAthleteTestSupport.uniqueEmail;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -462,5 +463,109 @@ class DietControllerTest {
 						.header("Authorization", bearer(athleteToken)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.classification").value("SURPLUS"));
+	}
+
+	@Test
+	void bloqueiaMutacaoDeRefeicoesEItensForaDeDraftCom409() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		String dietId = createDiet(coach, athleteId);
+
+		MvcResult mealResult = mockMvc.perform(post("/api/v1/diets/{id}/meals", dietId)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{ "name": "Café da manhã", "order": 1, "time": "07:00" }
+								"""))
+				.andExpect(status().isCreated())
+				.andReturn();
+		String mealId = JsonPath.read(mealResult.getResponse().getContentAsString(), "$.meals[0].id");
+
+		MvcResult itemResult = mockMvc.perform(post("/api/v1/diets/{id}/meals/{mealId}/items", dietId, mealId)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "foodId": "taco-1", "name": "Ovo", "source": "TACO",
+								  "kind": "FOOD", "state": "RAW", "quantityG": 100,
+								  "calories": 143, "protein": 13, "carbohydrates": 1.6, "fat": 9.5
+								}
+								"""))
+				.andExpect(status().isOk())
+				.andReturn();
+		String itemId = JsonPath.read(itemResult.getResponse().getContentAsString(), "$.meals[0].items[0].id");
+
+		// Move para IN_REVIEW: todas as mutações devem retornar 409 Conflict
+		changeDietStatus(coach, dietId, "IN_REVIEW");
+
+		mockMvc.perform(post("/api/v1/diets/{id}/meals", dietId)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{ "name": "Almoço", "order": 2, "time": "12:00" }
+								"""))
+				.andExpect(status().isConflict());
+
+		mockMvc.perform(post("/api/v1/diets/{id}/meals/{mealId}/items", dietId, mealId)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "foodId": "taco-2", "name": "Arroz", "source": "TACO",
+								  "kind": "FOOD", "state": "RAW", "quantityG": 100,
+								  "calories": 130, "protein": 2.7, "carbohydrates": 28, "fat": 0.3
+								}
+								"""))
+				.andExpect(status().isConflict());
+
+		mockMvc.perform(delete("/api/v1/diets/{id}/meals/{mealId}/items/{itemId}", dietId, mealId, itemId)
+						.header("Authorization", bearer(coach)))
+				.andExpect(status().isConflict());
+
+		mockMvc.perform(delete("/api/v1/diets/{id}/meals/{mealId}", dietId, mealId)
+						.header("Authorization", bearer(coach)))
+				.andExpect(status().isConflict());
+
+		// Move para APPROVED: mutação continua bloqueada com 409 Conflict
+		changeDietStatus(coach, dietId, "APPROVED");
+
+		mockMvc.perform(post("/api/v1/diets/{id}/meals/{mealId}/items", dietId, mealId)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "foodId": "taco-2", "name": "Arroz", "source": "TACO",
+								  "kind": "FOOD", "state": "RAW", "quantityG": 100,
+								  "calories": 130, "protein": 2.7, "carbohydrates": 28, "fat": 0.3
+								}
+								"""))
+				.andExpect(status().isConflict());
+	}
+
+	@Test
+	void aprovarV2ArquivaV1Automaticamente() throws Exception {
+		String coach = registerCoach(mockMvc, uniqueEmail("coach"));
+		String athleteId = registerAthlete(mockMvc, coach);
+		String v1 = createDiet(coach, athleteId);
+		approve(coach, v1);
+
+		MvcResult v2Result = mockMvc.perform(post("/api/v1/diets/{id}/versions", v1)
+						.header("Authorization", bearer(coach))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{ "objective": "HYPERTROPHY", "calories": 2700, "protein": 190,
+								  "carbohydrates": 280, "fat": 85, "changeReason": "ajuste de fase" }
+								"""))
+				.andExpect(status().isCreated())
+				.andReturn();
+		String v2 = JsonPath.read(v2Result.getResponse().getContentAsString(), "$.id");
+
+		approve(coach, v2);
+
+		mockMvc.perform(get("/api/v1/diets/history").param("athleteId", athleteId)
+						.header("Authorization", bearer(coach)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[?(@.id == '" + v1 + "')].status").value("ARCHIVED"))
+				.andExpect(jsonPath("$[?(@.id == '" + v2 + "')].status").value("APPROVED"));
 	}
 }

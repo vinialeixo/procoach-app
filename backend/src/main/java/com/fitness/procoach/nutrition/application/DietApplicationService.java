@@ -200,6 +200,16 @@ public class DietApplicationService {
 		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "DIET_STATUS_CHANGED", userId,
 				AuditData.of("from", previous.name(), "to", saved.status().name(), "version", saved.version()));
 		if (saved.status() == DietStatus.APPROVED) {
+			// Ao aprovar vN, arquiva automaticamente qualquer versão anterior ainda APPROVED.
+			for (Diet other : repository.findAllVersionsByAthleteId(saved.athleteId())) {
+				if (!other.id().equals(saved.id()) && !other.isDeleted() && other.status() == DietStatus.APPROVED) {
+					other.archiveSuperseded();
+					repository.save(other);
+					auditService.record("Diet", other.id().value(), other.athleteId().value(), "DIET_STATUS_CHANGED",
+							userId, AuditData.of("from", DietStatus.APPROVED.name(), "to", DietStatus.ARCHIVED.name(),
+									"version", other.version(), "supersededBy", saved.id().value()));
+				}
+			}
 			// Aprovada: é o que o atleta passa a enxergar. Avisa na mesma transação.
 			notificationService.notifyAthlete(saved.athleteId().value(), "DIET_APPROVED",
 					saved.version() > 1
@@ -301,11 +311,6 @@ public class DietApplicationService {
 	@Transactional
 	public Diet addMealItem(UUID userId, UUID dietId, UUID mealId, AddMealItemCommand command) {
 		Diet diet = findOwnedById(new DietId(dietId), userId);
-		Meal meal = diet.meals().stream()
-				.filter(m -> m.id().value().equals(mealId))
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("Meal not found: " + mealId));
-
 		MealItem item = MealItem.create(
 				command.foodId(),
 				command.name(),
@@ -316,8 +321,7 @@ public class DietApplicationService {
 				command.householdMeasure(),
 				command.preparation(),
 				Macronutrients.of(command.calories(), command.protein(), command.carbohydrates(), command.fat()));
-		meal.addItem(item);
-		diet.recalculateMacrosFromMeals();
+		diet.addMealItem(new MealId(mealId), item);
 		Diet saved = repository.save(diet);
 		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "MEAL_ITEM_ADDED", userId,
 				AuditData.of("mealId", mealId, "itemId", item.id().value(), "itemName", item.name(), "version", saved.version()));
@@ -328,16 +332,10 @@ public class DietApplicationService {
 	@Transactional
 	public Diet removeMealItem(UUID userId, UUID dietId, UUID mealId, UUID itemId) {
 		Diet diet = findOwnedById(new DietId(dietId), userId);
-		Meal meal = diet.meals().stream()
-				.filter(m -> m.id().value().equals(mealId))
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("Meal not found: " + mealId));
-
-		boolean removed = meal.removeItem(new MealItemId(itemId));
+		boolean removed = diet.removeMealItem(new MealId(mealId), new MealItemId(itemId));
 		if (!removed) {
 			throw new IllegalArgumentException("MealItem not found: " + itemId);
 		}
-		diet.recalculateMacrosFromMeals();
 		Diet saved = repository.save(diet);
 		auditService.record("Diet", saved.id().value(), saved.athleteId().value(), "MEAL_ITEM_REMOVED", userId,
 				AuditData.of("mealId", mealId, "itemId", itemId, "version", saved.version()));

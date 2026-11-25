@@ -248,32 +248,34 @@ public class Diet {
         return next;
     }
 
+    private void requireEditable(String action) {
+        if (readOnly) {
+            throw new IllegalStateException("Cannot " + action + " on a read-only version");
+        }
+        if (deleted) {
+            throw new IllegalStateException("Cannot " + action + " on a deleted diet");
+        }
+        if (status != DietStatus.DRAFT) {
+            throw new IllegalStateException("Cannot " + action + " when diet status is " + status);
+        }
+    }
+
     /**
-     * Adiciona uma refeição à dieta.
+     * Adiciona uma refeição à dieta (apenas em rascunho).
      */
     public void addMeal(Meal meal) {
         Objects.requireNonNull(meal, "meal");
-        if (readOnly) {
-            throw new IllegalStateException("Cannot add meal to a read-only version");
-        }
-        if (deleted) {
-            throw new IllegalStateException("Cannot add meal to a deleted diet");
-        }
+        requireEditable("add meal");
         meals.add(meal);
         recalculateMacrosFromMeals();
         this.updatedAt = Instant.now();
     }
 
     /**
-     * Remove uma refeição da dieta pelo id.
+     * Remove uma refeição da dieta pelo id (apenas em rascunho).
      */
     public boolean removeMeal(MealId mealId) {
-        if (readOnly) {
-            throw new IllegalStateException("Cannot remove meal from a read-only version");
-        }
-        if (deleted) {
-            throw new IllegalStateException("Cannot remove meal from a deleted diet");
-        }
+        requireEditable("remove meal");
         boolean removed = meals.removeIf(m -> m.id().equals(mealId));
         if (removed) {
             recalculateMacrosFromMeals();
@@ -283,30 +285,55 @@ public class Diet {
     }
 
     /**
-     * Adiciona um suplemento à dieta (T-090).
+     * Adiciona um item a uma refeição da dieta (apenas em rascunho) e recalcula os macros.
+     */
+    public void addMealItem(MealId mealId, MealItem item) {
+        Objects.requireNonNull(mealId, "mealId");
+        Objects.requireNonNull(item, "item");
+        requireEditable("add meal item");
+        Meal meal = meals.stream()
+                .filter(m -> m.id().equals(mealId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Meal not found: " + mealId.value()));
+        meal.addItem(item);
+        recalculateMacrosFromMeals();
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Remove um item de uma refeição da dieta (apenas em rascunho) e recalcula os macros.
+     */
+    public boolean removeMealItem(MealId mealId, MealItemId itemId) {
+        Objects.requireNonNull(mealId, "mealId");
+        Objects.requireNonNull(itemId, "itemId");
+        requireEditable("remove meal item");
+        Meal meal = meals.stream()
+                .filter(m -> m.id().equals(mealId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Meal not found: " + mealId.value()));
+        boolean removed = meal.removeItem(itemId);
+        if (removed) {
+            recalculateMacrosFromMeals();
+            this.updatedAt = Instant.now();
+        }
+        return removed;
+    }
+
+    /**
+     * Adiciona um suplemento à dieta (T-090, apenas em rascunho).
      */
     public void addSupplement(Supplement supplement) {
         Objects.requireNonNull(supplement, "supplement");
-        if (readOnly) {
-            throw new IllegalStateException("Cannot add supplement to a read-only version");
-        }
-        if (deleted) {
-            throw new IllegalStateException("Cannot add supplement to a deleted diet");
-        }
+        requireEditable("add supplement");
         supplements.add(supplement);
         this.updatedAt = Instant.now();
     }
 
     /**
-     * Remove um suplemento da dieta pelo nome.
+     * Remove um suplemento da dieta pelo nome (apenas em rascunho).
      */
     public boolean removeSupplement(String name) {
-        if (readOnly) {
-            throw new IllegalStateException("Cannot remove supplement from a read-only version");
-        }
-        if (deleted) {
-            throw new IllegalStateException("Cannot remove supplement from a deleted diet");
-        }
+        requireEditable("remove supplement");
         boolean removed = supplements.removeIf(s -> s.name().equalsIgnoreCase(name));
         if (removed) {
             this.updatedAt = Instant.now();
@@ -513,6 +540,20 @@ public class Diet {
         this.status = newStatus;
         this.updatedAt = Instant.now();
         registerEvent(new DietStatusChanged(id, oldStatus, newStatus, updatedAt));
+    }
+
+    /**
+     * Arquiva uma versão aprovada anterior quando uma nova versão do mesmo atleta é aprovada.
+     * Permite arquivar mesmo quando {@code readOnly == true} (congelada pelo versionamento).
+     */
+    public void archiveSuperseded() {
+        if (deleted || status != DietStatus.APPROVED) {
+            return;
+        }
+        DietStatus oldStatus = this.status;
+        this.status = DietStatus.ARCHIVED;
+        this.updatedAt = Instant.now();
+        registerEvent(new DietStatusChanged(id, oldStatus, DietStatus.ARCHIVED, updatedAt));
     }
 
     /**

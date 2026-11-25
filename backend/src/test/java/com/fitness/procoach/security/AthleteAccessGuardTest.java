@@ -91,8 +91,19 @@ class AthleteAccessGuardTest {
 		UUID athleteId = UUID.randomUUID();
 
 		Authentication auth = createAthleteAuth(athleteId);
+		when(athleteAccessService.isAccessAllowed(athleteId)).thenReturn(true);
 
 		assertThat(guard.canAccess(auth, athleteId)).isTrue();
+	}
+
+	@Test
+	void athleteCannotAccessWhenRevokedOrFinished() {
+		UUID athleteId = UUID.randomUUID();
+
+		Authentication auth = createAthleteAuth(athleteId);
+		when(athleteAccessService.isAccessAllowed(athleteId)).thenReturn(false);
+
+		assertThat(guard.canAccess(auth, athleteId)).isFalse();
 	}
 
 	@Test
