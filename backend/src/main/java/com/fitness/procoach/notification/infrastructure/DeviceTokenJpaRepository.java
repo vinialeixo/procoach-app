@@ -7,7 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DeviceTokenJpaRepository extends JpaRepository<DeviceTokenJpaEntity, UUID> {
 
+	Optional<DeviceTokenJpaEntity> findByTokenAndDeletedAtIsNull(String token);
+
 	Optional<DeviceTokenJpaEntity> findByToken(String token);
 
-	List<DeviceTokenJpaEntity> findByAthleteId(UUID athleteId);
+	List<DeviceTokenJpaEntity> findByAthleteIdAndDeletedAtIsNull(UUID athleteId);
 }
