@@ -74,6 +74,7 @@ export function AthleteHomePage() {
   const primarySession = todaySessions[0] ?? sessions[0];
 
   const diet = dietQuery.data ?? null;
+  const dietMacros = diet ? (diet.totals ?? diet.macros) : null;
   const nextMeal = diet ? pickNextMeal(diet.meals) : undefined;
   const unreadCount = (notificationsQuery.data ?? []).filter(
     (n) => !n.readAt
@@ -124,8 +125,8 @@ export function AthleteHomePage() {
                     : "Sem dieta aprovada"}
             </strong>
             <span className="athlete-home__hero-meta">
-              {diet
-                ? `${Math.round(diet.calories)} kcal · P ${Math.round(diet.protein)}g · C ${Math.round(diet.carbohydrates)}g · G ${Math.round(diet.fat)}g`
+              {dietMacros
+                ? `${Math.round(dietMacros.calories)} kcal · P ${Math.round(dietMacros.protein)}g · C ${Math.round(dietMacros.carbohydrates)}g · G ${Math.round(dietMacros.fat)}g`
                 : "Aguardando aprovação do coach"}
             </span>
           </Link>

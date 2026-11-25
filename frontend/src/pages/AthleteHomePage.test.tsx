@@ -63,10 +63,18 @@ describe("AthleteHomePage", () => {
         id: "diet-1",
         objective: "HYPERTROPHY",
         version: 1,
-        calories: 2400,
-        protein: 180,
-        carbohydrates: 260,
-        fat: 70,
+        macros: {
+          calories: 2400,
+          protein: 180,
+          carbohydrates: 260,
+          fat: 70,
+        },
+        totals: {
+          calories: 2400,
+          protein: 180,
+          carbohydrates: 260,
+          fat: 70,
+        },
         meals: [
           {
             id: "meal-1",
