@@ -23,6 +23,87 @@ import { RoleRedirect } from "@/components/RoleRedirect";
 import { GlobalForbiddenBanner } from "@/components/GlobalForbiddenBanner";
 import { setSessionExpiredHandler } from "@/lib/api-client";
 
+const LoginPage = lazy(() =>
+  import("@/pages/LoginPage").then((m) => ({ default: m.LoginPage }))
+);
+const RegisterPage = lazy(() =>
+  import("@/pages/RegisterPage").then((m) => ({ default: m.RegisterPage }))
+);
+const AcceptInvitePage = lazy(() =>
+  import("@/pages/AcceptInvitePage").then((m) => ({ default: m.AcceptInvitePage }))
+);
+const CoachHomePage = lazy(() =>
+  import("@/pages/CoachHomePage").then((m) => ({ default: m.CoachHomePage }))
+);
+const AthleteHomePage = lazy(() =>
+  import("@/pages/AthleteHomePage").then((m) => ({ default: m.AthleteHomePage }))
+);
+const AthleteAssessmentHistoryPage = lazy(() =>
+  import("@/pages/AthleteAssessmentHistoryPage").then((m) => ({
+    default: m.AthleteAssessmentHistoryPage,
+  }))
+);
+const AthleteDietPage = lazy(() =>
+  import("@/pages/AthleteDietPage").then((m) => ({ default: m.AthleteDietPage }))
+);
+const AthleteTrainingPage = lazy(() =>
+  import("@/pages/AthleteTrainingPage").then((m) => ({
+    default: m.AthleteTrainingPage,
+  }))
+);
+const AthleteNotificationSettingsPage = lazy(() =>
+  import("@/pages/AthleteNotificationSettingsPage").then((m) => ({
+    default: m.AthleteNotificationSettingsPage,
+  }))
+);
+const AthleteListPage = lazy(() =>
+  import("@/pages/AthleteListPage").then((m) => ({ default: m.AthleteListPage }))
+);
+const AthleteCreatePage = lazy(() =>
+  import("@/pages/AthleteCreatePage").then((m) => ({
+    default: m.AthleteCreatePage,
+  }))
+);
+const AthleteDetailPage = lazy(() =>
+  import("@/pages/AthleteDetailPage").then((m) => ({
+    default: m.AthleteDetailPage,
+  }))
+);
+const AssessmentCreatePage = lazy(() =>
+  import("@/pages/AssessmentCreatePage").then((m) => ({
+    default: m.AssessmentCreatePage,
+  }))
+);
+const DietEditorPage = lazy(() =>
+  import("@/pages/DietEditorPage").then((m) => ({ default: m.DietEditorPage }))
+);
+const DietDetailPage = lazy(() =>
+  import("@/pages/DietDetailPage").then((m) => ({ default: m.DietDetailPage }))
+);
+const DietMealsPage = lazy(() =>
+  import("@/pages/DietMealsPage").then((m) => ({ default: m.DietMealsPage }))
+);
+const TrainingPage = lazy(() =>
+  import("@/pages/TrainingPage").then((m) => ({ default: m.TrainingPage }))
+);
+
+function RouteLoadingFallback() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        padding: "2rem",
+        textAlign: "center",
+        color: "var(--color-ink-muted)",
+        fontFamily: "var(--font-sans)",
+      }}
+    >
+      Carregando…
+    </div>
+  );
+}
+
 const MockBanner =
   import.meta.env.VITE_USE_MOCKS === "true"
     ? lazy(() =>
@@ -55,7 +136,8 @@ export function App() {
     <BrowserRouter>
       <AuthNavigationBridge />
       <GlobalForbiddenBanner />
-      <Routes>
+      <Suspense fallback={<RouteLoadingFallback />}>
+        <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
         {/* Convite do atleta (primeira credencial) — público: o token é a credencial */}
@@ -109,8 +191,9 @@ export function App() {
 
         {/* "/" decide pra onde mandar com base no papel de quem está logado */}
         <Route path="/" element={<RoleRedirect />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
       {MockBanner && (
         <Suspense fallback={null}>
           <MockBanner />

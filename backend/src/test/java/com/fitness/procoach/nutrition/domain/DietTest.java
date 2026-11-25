@@ -400,4 +400,72 @@ class DietTest {
         assertThatThrownBy(() -> diet.meals().add(meal))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
+
+    @Test
+    void addAndRemoveMealItem_shouldEncapsulateAndRecalculateMacros() {
+        Diet diet = Diet.create(COACH, ATHLETE, DietObjective.HYPERTROPHY, MACROS, AUTHOR);
+        Meal meal = Meal.create("Café da manhã", 1, "07:00", null, null);
+        diet.addMeal(meal);
+
+        MealItem egg = MealItem.create("food1", "Ovo", FoodSource.TACO, FoodKind.FOOD,
+                FoodState.RAW, 100, "2 un", "cozido", EGG_MACROS);
+        diet.addMealItem(meal.id(), egg);
+
+        assertThat(diet.meals().get(0).items()).hasSize(1);
+        assertThat(diet.macros().calories()).isEqualTo(143);
+
+        boolean removed = diet.removeMealItem(meal.id(), egg.id());
+        assertThat(removed).isTrue();
+        assertThat(diet.meals().get(0).items()).isEmpty();
+    }
+
+    @Test
+    void mealAndSupplementMutations_shouldRejectOutsideDraft() {
+        Diet diet = Diet.create(COACH, ATHLETE, DietObjective.CUTTING, MACROS, AUTHOR);
+        Meal meal = Meal.create("Café da manhã", 1, "07:00", null, null);
+        MealItem egg = MealItem.create("food1", "Ovo", FoodSource.TACO, FoodKind.FOOD,
+                FoodState.RAW, 100, "2 un", "cozido", EGG_MACROS);
+        meal.addItem(egg);
+        diet.addMeal(meal);
+        Supplement supp = Supplement.create("Creatina", "5g", "Pós-treino", false);
+        diet.addSupplement(supp);
+
+        diet.changeStatus(DietStatus.IN_REVIEW);
+        assertThatThrownBy(() -> diet.addMeal(Meal.create("Almoço", 2, "12:00", null, null)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("IN_REVIEW");
+        assertThatThrownBy(() -> diet.removeMeal(meal.id()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("IN_REVIEW");
+        assertThatThrownBy(() -> diet.addMealItem(meal.id(), egg))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("IN_REVIEW");
+        assertThatThrownBy(() -> diet.removeMealItem(meal.id(), egg.id()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("IN_REVIEW");
+        assertThatThrownBy(() -> diet.addSupplement(supp))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("IN_REVIEW");
+        assertThatThrownBy(() -> diet.removeSupplement("Creatina"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("IN_REVIEW");
+
+        diet.changeStatus(DietStatus.APPROVED);
+        assertThatThrownBy(() -> diet.addMealItem(meal.id(), egg))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("APPROVED");
+    }
+
+    @Test
+    void archiveSuperseded_shouldArchiveReadOnlyApprovedVersion() {
+        Diet v1 = Diet.create(COACH, ATHLETE, DietObjective.CUTTING, MACROS, AUTHOR);
+        v1.changeStatus(DietStatus.IN_REVIEW);
+        v1.changeStatus(DietStatus.APPROVED);
+        v1.createNewVersion(DietObjective.CUTTING, MACROS, "Ajuste", AUTHOR);
+
+        assertThat(v1.isReadOnly()).isTrue();
+        v1.archiveSuperseded();
+
+        assertThat(v1.status()).isEqualTo(DietStatus.ARCHIVED);
+    }
 }

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.fitness.procoach.athlete.application.AthleteAccessService;
 import com.fitness.procoach.audit.application.AuditData;
 import com.fitness.procoach.audit.application.AuditService;
 import com.fitness.procoach.coach.application.CoachApplicationService;
@@ -48,6 +49,7 @@ public class AuthService {
 	private final JwtTokenService tokenService;
 	private final TotpService totpService;
 	private final CoachApplicationService coachService;
+	private final AthleteAccessService athleteAccessService;
 	private final TransactionTemplate transactionTemplate;
 
 	/**
@@ -60,7 +62,7 @@ public class AuthService {
 
 	public AuthService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder,
 			JwtTokenService tokenService, TotpService totpService, CoachApplicationService coachService,
-			PlatformTransactionManager transactionManager,
+			AthleteAccessService athleteAccessService, PlatformTransactionManager transactionManager,
 			@Value("${procoach.security.mfa.enabled:false}") boolean mfaEnabled,
 			AuditService auditService) {
 		this.auditService = auditService;
@@ -71,6 +73,7 @@ public class AuthService {
 		this.tokenService = tokenService;
 		this.totpService = totpService;
 		this.coachService = coachService;
+		this.athleteAccessService = athleteAccessService;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
 	}
 
@@ -130,6 +133,9 @@ public class AuthService {
 				.filter(User::isEnabled)
 				.orElseThrow(InvalidCredentialsException::new);
 		if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+			throw new InvalidCredentialsException();
+		}
+		if (user.getAthleteId() != null && !athleteAccessService.isAccessAllowed(user.getAthleteId())) {
 			throw new InvalidCredentialsException();
 		}
 		if (mfaEnabled && user.isMfaEnabled()) {
@@ -198,7 +204,11 @@ public class AuthService {
 	public AuthTokens refresh(String refreshToken) {
 		Jwt jwt = tokenService.parse(refreshToken);
 		tokenService.requireType(jwt, JwtTokenService.TYPE_REFRESH);
-		return issueTokens(loadEnabledUser(jwt.getSubject()));
+		User user = loadEnabledUser(jwt.getSubject());
+		if (user.getAthleteId() != null && !athleteAccessService.isAccessAllowed(user.getAthleteId())) {
+			throw new InvalidTokenException("Acesso do atleta revogado");
+		}
+		return issueTokens(user);
 	}
 
 	/** Login concluído (senha e, se ativo, segundo fator). O atleta aparece no histórico dele. */

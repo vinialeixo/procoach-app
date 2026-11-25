@@ -68,6 +68,11 @@ public class User {
 		this.updatedAt = Instant.now();
 	}
 
+	public void enable() {
+		this.enabled = true;
+		this.updatedAt = Instant.now();
+	}
+
 	/**
 	 * Vincula a credencial ao agregado Athlete (referência por UUID). Só faz
 	 * sentido para usuários com papel ATHLETE — é o claim que ancora o

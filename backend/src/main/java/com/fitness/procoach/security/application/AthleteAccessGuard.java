@@ -59,7 +59,10 @@ public class AthleteAccessGuard {
 		}
 		if (authentication.getPrincipal() instanceof Jwt jwt) {
 			String claim = jwt.getClaimAsString("athleteId");
-			return claim != null && claim.equals(athleteId.toString());
+			if (claim == null || !claim.equals(athleteId.toString())) {
+				return false;
+			}
+			return athleteAccessService.isAccessAllowed(athleteId);
 		}
 		return false;
 	}
