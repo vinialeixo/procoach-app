@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { AcceptInvitePage } from "@/pages/AcceptInvitePage";
@@ -17,6 +17,7 @@ import { DietEditorPage } from "@/pages/DietEditorPage";
 import { DietDetailPage } from "@/pages/DietDetailPage";
 import { DietMealsPage } from "@/pages/DietMealsPage";
 import { TrainingPage } from "@/pages/TrainingPage";
+import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleRedirect } from "@/components/RoleRedirect";
 import { GlobalForbiddenBanner } from "@/components/GlobalForbiddenBanner";
@@ -108,7 +109,7 @@ export function App() {
 
         {/* "/" decide pra onde mandar com base no papel de quem está logado */}
         <Route path="/" element={<RoleRedirect />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
       {MockBanner && (
         <Suspense fallback={null}>
