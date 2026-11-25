@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -61,6 +63,24 @@ public class AthleteInviteAdminController {
 	public InviteSummaryResponse revoke(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID athleteId,
 			@PathVariable UUID inviteId) {
 		return InviteSummaryResponse.from(inviteService.revoke(UUID.fromString(jwt.getSubject()), athleteId, inviteId));
+	}
+
+	@Operation(summary = "Reenviar convite do atleta",
+			description = "Revoga o convite anterior e emite um novo link de uso único (7 dias) para o mesmo "
+					+ "e-mail, enviando-o novamente. Também devolve o token para o coach como fallback.")
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "Novo convite criado e reenviado"),
+			@ApiResponse(responseCode = "404", description = "Atleta não encontrado ou de outro coach"),
+			@ApiResponse(responseCode = "409",
+					description = "Atleta já tem acesso, e-mail já cadastrado ou nenhum convite anterior") })
+	@PreAuthorize("hasRole('COACH')")
+	@PostMapping("/resend")
+	public ResponseEntity<InviteResponse> resend(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID athleteId) {
+		AthleteInviteService.CreatedInvite created = inviteService.resend(UUID.fromString(jwt.getSubject()),
+				athleteId);
+		return ResponseEntity.status(HttpStatus.CREATED).body(new InviteResponse(created.athleteId(),
+				created.email(), created.token(), "/convite/" + created.token(), created.emailSent(),
+				created.expiresAt()));
 	}
 
 	@com.fasterxml.jackson.annotation.JsonPropertyOrder({ "id", "athleteId", "email", "expiresAt", "createdAt",

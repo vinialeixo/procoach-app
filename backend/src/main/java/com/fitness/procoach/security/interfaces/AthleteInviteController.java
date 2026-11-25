@@ -37,8 +37,9 @@ public class AthleteInviteController {
 	}
 
 	@Operation(summary = "Gerar convite para um atleta",
-			description = "Cria um convite de uso único para um atleta da carteira do coach. Convites pendentes "
-					+ "anteriores do mesmo atleta são revogados. O token só é devolvido nesta resposta.")
+			description = "Cria um convite de uso único para um atleta da carteira do coach e o envia por e-mail. "
+					+ "Convites pendentes anteriores do mesmo atleta são revogados. O token só é devolvido nesta "
+					+ "resposta; emailSent=false indica que o coach deve repassar o link manualmente.")
 	@ApiResponses({
 			@ApiResponse(responseCode = "201", description = "Convite criado"),
 			@ApiResponse(responseCode = "404", description = "Atleta não encontrado ou de outro coach"),
@@ -50,7 +51,8 @@ public class AthleteInviteController {
 		AthleteInviteService.CreatedInvite created = inviteService.create(UUID.fromString(jwt.getSubject()),
 				request.athleteId(), request.email());
 		return ResponseEntity.status(HttpStatus.CREATED).body(new InviteResponse(created.athleteId(),
-				created.email(), created.token(), "/convite/" + created.token(), created.expiresAt()));
+				created.email(), created.token(), "/convite/" + created.token(), created.emailSent(),
+				created.expiresAt()));
 	}
 
 	@Operation(summary = "Consultar convite",

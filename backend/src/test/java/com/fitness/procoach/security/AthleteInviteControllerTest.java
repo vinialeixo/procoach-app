@@ -47,6 +47,7 @@ class AthleteInviteControllerTest {
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.token").isNotEmpty())
 				.andExpect(jsonPath("$.invitePath").isNotEmpty())
+				.andExpect(jsonPath("$.emailSent").value(false))
 				.andReturn();
 		return JsonPath.read(result.getResponse().getContentAsString(), "$.token");
 	}

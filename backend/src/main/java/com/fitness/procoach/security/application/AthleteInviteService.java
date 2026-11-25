@@ -14,6 +14,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
@@ -23,8 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Convite do atleta (primeira credencial): o coach gera um link de uso único e
- * o atleta define a própria senha. O envio por e-mail não faz parte deste
- * serviço — o link é devolvido ao coach, que o repassa ao atleta.
+ * o atleta define a própria senha. O convite é enviado por e-mail quando o SMTP
+ * está configurado (T-064) e o link continua disponível ao coach como fallback.
  */
 @Service
 public class AthleteInviteService {
@@ -40,20 +41,22 @@ public class AthleteInviteService {
 	private final AthleteAccessService athleteAccessService;
 	private final AuthService authService;
 	private final AuditService auditService;
+	private final AthleteInviteMailer mailer;
 
 	public AthleteInviteService(AthleteInviteRepository invites, UserRepository users,
 			CoachApplicationService coachService, AthleteAccessService athleteAccessService,
-			AuthService authService, AuditService auditService) {
+			AuthService authService, AuditService auditService, AthleteInviteMailer mailer) {
 		this.auditService = auditService;
 		this.invites = invites;
 		this.users = users;
 		this.coachService = coachService;
 		this.athleteAccessService = athleteAccessService;
 		this.authService = authService;
+		this.mailer = mailer;
 	}
 
 	/** Convite criado; o token só existe aqui, nunca é recuperável depois. */
-	public record CreatedInvite(UUID athleteId, String email, String token, Instant expiresAt) {
+	public record CreatedInvite(UUID athleteId, String email, String token, Instant expiresAt, boolean emailSent) {
 	}
 
 	/** O que o atleta vê antes de definir a senha. */
@@ -61,33 +64,84 @@ public class AthleteInviteService {
 	}
 
 	/**
-	 * Gera um convite para um atleta da carteira do coach autenticado. Convites
-	 * pendentes anteriores do mesmo atleta são revogados. O coachId vem do
-	 * usuário autenticado (T-058), nunca do request; atleta de outro coach resulta
-	 * em 404.
+	 * Gera um convite para um atleta da carteira do coach autenticado e o envia
+	 * por e-mail quando o SMTP está configurado. Convites pendentes anteriores do
+	 * mesmo atleta são revogados. O coachId vem do usuário autenticado (T-058),
+	 * nunca do request; atleta de outro coach resulta em 404.
 	 */
 	@Transactional
 	public CreatedInvite create(UUID coachUserId, UUID athleteId, String email) {
 		UUID coachId = coachService.requireCoachIdByUserId(coachUserId).value();
 		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
 		String cleanEmail = email.trim();
+		requireInviteable(athleteId, cleanEmail);
+		return issue(coachUserId, athleteId, coachId, cleanEmail, "ATHLETE_INVITED");
+	}
+
+	/**
+	 * Reenvia o convite do atleta: revoga o convite anterior e emite um novo link
+	 * de uso único (7 dias) para o mesmo e-mail, enviando-o novamente. Se o
+	 * atleta já tem credencial ou o e-mail passou a pertencer a outro usuário,
+	 * responde 409 como na criação.
+	 */
+	@Transactional
+	public CreatedInvite resend(UUID coachUserId, UUID athleteId) {
+		UUID coachId = coachService.requireCoachIdByUserId(coachUserId).value();
+		athleteAccessService.requireOwnedByCoach(athleteId, coachId);
 		if (users.existsByAthleteId(athleteId)) {
 			throw new AthleteAlreadyHasCredentialException();
 		}
-		if (users.findByEmail(cleanEmail).isPresent()) {
-			throw new EmailAlreadyRegisteredException(cleanEmail);
+		AthleteInvite previous = invites.findAllByAthleteId(athleteId).stream()
+				.max(Comparator.comparing(AthleteInvite::getCreatedAt))
+				.orElseThrow(() -> new IllegalStateException(
+						"Não há convite anterior para reenviar; gere um novo convite informando o e-mail"));
+		String email = previous.getEmail();
+		if (users.findByEmail(email).isPresent()) {
+			throw new EmailAlreadyRegisteredException(email);
 		}
+		return issue(coachUserId, athleteId, coachId, email, "ATHLETE_INVITE_RESENT");
+	}
+
+	private void requireInviteable(UUID athleteId, String email) {
+		if (users.existsByAthleteId(athleteId)) {
+			throw new AthleteAlreadyHasCredentialException();
+		}
+		if (users.findByEmail(email).isPresent()) {
+			throw new EmailAlreadyRegisteredException(email);
+		}
+	}
+
+	/**
+	 * Emite o convite (revogando os pendentes anteriores), registra a auditoria
+	 * append-only e tenta o envio por e-mail. Falha de SMTP não derruba o convite:
+	 * o link volta na resposta para o coach repassar manualmente.
+	 */
+	private CreatedInvite issue(UUID actorUserId, UUID athleteId, UUID coachId, String email, String auditEvent) {
 		Instant now = Instant.now();
+		revokeOpen(athleteId, now);
+		Instant expiresAt = now.plus(TTL);
+		String token = newToken();
+		AthleteInvite invite = invites.save(
+				AthleteInvite.create(athleteId, coachId, email, hash(token), now, expiresAt));
+		auditService.record("AthleteInvite", invite.getId(), athleteId, auditEvent, actorUserId,
+				AuditData.of("email", email, "expiresAt", expiresAt));
+		boolean emailSent = deliver(invite.getAthleteId(), email, token, expiresAt);
+		return new CreatedInvite(athleteId, email, token, expiresAt, emailSent);
+	}
+
+	private void revokeOpen(UUID athleteId, Instant now) {
 		for (AthleteInvite previous : invites.findOpenByAthleteId(athleteId)) {
 			previous.revoke(now);
 			invites.save(previous);
 		}
-		String token = newToken();
-		AthleteInvite invite = invites.save(
-				AthleteInvite.create(athleteId, coachId, cleanEmail, hash(token), now, now.plus(TTL)));
-		auditService.record("AthleteInvite", invite.getId(), athleteId, "ATHLETE_INVITED", coachUserId,
-				AuditData.of("expiresAt", invite.getExpiresAt()));
-		return new CreatedInvite(athleteId, cleanEmail, token, now.plus(TTL));
+	}
+
+	private boolean deliver(UUID athleteId, String email, String token, Instant expiresAt) {
+		if (!mailer.available()) {
+			return false;
+		}
+		String athleteName = athleteAccessService.profileOf(athleteId).name();
+		return mailer.send(new AthleteInviteMailer.InviteEmail(athleteId, athleteName, email, token, expiresAt));
 	}
 
 	/** Dados do convite para a tela de aceite; 404 genérico se não for utilizável. */

@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -345,8 +347,13 @@ class T096AthleteEmailAcceptanceTest {
 	}
 
 	// ---- Criterio 5: migracao V808 aditiva e anulavel ----
+	// Estes testes dependem do schema real do Postgres (Flyway + defaults das migrations).
+	// No perfil h2 o Flyway fica desligado e o schema vem das entidades JPA, então eles
+	// não se aplicam — o job "Backend (Postgres + Flyway)" é quem os valida.
 
 	@Test
+	@DisabledIfSystemProperty(named = "spring.profiles.active", matches = ".*h2.*")
+	@DisabledIfEnvironmentVariable(named = "SPRING_PROFILES_ACTIVE", matches = ".*h2.*")
 	void migracaoV808AdicionaColunaEmailAnulavelDe255() {
 		Map<String, Object> column = jdbc.queryForMap("""
 				SELECT is_nullable, data_type, character_maximum_length, column_default
@@ -361,6 +368,8 @@ class T096AthleteEmailAcceptanceTest {
 	}
 
 	@Test
+	@DisabledIfSystemProperty(named = "spring.profiles.active", matches = ".*h2.*")
+	@DisabledIfEnvironmentVariable(named = "SPRING_PROFILES_ACTIVE", matches = ".*h2.*")
 	void migracaoV808FoiAplicada() {
 		Integer applied = jdbc.queryForObject("""
 				SELECT count(*) FROM flyway_schema_history WHERE version = '808' AND success = TRUE
@@ -369,6 +378,8 @@ class T096AthleteEmailAcceptanceTest {
 	}
 
 	@Test
+	@DisabledIfSystemProperty(named = "spring.profiles.active", matches = ".*h2.*")
+	@DisabledIfEnvironmentVariable(named = "SPRING_PROFILES_ACTIVE", matches = ".*h2.*")
 	void linhaLegadaSemEmailContinuaValidaELegivelComEmailNulo() {
 		UUID legacyId = UUID.randomUUID();
 
