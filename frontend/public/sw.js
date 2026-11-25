@@ -1,3 +1,4 @@
+/* global self, caches, fetch, URL */
 const STATIC_CACHE = "procoach-static-v1";
 const API_CACHE = "procoach-api-v1";
 
