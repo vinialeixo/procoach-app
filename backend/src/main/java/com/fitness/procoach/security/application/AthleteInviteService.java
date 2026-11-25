@@ -174,6 +174,23 @@ public class AthleteInviteService {
 	}
 
 	/**
+	 * Revoga todos os convites em aberto de um atleta (ex.: ao removê-lo ou
+	 * finalizá-lo).
+	 */
+	@Transactional
+	public void revokeAllOpenByAthlete(UUID athleteId, UUID actorUserId) {
+		Instant now = Instant.now();
+		for (AthleteInvite invite : invites.findOpenByAthleteId(athleteId)) {
+			if (invite.getUsedAt() == null && invite.getRevokedAt() == null) {
+				invite.revoke(now);
+				invites.save(invite);
+				auditService.record("AthleteInvite", invite.getId(), athleteId, "ATHLETE_INVITE_REVOKED", actorUserId,
+						AuditData.of("email", invite.getEmail(), "reason", "athlete_access_revoked"));
+			}
+		}
+	}
+
+	/**
 	 * Aceita o convite: cria a credencial do atleta (e-mail do convite + senha
 	 * escolhida), consome o convite e devolve a sessão já autenticada. A linha do
 	 * convite fica travada durante o aceite, então dois aceites simultâneos do

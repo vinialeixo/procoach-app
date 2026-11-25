@@ -3,6 +3,7 @@ package com.fitness.procoach.athlete.application;
 import com.fitness.procoach.athlete.domain.Athlete;
 import com.fitness.procoach.athlete.domain.AthleteId;
 import com.fitness.procoach.athlete.domain.AthleteRepository;
+import com.fitness.procoach.athlete.domain.AthleteStatus;
 import com.fitness.procoach.athlete.domain.Sex;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -49,6 +50,18 @@ public class AthleteAccessService {
 				.filter(a -> !a.isDeleted())
 				.orElseThrow(() -> new AthleteNotFoundException(athleteId));
 		return new AthleteProfile(athlete.name().value(), athlete.sex() == Sex.MALE, athlete.birthDate());
+	}
+
+	/**
+	 * {@code true} se o atleta existe, não foi removido (soft-delete) e não está
+	 * finalizado ({@code FINISHED}). Atletas {@code PAUSED} mantêm login e leitura
+	 * histórica; atletas {@code FINISHED} ou removidos têm o acesso bloqueado.
+	 */
+	public boolean isAccessAllowed(UUID athleteId) {
+		return repository.findById(AthleteId.of(athleteId))
+				.filter(athlete -> !athlete.isDeleted())
+				.map(athlete -> athlete.status() != AthleteStatus.FINISHED)
+				.orElse(false);
 	}
 
 	/**
