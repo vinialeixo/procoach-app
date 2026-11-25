@@ -41,7 +41,12 @@ public class UserAthleteAccessInfoProvider implements AthleteAccessInfoProvider 
 
 	@Override
 	public boolean emailBelongsToUser(String email) {
-		return users.findByEmail(email).isPresent();
+		if (email == null || email.isBlank()) {
+			return false;
+		}
+		// T-096: dedupe de atleta é case-insensitive, pois e-mails são
+		// case-insensitive por convenção. Normaliza (trim) antes de comparar.
+		return users.existsByEmailIgnoreCase(email.trim());
 	}
 
 	@Override

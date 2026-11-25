@@ -31,4 +31,16 @@ public record RegisterAthleteRequest(
 		@Schema(description = "Objetivo do acompanhamento", example = "HYPERTROPHY")
 		@NotNull(message = "goal é obrigatório") Goal goal,
 		@Schema(description = "E-mail do atleta (opcional; usado para dedupe de credencial, T-078)", example = "atleta@test.com") @jakarta.validation.constraints.Email(message = "email inválido") String email) {
+
+	/**
+	 * Normaliza o e-mail ANTES da validação Bean Validation (T-096): o domínio
+	 * declara "branco → null" e faz trim, mas o {@code @Email} roda antes da
+	 * normalização do agregado. Um compact constructor roda na desserialização,
+	 * então aqui aplicamos trim e convertemos branco em {@code null}; o
+	 * {@code @Email} aceita {@code null}, preservando o campo como opcional e a
+	 * resposta JSON expondo {@code null}.
+	 */
+	public RegisterAthleteRequest {
+		email = (email == null || email.isBlank()) ? null : email.trim();
+	}
 }

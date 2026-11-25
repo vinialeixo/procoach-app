@@ -14,6 +14,13 @@ public interface UserRepository {
 
 	Optional<User> findByEmail(String email);
 
+	/**
+	 * Existe credencial com este e-mail, comparando sem diferenciar maiúsculas de
+	 * minúsculas (T-096: dedupe de atleta por e-mail). E-mails são
+	 * case-insensitive por convenção.
+	 */
+	boolean existsByEmailIgnoreCase(String email);
+
 	List<User> findAll();
 
 	/** Já existe credencial vinculada a este atleta? */
