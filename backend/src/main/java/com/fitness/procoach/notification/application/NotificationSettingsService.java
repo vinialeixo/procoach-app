@@ -45,7 +45,7 @@ public class NotificationSettingsService {
 	@Transactional
 	public void registerDevice(UUID athleteId, String token, DevicePlatform platform) {
 		Instant now = Instant.now();
-		DeviceToken device = devices.findByToken(token).orElse(null);
+		DeviceToken device = devices.findByTokenIncludingDeleted(token).orElse(null);
 		if (device == null) {
 			devices.save(DeviceToken.register(athleteId, token, platform, now));
 		}

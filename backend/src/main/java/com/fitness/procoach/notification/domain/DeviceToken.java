@@ -16,9 +16,10 @@ public final class DeviceToken {
 	private DevicePlatform platform;
 	private final Instant createdAt;
 	private Instant lastSeenAt;
+	private Instant deletedAt;
 
 	private DeviceToken(UUID id, UUID athleteId, String token, DevicePlatform platform, Instant createdAt,
-			Instant lastSeenAt) {
+			Instant lastSeenAt, Instant deletedAt) {
 		this.id = Objects.requireNonNull(id, "id");
 		this.athleteId = Objects.requireNonNull(athleteId, "athleteId");
 		if (token == null || token.isBlank()) {
@@ -28,22 +29,40 @@ public final class DeviceToken {
 		this.platform = Objects.requireNonNull(platform, "platform");
 		this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
 		this.lastSeenAt = Objects.requireNonNull(lastSeenAt, "lastSeenAt");
+		this.deletedAt = deletedAt;
 	}
 
 	public static DeviceToken register(UUID athleteId, String token, DevicePlatform platform, Instant now) {
-		return new DeviceToken(UUID.randomUUID(), athleteId, token, platform, now, now);
+		return new DeviceToken(UUID.randomUUID(), athleteId, token, platform, now, now, null);
 	}
 
 	public static DeviceToken reconstitute(UUID id, UUID athleteId, String token, DevicePlatform platform,
 			Instant createdAt, Instant lastSeenAt) {
-		return new DeviceToken(id, athleteId, token, platform, createdAt, lastSeenAt);
+		return new DeviceToken(id, athleteId, token, platform, createdAt, lastSeenAt, null);
 	}
 
-	/** Registro repetido: atualiza dono, plataforma e último uso. */
+	public static DeviceToken reconstitute(UUID id, UUID athleteId, String token, DevicePlatform platform,
+			Instant createdAt, Instant lastSeenAt, Instant deletedAt) {
+		return new DeviceToken(id, athleteId, token, platform, createdAt, lastSeenAt, deletedAt);
+	}
+
+	/** Registro repetido: atualiza dono, plataforma e último uso; reativa um registro removido. */
 	public void seenBy(UUID athleteId, DevicePlatform platform, Instant now) {
 		this.athleteId = Objects.requireNonNull(athleteId, "athleteId");
 		this.platform = Objects.requireNonNull(platform, "platform");
 		this.lastSeenAt = Objects.requireNonNull(now, "now");
+		this.deletedAt = null;
+	}
+
+	/** Exclusão lógica do dispositivo (o histórico do token nunca é apagado fisicamente). */
+	public void remove(Instant now) {
+		if (deletedAt == null) {
+			deletedAt = Objects.requireNonNull(now, "now");
+		}
+	}
+
+	public boolean isDeleted() {
+		return deletedAt != null;
 	}
 
 	public UUID getId() {
@@ -68,5 +87,9 @@ public final class DeviceToken {
 
 	public Instant getLastSeenAt() {
 		return lastSeenAt;
+	}
+
+	public Instant getDeletedAt() {
+		return deletedAt;
 	}
 }

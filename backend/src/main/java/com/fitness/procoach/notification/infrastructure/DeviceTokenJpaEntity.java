@@ -33,6 +33,9 @@ public class DeviceTokenJpaEntity {
 	@Column(name = "last_seen_at", nullable = false)
 	private Instant lastSeenAt;
 
+	@Column(name = "deleted_at")
+	private Instant deletedAt;
+
 	public UUID getId() {
 		return id;
 	}
@@ -79,5 +82,13 @@ public class DeviceTokenJpaEntity {
 
 	public void setLastSeenAt(Instant lastSeenAt) {
 		this.lastSeenAt = lastSeenAt;
+	}
+
+	public Instant getDeletedAt() {
+		return deletedAt;
+	}
+
+	public void setDeletedAt(Instant deletedAt) {
+		this.deletedAt = deletedAt;
 	}
 }

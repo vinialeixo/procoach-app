@@ -157,9 +157,13 @@ class ExternalChannelsTest {
 		final List<String> tokens = new ArrayList<>();
 		final List<String> bodies = new ArrayList<>();
 		final List<String> failingTokens = new ArrayList<>();
+		final List<String> invalidTokens = new ArrayList<>();
 
 		@Override
 		public void send(String deviceToken, String title, String body) {
+			if (invalidTokens.contains(deviceToken)) {
+				throw new InvalidPushTokenException(deviceToken, "UNREGISTERED");
+			}
 			if (failingTokens.contains(deviceToken)) {
 				throw new IllegalStateException("token inválido");
 			}
@@ -229,5 +233,34 @@ class ExternalChannelsTest {
 		assertThatThrownBy(() -> push(gateway, devices).send(notification))
 				.isInstanceOf(IllegalStateException.class)
 				.hasMessageContaining("token inválido");
+	}
+
+	@Test
+	void pushRemoveDispositivoComTokenInvalidoESegueParaOsDemais() {
+		InMemoryDevices devices = new InMemoryDevices();
+		devices.save(DeviceToken.register(athleteId, "tok-bom", DevicePlatform.ANDROID, Instant.now()));
+		devices.save(DeviceToken.register(athleteId, "tok-morto", DevicePlatform.IOS, Instant.now()));
+		RecordingGateway gateway = new RecordingGateway();
+		gateway.invalidTokens.add("tok-morto");
+
+		NotificationChannel.Result result = push(gateway, devices).send(notification);
+
+		assertThat(result.skipped()).isFalse();
+		assertThat(gateway.tokens).containsExactly("tok-bom");
+		assertThat(devices.store).extracting(DeviceToken::getToken).containsExactly("tok-bom");
+	}
+
+	@Test
+	void pushTodosOsTokensInvalidosFicaSkippedDepoisDeRemover() {
+		InMemoryDevices devices = new InMemoryDevices();
+		devices.save(DeviceToken.register(athleteId, "tok-morto", DevicePlatform.WEB, Instant.now()));
+		RecordingGateway gateway = new RecordingGateway();
+		gateway.invalidTokens.add("tok-morto");
+
+		NotificationChannel.Result result = push(gateway, devices).send(notification);
+
+		assertThat(result.skipped()).isTrue();
+		assertThat(result.detail()).contains("token inválido");
+		assertThat(devices.store).isEmpty();
 	}
 }
