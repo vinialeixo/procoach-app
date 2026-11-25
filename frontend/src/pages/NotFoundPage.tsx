@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import "@/components/AppErrorBoundary.css";
 
 export function NotFoundPage() {
@@ -12,9 +12,9 @@ export function NotFoundPage() {
           inicial para continuar no ProCoach.
         </p>
         <div className="app-fallback__actions">
-          <Link to="/" className="app-fallback__btn">
+          <ButtonLink to="/" className="pc-button--auto">
             Ir para o início
-          </Link>
+          </ButtonLink>
         </div>
       </section>
     </main>

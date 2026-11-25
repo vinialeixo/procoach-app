@@ -9,7 +9,7 @@ import "./styles/global.css";
 async function prepareMocks() {
   if (import.meta.env.VITE_USE_MOCKS === "true") {
     const { worker } = await import("./mocks/browser");
-    await worker.start({ onUnhandledRequest: "bypass" });
+    await worker.start({ onUnhandledFrame: "bypass" });
   }
 }
 

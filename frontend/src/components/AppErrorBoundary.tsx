@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from "react";
+import { Button } from "@/components/ui/Button";
 import "./AppErrorBoundary.css";
 
 type Props = {
@@ -41,17 +42,14 @@ export class AppErrorBoundary extends Component<Props, State> {
             volte para a tela inicial.
           </p>
           <div className="app-fallback__actions">
-            <button
+            <Button
               type="button"
-              className="app-fallback__btn"
+              fullWidth={false}
               onClick={this.handleReload}
             >
               Recarregar página
-            </button>
-            <a
-              href="/"
-              className="app-fallback__btn app-fallback__btn--ghost"
-            >
+            </Button>
+            <a href="/" className="pc-button pc-button--ghost pc-button--auto">
               Voltar ao início
             </a>
           </div>
