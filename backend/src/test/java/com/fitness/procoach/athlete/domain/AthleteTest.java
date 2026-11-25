@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 class AthleteTest {
 
 	private static final UUID COACH_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+	private static final String EMAIL = "joao@test.com";
 
 	private Athlete newAthlete() {
 		return Athlete.register(
@@ -22,7 +23,8 @@ class AthleteTest {
 				LocalDate.of(1995, 5, 20),
 				new Height(new BigDecimal("180.00")),
 				new Weight(new BigDecimal("85.50")),
-				Goal.HYPERTROPHY);
+				Goal.HYPERTROPHY,
+				EMAIL);
 	}
 
 	@Test
@@ -32,8 +34,19 @@ class AthleteTest {
 		assertThat(athlete.id()).isNotNull();
 		assertThat(athlete.id().value()).isNotNull();
 		assertThat(athlete.status()).isEqualTo(AthleteStatus.ACTIVE);
+		assertThat(athlete.email()).isEqualTo(EMAIL);
 		assertThat(athlete.createdAt()).isNotNull();
 		assertThat(athlete.updatedAt()).isNotNull();
+	}
+
+	@Test
+	void registerSemEmailMantemEmailNulo() {
+		Athlete athlete = Athlete.register(
+				AthleteId.generate(), COACH_ID, new Name("Sem Email"), Sex.FEMALE,
+				LocalDate.of(1990, 2, 10), new Height(new BigDecimal("160.00")),
+				new Weight(new BigDecimal("55.00")), Goal.CUTTING, "   ");
+
+		assertThat(athlete.email()).isNull();
 	}
 
 	@Test
@@ -56,42 +69,42 @@ class AthleteTest {
 	@Test
 	void registerValidaCamposObrigatorios() {
 		assertThatThrownBy(() -> Athlete.register(null, COACH_ID, new Name("A"), Sex.MALE,
-				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING))
+				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING, null))
 				.isInstanceOf(NullPointerException.class);
 
 		assertThatThrownBy(() -> Athlete.register(AthleteId.generate(), null, new Name("A"), Sex.MALE,
-				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING))
+				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING, null))
 				.isInstanceOf(NullPointerException.class);
 
 		assertThatThrownBy(() -> Athlete.register(AthleteId.generate(), COACH_ID, null, Sex.MALE,
-				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING))
+				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING, null))
 				.isInstanceOf(NullPointerException.class);
 
 		assertThatThrownBy(() -> Athlete.register(AthleteId.generate(), COACH_ID, new Name("A"), null,
-				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING))
+				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING, null))
 				.isInstanceOf(NullPointerException.class);
 
 		assertThatThrownBy(() -> Athlete.register(AthleteId.generate(), COACH_ID, new Name("A"), Sex.MALE,
-				null, new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING))
+				null, new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING, null))
 				.isInstanceOf(NullPointerException.class);
 
 		assertThatThrownBy(() -> Athlete.register(AthleteId.generate(), COACH_ID, new Name("A"), Sex.MALE,
-				LocalDate.of(1995, 5, 20), null, new Weight(BigDecimal.ONE), Goal.CUTTING))
+				LocalDate.of(1995, 5, 20), null, new Weight(BigDecimal.ONE), Goal.CUTTING, null))
 				.isInstanceOf(NullPointerException.class);
 
 		assertThatThrownBy(() -> Athlete.register(AthleteId.generate(), COACH_ID, new Name("A"), Sex.MALE,
-				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), null, Goal.CUTTING))
+				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), null, Goal.CUTTING, null))
 				.isInstanceOf(NullPointerException.class);
 
 		assertThatThrownBy(() -> Athlete.register(AthleteId.generate(), COACH_ID, new Name("A"), Sex.MALE,
-				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), null))
+				LocalDate.of(1995, 5, 20), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), null, null))
 				.isInstanceOf(NullPointerException.class);
 	}
 
 	@Test
 	void registerRejeitaDataDeNascimentoFutura() {
 		assertThatThrownBy(() -> Athlete.register(AthleteId.generate(), COACH_ID, new Name("A"), Sex.MALE,
-				LocalDate.now().plusDays(1), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING))
+				LocalDate.now().plusDays(1), new Height(BigDecimal.ONE), new Weight(BigDecimal.ONE), Goal.CUTTING, null))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("future");
 	}
@@ -117,7 +130,7 @@ class AthleteTest {
 		Athlete athlete = Athlete.reconstitute(
 				id, COACH_ID, new Name("Maria"), Sex.FEMALE, birthDate,
 				new Height(new BigDecimal("165.00")), new Weight(new BigDecimal("60.00")),
-				Goal.MAINTENANCE, AthleteStatus.PAUSED,
+				Goal.MAINTENANCE, "maria@test.com", AthleteStatus.PAUSED,
 				java.time.Instant.parse("2026-01-01T10:00:00Z"),
 				java.time.Instant.parse("2026-01-02T10:00:00Z"),
 				false, null);
@@ -130,6 +143,7 @@ class AthleteTest {
 		assertThat(athlete.height().value()).isEqualByComparingTo("165.00");
 		assertThat(athlete.weight().value()).isEqualByComparingTo("60.00");
 		assertThat(athlete.goal()).isEqualTo(Goal.MAINTENANCE);
+		assertThat(athlete.email()).isEqualTo("maria@test.com");
 		assertThat(athlete.status()).isEqualTo(AthleteStatus.PAUSED);
 		assertThat(athlete.isDeleted()).isFalse();
 		assertThat(athlete.deletedAt()).isNull();

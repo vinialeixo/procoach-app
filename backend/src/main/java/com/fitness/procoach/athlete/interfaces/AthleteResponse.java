@@ -29,6 +29,8 @@ public record AthleteResponse(
 		@Schema(description = "Altura em centímetros", example = "165.0") BigDecimal height,
 		@Schema(description = "Peso em quilogramas", example = "62.5") BigDecimal weight,
 		@Schema(description = "Objetivo do acompanhamento", example = "HYPERTROPHY") Goal goal,
+		@Schema(description = "E-mail informado no cadastro, ou null quando não informado (T-096)",
+				example = "atleta@test.com") String email,
 		@Schema(description = "Estado do acompanhamento", example = "ACTIVE") AthleteStatus status,
 		@Schema(description = "Data/hora de criação do registro", example = "2026-09-01T10:15:30Z") Instant createdAt,
 		@Schema(description = "Data/hora da última atualização", example = "2026-09-01T10:15:30Z") Instant updatedAt,
@@ -51,7 +53,7 @@ public record AthleteResponse(
 			AthleteAccessInfoProvider.PendingInvite pendingInvite) {
 		return new AthleteResponse(athlete.id().value(), athlete.coachId(), athlete.name().value(),
 				athlete.sex(), athlete.birthDate(), athlete.height().value(), athlete.weight().value(),
-				athlete.goal(), athlete.status(), athlete.createdAt(), athlete.updatedAt(),
+				athlete.goal(), athlete.email(), athlete.status(), athlete.createdAt(), athlete.updatedAt(),
 				hasCredential,
 				pendingInvite == null ? null
 						: new PendingInviteResponse(pendingInvite.id(), pendingInvite.email(),

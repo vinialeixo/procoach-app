@@ -119,7 +119,8 @@ public class AthleteApplicationService implements ApplicationContextAware {
 				command.birthDate(),
 				new Height(command.height()),
 				new Weight(command.weight()),
-				command.goal());
+				command.goal(),
+				command.email());
 		Athlete saved = repository.save(athlete);
 		auditService.record("Athlete", saved.id().value(), saved.id().value(), "ATHLETE_REGISTERED",
 				command.userId(), AuditData.of("goal", saved.goal().name()));

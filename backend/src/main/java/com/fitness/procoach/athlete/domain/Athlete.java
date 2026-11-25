@@ -24,6 +24,8 @@ public final class Athlete {
 	private final Height height;
 	private final Weight weight;
 	private final Goal goal;
+	/** E-mail informado no cadastro (opcional; usado para pré-preencher o convite — T-096). */
+	private final String email;
 	private AthleteStatus status;
 	private final Instant createdAt;
 	private Instant updatedAt;
@@ -31,7 +33,7 @@ public final class Athlete {
 	private Instant deletedAt;
 
 	private Athlete(AthleteId id, UUID coachId, Name name, Sex sex, LocalDate birthDate,
-			Height height, Weight weight, Goal goal, AthleteStatus status,
+			Height height, Weight weight, Goal goal, String email, AthleteStatus status,
 			Instant createdAt, Instant updatedAt, boolean deleted, Instant deletedAt) {
 		this.id = Objects.requireNonNull(id, "id must not be null");
 		this.coachId = Objects.requireNonNull(coachId, "coachId must not be null");
@@ -44,6 +46,7 @@ public final class Athlete {
 		this.height = Objects.requireNonNull(height, "height must not be null");
 		this.weight = Objects.requireNonNull(weight, "weight must not be null");
 		this.goal = Objects.requireNonNull(goal, "goal must not be null");
+		this.email = normalizeEmail(email);
 		this.status = Objects.requireNonNull(status, "status must not be null");
 		this.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
 		this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt must not be null");
@@ -56,9 +59,9 @@ public final class Athlete {
 	 * {@link AthleteId#generate()}; o status inicial é {@code ACTIVE}.
 	 */
 	public static Athlete register(AthleteId id, UUID coachId, Name name, Sex sex, LocalDate birthDate,
-			Height height, Weight weight, Goal goal) {
+			Height height, Weight weight, Goal goal, String email) {
 		Instant now = Instant.now();
-		return new Athlete(id, coachId, name, sex, birthDate, height, weight, goal,
+		return new Athlete(id, coachId, name, sex, birthDate, height, weight, goal, email,
 				AthleteStatus.ACTIVE, now, now, false, null);
 	}
 
@@ -67,10 +70,18 @@ public final class Athlete {
 	 * infraestrutura). Não gera novos timestamps nem altera o status.
 	 */
 	public static Athlete reconstitute(AthleteId id, UUID coachId, Name name, Sex sex, LocalDate birthDate,
-			Height height, Weight weight, Goal goal, AthleteStatus status,
+			Height height, Weight weight, Goal goal, String email, AthleteStatus status,
 			Instant createdAt, Instant updatedAt, boolean deleted, Instant deletedAt) {
-		return new Athlete(id, coachId, name, sex, birthDate, height, weight, goal,
+		return new Athlete(id, coachId, name, sex, birthDate, height, weight, goal, email,
 				status, createdAt, updatedAt, deleted, deletedAt);
+	}
+
+	/** E-mail opcional normalizado; vazio vira {@code null} para não persistir string em branco. */
+	private static String normalizeEmail(String email) {
+		if (email == null || email.isBlank()) {
+			return null;
+		}
+		return email.trim();
 	}
 
 	/**
@@ -132,6 +143,11 @@ public final class Athlete {
 
 	public Goal goal() {
 		return goal;
+	}
+
+	/** E-mail opcional informado no cadastro; {@code null} quando não informado. */
+	public String email() {
+		return email;
 	}
 
 	public AthleteStatus status() {
