@@ -161,7 +161,7 @@ export function ExerciseFormModal({
     await onSave(payload, exercise?.id);
   }
 
-  const equipmentOptions = EQUIPMENT_TYPES.map((eq) => ({
+  const equipmentOptions: Array<{ value: string; label: string }> = EQUIPMENT_TYPES.map((eq) => ({
     value: eq,
     label: EQUIPMENT_LABELS[eq] ?? eq,
   }));
