@@ -450,4 +450,40 @@ export const nutritionHandlers = [
 
     return HttpResponse.json(diet);
   }),
+
+  // Catálogo de alimentos TACO / CUSTOM (T-086 / Issue #191)
+  http.get("/api/v1/foods", ({ request }) => {
+    const url = new URL(request.url);
+    const query = (url.searchParams.get("query") ?? "").trim().toLowerCase();
+    const category = (url.searchParams.get("category") ?? "").trim();
+    const page = Math.max(0, Number(url.searchParams.get("page") ?? "0") || 0);
+    const size = Math.min(100, Math.max(1, Number(url.searchParams.get("size") ?? "20") || 20));
+
+    const filtered = mockDb.foods.filter((food) => {
+      if (query && !food.name.toLowerCase().includes(query)) return false;
+      if (category && food.category !== category) return false;
+      return true;
+    });
+
+    const start = page * size;
+    const content = filtered.slice(start, start + size);
+    const totalElements = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(totalElements / size));
+
+    return HttpResponse.json({
+      content,
+      page,
+      size,
+      totalElements,
+      totalPages,
+    });
+  }),
+
+  http.get("/api/v1/foods/:id", ({ params }) => {
+    const food = mockDb.foods.find((item) => item.id === params.id);
+    if (!food) {
+      return HttpResponse.json({ message: "Alimento não encontrado." }, { status: 404 });
+    }
+    return HttpResponse.json(food);
+  }),
 ];

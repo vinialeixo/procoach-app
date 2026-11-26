@@ -6,7 +6,7 @@ import type {
 } from "@/lib/athletes";
 import type { AthleteInvite } from "@/lib/invites";
 import type { AssessmentMetrics } from "@/lib/assessments";
-import type { ApiDiet } from "@/lib/diets";
+import type { ApiDiet, FoodCatalogItem } from "@/lib/diets";
 import type {
   Exercise,
   Periodization,
@@ -70,6 +70,7 @@ export type MockDbState = {
   invites: MockInviteRecord[];
   assessments: MockApiAssessment[];
   diets: ApiDiet[];
+  foods: FoodCatalogItem[];
   exercises: Exercise[];
   periodizations: Periodization[];
   plans: TrainingPlan[];
@@ -687,6 +688,64 @@ function createInitialState(): MockDbState {
       [lucasId]: { emailEnabled: true, pushEnabled: false },
     },
     devices: [],
+    foods: [
+      {
+        id: "food-taco-frango",
+        tacoId: "taco:frango-peito-sem-pele-cru",
+        name: "Peito de frango, sem pele, cru",
+        category: "Carnes e derivados",
+        macrosPer100g: { calories: 119, protein: 21.5, carbohydrates: 0, fat: 3.0 },
+        ediblePortionPercent: 100,
+        householdMeasure: "1 filé médio",
+        householdMeasureGrams: 100,
+        source: "TACO",
+        stateDefault: "RAW",
+        coachId: null,
+        coachApproved: false,
+      },
+      {
+        id: "food-taco-arroz",
+        tacoId: "taco:arroz-tipo-1-cru",
+        name: "Arroz branco, tipo 1, cru",
+        category: "Cereais e derivados",
+        macrosPer100g: { calories: 358, protein: 7.2, carbohydrates: 78.8, fat: 0.3 },
+        ediblePortionPercent: 100,
+        householdMeasure: "3 colheres de servir",
+        householdMeasureGrams: 100,
+        source: "TACO",
+        stateDefault: "RAW",
+        coachId: null,
+        coachApproved: false,
+      },
+      {
+        id: "food-taco-aveia",
+        tacoId: "taco:aveia-flocos-crua",
+        name: "Aveia, flocos, crua",
+        category: "Cereais e derivados",
+        macrosPer100g: { calories: 394, protein: 13.9, carbohydrates: 66.6, fat: 8.5 },
+        ediblePortionPercent: 100,
+        householdMeasure: "2 colheres de sopa",
+        householdMeasureGrams: 30,
+        source: "TACO",
+        stateDefault: "RAW",
+        coachId: null,
+        coachApproved: false,
+      },
+      {
+        id: "food-custom-whey",
+        tacoId: null,
+        name: "Whey Protein Concentrado",
+        category: "Suplementos",
+        macrosPer100g: { calories: 400, protein: 80, carbohydrates: 10, fat: 5 },
+        ediblePortionPercent: 100,
+        householdMeasure: "1 scoop",
+        householdMeasureGrams: 30,
+        source: "CUSTOM",
+        stateDefault: "AS_SERVED",
+        coachId: MOCK_COACH_CREDENTIALS.id,
+        coachApproved: true,
+      },
+    ],
   };
 }
 
