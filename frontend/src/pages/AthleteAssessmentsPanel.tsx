@@ -329,6 +329,12 @@ export function AthleteAssessmentsPanel({
           </div>
 
           <h3 className="assessments__section-title">Histórico</h3>
+          {!allowCreate && (
+            <p className="assessments__chart-hint">
+              <strong>Legenda:</strong> IMC = Índice de Massa Corporal · TMB = Taxa Metabólica
+              Basal (kcal em repouso) · GET = Gasto Energético Total diário.
+            </p>
+          )}
           <DataTable
             columns={listColumns}
             rows={sorted}

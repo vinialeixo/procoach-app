@@ -83,6 +83,7 @@ export function RegisterPage() {
           label="Senha"
           type="password"
           autoComplete="new-password"
+          hint="Mínimo 8 caracteres, com pelo menos 1 letra e 1 número."
           error={form.formState.errors.password?.message}
           {...form.register("password")}
         />
