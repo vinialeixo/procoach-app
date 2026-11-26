@@ -6,6 +6,7 @@ import {
   TrainingPlan,
   TrainingSession,
   currentPlanVersion,
+  formatIntensityLabel,
   previousPlanVersions,
   useAthleteTrainingSessions,
   useTrainingPlans,
@@ -122,15 +123,26 @@ export function AthleteTrainingPage() {
                           <h2>{session.name}</h2>
                           {session.description && <p>{session.description}</p>}
                           {session.exercises.length ? <ol className="athlete-content__exercise-list">
-                            {[...session.exercises].sort((a, b) => a.orderIndex - b.orderIndex).map((exercise) => (
-                              <li key={exercise.id}>
-                                <strong>{exercise.exerciseName}</strong>
-                                <span>{exercise.sets} séries × {exercise.repetitions} repetições</span>
-                                {exercise.load > 0 && <span>Carga: {exercise.load} kg</span>}
-                                {exercise.restSeconds > 0 && <span>Descanso: {exercise.restSeconds} s</span>}
-                                {exercise.notes && <span>{exercise.notes}</span>}
-                              </li>
-                            ))}
+                            {[...session.exercises].sort((a, b) => a.orderIndex - b.orderIndex).map((exercise) => {
+                              const intensityLabel = formatIntensityLabel(
+                                exercise.intensityType,
+                                exercise.intensityValue
+                              );
+                              return (
+                                <li key={exercise.id}>
+                                  <strong>{exercise.exerciseName}</strong>
+                                  <span>{exercise.sets} séries × {exercise.repetitions} repetições</span>
+                                  {exercise.load > 0 && <span>Carga: {exercise.load} kg</span>}
+                                  {intensityLabel && (
+                                    <span className="athlete-content__intensity">
+                                      Intensidade: {intensityLabel}
+                                    </span>
+                                  )}
+                                  {exercise.restSeconds > 0 && <span>Descanso: {exercise.restSeconds} s</span>}
+                                  {exercise.notes && <span>{exercise.notes}</span>}
+                                </li>
+                              );
+                            })}
                           </ol> : <p>Sem exercícios prescritos nesta sessão.</p>}
                         </article>
                       ))}
@@ -205,13 +217,27 @@ function AthletePlanHistoryItem({
                 <ul className="athlete-content__history-exercises">
                   {[...session.exercises]
                     .sort((a, b) => a.orderIndex - b.orderIndex)
-                    .map((exercise) => (
-                      <li key={exercise.id}>
-                        {exercise.exerciseName} · {exercise.sets}×
-                        {exercise.repetitions}
-                        {exercise.load > 0 ? ` · ${exercise.load} kg` : ""}
-                      </li>
-                    ))}
+                    .map((exercise) => {
+                      const intensityLabel = formatIntensityLabel(
+                        exercise.intensityType,
+                        exercise.intensityValue
+                      );
+                      return (
+                        <li key={exercise.id}>
+                          {exercise.exerciseName} · {exercise.sets}×
+                          {exercise.repetitions}
+                          {exercise.load > 0 ? ` · ${exercise.load} kg` : ""}
+                          {intensityLabel ? (
+                            <>
+                              {" · "}
+                              <span className="athlete-content__intensity">
+                                {intensityLabel}
+                              </span>
+                            </>
+                          ) : null}
+                        </li>
+                      );
+                    })}
                 </ul>
               )}
             </article>

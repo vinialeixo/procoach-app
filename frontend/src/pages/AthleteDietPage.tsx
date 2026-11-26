@@ -34,7 +34,10 @@ function RequestError({ status }: { status?: number }) {
 }
 
 function MealCard({ meal }: { meal: Meal }) {
-  const foodItems = meal.items.filter((item) => item.kind === "FOOD");
+  const orderedItems = [
+    ...meal.items.filter((item) => item.kind === "FOOD"),
+    ...meal.items.filter((item) => item.kind !== "FOOD"),
+  ];
 
   return (
     <article className="athlete-content__card athlete-content__meal">
@@ -56,9 +59,9 @@ function MealCard({ meal }: { meal: Meal }) {
 
       {meal.notes && <p className="athlete-content__hint">{meal.notes}</p>}
 
-      {foodItems.length > 0 && (
+      {orderedItems.length > 0 && (
         <ul className="athlete-content__meal-items">
-          {foodItems.map((item) => (
+          {orderedItems.map((item) => (
             <li key={item.id} className="athlete-content__meal-item">
               <div className="athlete-content__meal-item-main">
                 <strong>{item.name}</strong>
@@ -68,6 +71,11 @@ function MealCard({ meal }: { meal: Meal }) {
                 <span className="athlete-content__badge">
                   {FOOD_STATE_LABEL[item.state]}
                 </span>
+                {item.kind === "SUPPLEMENT_CALORIC" && (
+                  <span className="athlete-content__badge athlete-content__badge--supplement">
+                    Suplemento
+                  </span>
+                )}
               </div>
               {(item.householdMeasure || item.preparation) && (
                 <p className="athlete-content__meal-item-meta">
