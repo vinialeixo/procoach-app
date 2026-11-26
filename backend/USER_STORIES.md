@@ -424,6 +424,7 @@ Critérios de aceite: 1) Todos os campos (nome, grupos musculares, equipamento, 
 | US-037 | Como coach, quero ser o único capaz de criar e alterar protocolos, para garantir a integridade das prescrições. | Must Have | 8 | Sprint 1-2 | RF-37 | BR-900 |
 | US-038 | Como atleta, quero visualizar apenas meus próprios dados, para garantir minha privacidade. | Must Have | 8 | Sprint 1-2 | RF-38 | BR-901 |
 | US-039 | Como administrador, quero gerenciar papéis e permissões (RBAC: Coach x Atleta), para controlar o acesso ao sistema. | Must Have | 8 | Sprint 1-2 | RF-39 | — |
+| US-043 | Como administrador, quero gerenciar coaches e consultar os atletas de cada um, para operar a plataforma com segurança. | Must Have | 13 | Adendo admin | RF-39 | — |
 
 <details><summary>Critérios de aceitação — E9 – Segurança & Permissões</summary>
 
@@ -450,6 +451,13 @@ Como administrador, quero gerenciar papéis e permissões (RBAC: Coach x Atleta)
 
 
 Critérios de aceite: 1) O admin deve poder criar, editar e desativar papéis. 2) Permissões devem ser granulares por funcionalidade. 3) Alterações de permissão devem ser registradas no log de auditoria.
+
+
+**US-043** (Adendo Painel Admin) — RF-39
+
+Como administrador, quero gerenciar coaches e consultar os atletas de cada um, para operar a plataforma com segurança.
+
+Critérios de aceite: 1) O admin autentica com papel próprio (`ADMIN`), é direcionado a `/admin` e não acessa endpoints de coach/atleta. 2) O primeiro boot cria `admin`/`procoach` apenas se não houver admin e exige troca de senha no primeiro login. 3) O admin lista coaches com nome, e-mail, status, quantidade de atletas e estado de acesso. 4) O admin adiciona coach apenas por convite de uso único (7 dias); o coach define a própria senha e o cadastro público de coach não existe. 5) O detalhe do coach lista os atletas da carteira (identidade, status, objetivo e acesso), sem conteúdo clínico. 6) O admin suspende, reativa e arquiva coaches com motivo; coach suspenso/arquivado não loga nem renova token. 7) Arquivamento é soft-delete (`CANCELLED`), sem DELETE físico, e é bloqueado com atletas ativos (409). 8) O admin cria outros admins, altera a própria senha (exigindo a atual) e reseta a senha de outro admin, com auditoria. 9) Toda escrita administrativa gera `AuditLog`; leituras não são auditadas.
 
 
 </details>
