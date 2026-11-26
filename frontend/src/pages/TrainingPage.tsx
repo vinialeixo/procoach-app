@@ -261,11 +261,11 @@ export function TrainingPage() {
 
         {athleteId && (
           <ProtocolLineageBar
-            athleteName={athletes.find((a) => a.id === athleteId)?.name ?? "Atleta"}
-            tag={selectedPlan ? `Plano v${selectedPlan.version} · ${selectedPlan.status}` : "Sem plano ativo"}
+            title={(athletesQuery.data ?? []).find((a) => a.id === athleteId)?.name ?? "Atleta"}
+            lineageTag={selectedPlan ? `Plano v${selectedPlan.version} · ${selectedPlan.status}` : "Sem plano ativo"}
             metrics={[
-              { label: "Periodização", value: selectedPeriodization?.name ?? "—" },
-              { label: "Sessões", value: String(sessions.length) },
+              `Periodização: ${selectedPeriodization?.name ?? "—"}`,
+              `Sessões: ${sessions.length}`,
             ]}
           />
         )}
