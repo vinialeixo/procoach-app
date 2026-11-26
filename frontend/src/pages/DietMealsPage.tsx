@@ -970,8 +970,35 @@ export function DietMealsPage() {
                     )}
                   </>
                 )}
+                {diet.macros.calories > 0 && (
+                  <div className="diet-meals__progress-wrap">
+                    <div className="diet-meals__progress-bar" aria-hidden="true">
+                      <div
+                        className="diet-meals__progress-fill"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.round((diet.totals.calories / diet.macros.calories) * 100)
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="diet-meals__delta">
+                      Saldo restante: {formatNumber(diet.macros.calories - diet.totals.calories, " kcal")} · P{" "}
+                      {formatNumber(diet.macros.protein - diet.totals.protein, "g")} · C{" "}
+                      {formatNumber(diet.macros.carbohydrates - diet.totals.carbohydrates, "g")} · G{" "}
+                      {formatNumber(diet.macros.fat - diet.totals.fat, "g")}
+                    </p>
+                  </div>
+                )}
               </div>
             </section>
+
+            {(removeMeal.isError || removeMealItem.isError) && (
+              <p className="athlete-form__error" role="alert">
+                Não foi possível remover o item ou refeição. Tente novamente.
+              </p>
+            )}
 
             <DietWarningsPanel
               warnings={mergedWarnings}
