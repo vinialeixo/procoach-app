@@ -43,6 +43,39 @@ export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
 export type TrainingStatus = "DRAFT" | "IN_REVIEW" | "ACTIVE" | "FINISHED";
 export type IntensityType = "PERCENT_1RM" | "RPE" | "RIR" | "ABSOLUTE_LOAD";
 
+const INTENSITY_LABEL: Record<IntensityType, string> = {
+  RPE: "RPE",
+  RIR: "RIR",
+  PERCENT_1RM: "%1RM",
+  ABSOLUTE_LOAD: "Carga absoluta",
+};
+
+/**
+ * Formata a intensidade prescrita (tipo + valor opcional) para exibição ao atleta.
+ * Retorna `null` quando `intensityType` não estiver definido.
+ */
+export function formatIntensityLabel(
+  intensityType?: IntensityType | null,
+  intensityValue?: number | null
+): string | null {
+  if (!intensityType) return null;
+  const label = INTENSITY_LABEL[intensityType] ?? intensityType;
+  if (
+    intensityValue === null ||
+    intensityValue === undefined ||
+    Number.isNaN(intensityValue)
+  ) {
+    return label;
+  }
+  if (intensityType === "PERCENT_1RM") {
+    return `${label} ${intensityValue}%`;
+  }
+  if (intensityType === "ABSOLUTE_LOAD") {
+    return `${label} ${intensityValue} kg`;
+  }
+  return `${label} ${intensityValue}`;
+}
+
 export type ExerciseReference = {
   authors: string;
   title: string;

@@ -156,3 +156,16 @@
   color: var(--color-ink-muted);
   font-size: 0.85rem;
 }
+.athlete-content__badge--supplement {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-soft);
+  color: var(--color-accent-ink);
+  font-weight: 600;
+}
+.athlete-content__intensity,
+.athlete-content__exercise-list .athlete-content__intensity {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-ink);
+}

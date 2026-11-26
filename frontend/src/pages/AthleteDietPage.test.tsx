@@ -301,7 +301,10 @@ describe("AthleteDietPage (T-095)", () => {
     });
 
     const mealsSection = screen.getByRole("region", { name: "Refeições" });
-    expect(within(mealsSection).queryByText("Whey Protein")).toBeNull();
+    expect(within(mealsSection).getByText("Whey Protein")).toBeInTheDocument();
+    expect(within(mealsSection).getByText("Suplemento")).toBeInTheDocument();
+    expect(within(mealsSection).getByText("30 g")).toBeInTheDocument();
+    expect(within(mealsSection).getByText("1 scoop")).toBeInTheDocument();
     expect(within(mealsSection).getAllByText("Frango grelhado")).toHaveLength(2);
 
     const supplementsSection = screen.getByRole("region", {
@@ -320,6 +323,65 @@ describe("AthleteDietPage (T-095)", () => {
     expect(within(shoppingSection).getByText("Cru")).toBeInTheDocument();
     expect(
       within(shoppingSection).getByText("1 filé médio · 1 filé grande")
+    ).toBeInTheDocument();
+  });
+
+  it("renders a meal composed exclusively of supplements inside MealCard", async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: makeDietResponse({
+        meals: [
+          {
+            id: "meal-pre",
+            name: "Pré-treino",
+            order: 1,
+            time: "17:30",
+            notes: "Tomar 30 min antes",
+            target: null,
+            totals: { calories: 140, protein: 24, carbohydrates: 10, fat: 0.5 },
+            items: [
+              {
+                id: "sup-only-1",
+                foodId: null,
+                name: "Beta-alanina + Maltodextrina",
+                source: "CUSTOM",
+                kind: "SUPPLEMENT_CALORIC",
+                state: "AS_SERVED",
+                quantityG: 15,
+                householdMeasure: "1 dosador",
+                preparation: "Diluir em 200 ml de água",
+                calories: 60,
+                protein: 0,
+                carbohydrates: 15,
+                fat: 0,
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText("Pré-treino")).toBeInTheDocument();
+    });
+
+    const mealsSection = screen.getByRole("region", { name: "Refeições" });
+    expect(within(mealsSection).getByText("17:30")).toBeInTheDocument();
+    expect(
+      within(mealsSection).getByText("Beta-alanina + Maltodextrina")
+    ).toBeInTheDocument();
+    expect(within(mealsSection).getByText("15 g")).toBeInTheDocument();
+    expect(within(mealsSection).getByText("Suplemento")).toBeInTheDocument();
+    expect(
+      within(mealsSection).getByText("1 dosador · Diluir em 200 ml de água")
+    ).toBeInTheDocument();
+
+    const supplementsSection = screen.getByRole("region", {
+      name: "Suplementos",
+    });
+    expect(
+      within(supplementsSection).getByText("Beta-alanina + Maltodextrina")
     ).toBeInTheDocument();
   });
 });
