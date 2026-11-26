@@ -85,7 +85,7 @@ describe("ExerciseFormModal (#193)", () => {
       />
     );
 
-    expect(screen.getByText(/nova versão \(v2\)/i)).toBeInTheDocument();
+    expect(screen.getByRole("note")).toHaveTextContent(/nova versão \(v2\)/i);
     const nameInput = screen.getByLabelText("Nome do exercício *");
     expect(nameInput).toHaveValue("Supino reto");
 
