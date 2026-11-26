@@ -6,8 +6,9 @@ import { AppShell } from "@/layouts/AppShell";
 import { COACH_NAV } from "@/lib/coach-nav";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { ProtocolLineageBar } from "@/components/ui/ProtocolLineageBar";
 import { useAthlete } from "@/lib/athletes";
-import { useCreateAssessment } from "@/lib/assessments";
+import { useAssessments, useCreateAssessment } from "@/lib/assessments";
 import "./AthleteForm.css";
 
 // T-027 — Registro de avaliação física (US-007). Persona: Coach.
@@ -52,15 +53,28 @@ export function AssessmentCreatePage() {
   const { id: athleteId = "" } = useParams();
   const navigate = useNavigate();
   const { data: athlete, isLoading } = useAthlete(athleteId);
+  const { data: assessments } = useAssessments(athleteId);
   const createMutation = useCreateAssessment(athleteId);
   const {
     register,
     handleSubmit,
+    watch,
     setError,
     formState: { errors },
   } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
   });
+
+  const latestAssessment = (assessments ?? [])
+    .slice()
+    .sort((a, b) => b.assessmentDate.localeCompare(a.assessmentDate))[0];
+
+  const liveWeight = Number(watch("weightKg"));
+  const liveHeight = Number(watch("heightCm"));
+  const liveBmi =
+    Number.isFinite(liveWeight) && liveWeight > 0 && Number.isFinite(liveHeight) && liveHeight > 0
+      ? Number((liveWeight / Math.pow(liveHeight / 100, 2)).toFixed(1))
+      : null;
 
   async function onSubmit(values: FormValues) {
     try {
@@ -94,6 +108,27 @@ export function AssessmentCreatePage() {
         <h1 className="athlete-form__title">
           Nova avaliação{athlete ? ` — ${athlete.name}` : ""}
         </h1>
+
+        {athlete && (
+          <ProtocolLineageBar
+            athleteName={athlete.name}
+            tag={latestAssessment ? `Última: ${latestAssessment.assessmentDate}` : "Primeira avaliação"}
+            metrics={[
+              {
+                label: "Peso anterior",
+                value: latestAssessment ? `${latestAssessment.weightKg} kg` : "—",
+              },
+              {
+                label: "IMC anterior",
+                value: latestAssessment?.metrics.bmi != null ? String(latestAssessment.metrics.bmi) : "—",
+              },
+              {
+                label: "IMC previsto",
+                value: liveBmi != null ? `${liveBmi}` : "—",
+              },
+            ]}
+          />
+        )}
 
         {isLoading ? (
           <p>Carregando atleta...</p>

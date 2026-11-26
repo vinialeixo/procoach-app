@@ -36,7 +36,10 @@ type AttentionItem = {
   cta: string;
 };
 
-function buildAttentionInbox(activeAthletes: Athlete[]): AttentionItem[] {
+function buildAttentionInbox(activeAthletes: Athlete[]): {
+  items: AttentionItem[];
+  totalCount: number;
+} {
   const now = Date.now();
   const fortyEightHoursMs = 48 * 60 * 60 * 1000;
   const items: AttentionItem[] = [];
@@ -79,7 +82,7 @@ function buildAttentionInbox(activeAthletes: Athlete[]): AttentionItem[] {
     }
   }
 
-  return items.slice(0, 6);
+  return { items: items.slice(0, 6), totalCount: items.length };
 }
 
 export function CoachHomePage() {
@@ -89,7 +92,8 @@ export function CoachHomePage() {
   const activeAthletes = allAthletes.filter((a) => a.status === "ACTIVE");
   const pausedOrFinished = allAthletes.filter((a) => a.status !== "ACTIVE");
   const recentAthletes = activeAthletes.slice(0, 5);
-  const attentionItems = buildAttentionInbox(activeAthletes);
+  const { items: attentionItems, totalCount: totalAttentionCount } =
+    buildAttentionInbox(activeAthletes);
 
   return (
     <AppShell navItems={COACH_NAV}>
@@ -109,7 +113,7 @@ export function CoachHomePage() {
         <div className="coach-home__kpi">
           <span className="coach-home__kpi-label">Atenção pendente</span>
           <strong className="coach-home__kpi-value">
-            {isLoading ? "—" : attentionItems.length}
+            {isLoading ? "—" : totalAttentionCount}
           </strong>
           <span className="coach-home__kpi-meta">Convites e acessos em aberto</span>
         </div>
@@ -134,7 +138,15 @@ export function CoachHomePage() {
           {attentionItems.length > 0 && (
             <section className="coach-home__recent" aria-label="Inbox de atenção">
               <div className="coach-home__recent-head">
-                <h2>Inbox de atenção</h2>
+                <h2>
+                  Inbox de atenção
+                  {totalAttentionCount > attentionItems.length && (
+                    <span className="coach-home__kpi-meta">
+                      {" "}
+                      (mostrando {attentionItems.length} de {totalAttentionCount})
+                    </span>
+                  )}
+                </h2>
                 <Link to="/coach/athletes" className="coach-home__see-all">
                   Gerenciar carteira
                 </Link>
