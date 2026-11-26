@@ -183,6 +183,21 @@ Resumo consolidado dos backlogs (`backend/TASKS.md`, `frontend/TASKS.md` e `TASK
 
 ## Como Rodar Localmente
 
+### Opção A — Stack completa com Docker Compose (Piloto / Homologação)
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+Serviços disponíveis:
+- **Frontend SPA (Nginx):** `http://localhost:5173` (com proxy `/api` → `backend:8080`)
+- **Backend API (Spring Boot):** `http://localhost:8080` (healthcheck em `/actuator/health`)
+- **Mailpit (e-mails de convite/aviso):** `http://localhost:8025`
+- **PostgreSQL + pgvector:** `localhost:5432`
+
+### Opção B — Desenvolvimento local (sem container da aplicação)
+
 ### 1. Banco de Dados e Backend
 
 ```bash

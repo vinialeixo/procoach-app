@@ -61,6 +61,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/v1/auth/invites/*").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/auth/invites/*/accept").permitAll()
 						.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+						.requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 						.anyRequest().authenticated())
 				.oauth2ResourceServer(oauth2 -> oauth2
 						.jwt(jwt -> jwt.decoder(accessTokenDecoder(jwtSecretKey))
