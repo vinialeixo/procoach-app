@@ -111,21 +111,12 @@ export function AssessmentCreatePage() {
 
         {athlete && (
           <ProtocolLineageBar
-            athleteName={athlete.name}
-            tag={latestAssessment ? `Última: ${latestAssessment.assessmentDate}` : "Primeira avaliação"}
+            title={athlete.name}
+            lineageTag={latestAssessment ? `Última: ${latestAssessment.assessmentDate}` : "Primeira avaliação"}
             metrics={[
-              {
-                label: "Peso anterior",
-                value: latestAssessment ? `${latestAssessment.weightKg} kg` : "—",
-              },
-              {
-                label: "IMC anterior",
-                value: latestAssessment?.metrics.bmi != null ? String(latestAssessment.metrics.bmi) : "—",
-              },
-              {
-                label: "IMC previsto",
-                value: liveBmi != null ? `${liveBmi}` : "—",
-              },
+              `Peso anterior: ${latestAssessment ? `${latestAssessment.measurements.weightKg} kg` : "—"}`,
+              `IMC anterior: ${latestAssessment?.metrics.imc != null ? String(latestAssessment.metrics.imc) : "—"}`,
+              `IMC previsto: ${liveBmi != null ? `${liveBmi}` : "—"}`,
             ]}
           />
         )}
