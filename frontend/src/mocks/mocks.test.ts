@@ -302,5 +302,13 @@ describe("MSW mock layer", () => {
     expect(createdDiet.data.warnings.map((w) => w.code)).toEqual(
       expect.arrayContaining(["ZERO_CARBOHYDRATE", "MACRO_CALORIE_MISMATCH"])
     );
+
+    const foodsSearch = await jsonFetch<{
+      content: Array<{ id: string; name: string }>;
+      totalElements: number;
+    }>("/api/v1/foods?query=frango");
+    expect(foodsSearch.status).toBe(200);
+    expect(foodsSearch.data.totalElements).toBeGreaterThanOrEqual(1);
+    expect(foodsSearch.data.content[0].name).toContain("frango");
   });
 });

@@ -89,3 +89,32 @@ Depois do login, as próximas telas de front no `TASKS.md`, em ordem:
 Peça ao agente uma tela por vez, reaproveitando os componentes de
 `src/components/ui` e os tokens de `src/styles/tokens.css` — não crie um
 novo sistema de design a cada tela.
+
+## Container e configuração de API (T-100 / T-101)
+
+### Decisão de arquitetura: *same-origin* com proxy reverso (`/api/`)
+
+No build em container, mantemos o padrão **`VITE_API_BASE_URL=/api/v1`** (relativo) e **`VITE_USE_MOCKS=false`**, delegando o encaminhamento de `/api/*` para o Nginx (`nginx.conf.template` → `BACKEND_ORIGIN`).
+
+| Abordagem | Trade-off |
+| :--- | :--- |
+| **Same-origin (`/api/v1` + proxy Nginx)** *(adotada)* | Elimina CORS no backend; mantém paridade exata com o proxy do Vite em dev (inclusive `/api/training/*` e `/api/library/*`); preserva o cache offline do Service Worker (`sw.js`); permite trocar `BACKEND_ORIGIN` em **runtime** sem rebuildar a imagem. |
+| **URL absoluta via build arg (`VITE_API_BASE_URL=https://...`)** | Fica congelada no bundle em **build-time**; exige configuração de CORS no Spring Security e impede o cache same-origin do `sw.js`. Útil apenas em hospedagem estática sem proxy reverso. |
+
+- **Mocks em produção:** `VITE_USE_MOCKS` tem padrão `false` no `Dockerfile` e `dist/mockServiceWorker.js` é removido do artefato final quando mocks não estão habilitados.
+- **401 / 403:** `proxy_intercept_errors off` preserva status e payload do backend, mantendo o refresh lock (`api-client.ts`) e o `GlobalForbiddenBanner` idênticos ao dev local.
+
+### Build e execução do container
+
+```bash
+# Build (executa npm ci, lint e build de produção)
+docker build -t procoach-frontend ./frontend
+
+# Execução (porta 8080 non-root; aponte BACKEND_ORIGIN para o serviço/host da API)
+docker run -d --name procoach-frontend \
+  -p 8080:8080 \
+  -e BACKEND_ORIGIN=http://host.docker.internal:8080 \
+  procoach-frontend
+```
+
+Healthcheck disponível em `GET /healthz` (`200 ok`). Rotas profundas da SPA (`/coach/athletes`, `/athlete/treino`, `/convite/:token`) respondem `index.html` via `try_files`.
