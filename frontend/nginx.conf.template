@@ -1,0 +1,48 @@
+server {
+    listen 8080;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Healthcheck do container (não depende do backend)
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # Paridade com o proxy do Vite em dev (/api -> backend)
+    # Cobre /api/v1/*, /api/training/* e /api/library/* sem CORS
+    location /api/ {
+        proxy_pass ${BACKEND_ORIGIN};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_intercept_errors off;
+    }
+
+    # Service Worker e manifest nunca devem ficar presos em cache longo
+    location = /sw.js {
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+
+    location = /manifest.webmanifest {
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+
+    # Bundles com hash gerados pelo Vite
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    # Fallback SPA para rotas do React Router (/coach/*, /athlete/*, /convite/*)
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
