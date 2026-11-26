@@ -3,7 +3,7 @@
 > Tasks da SPA (`frontend/`): telas, design system e tooling do front.
 > Backlog completo, convenções de status e contexto: [`TASKS.md` na raiz](../TASKS.md).
 > Os IDs (`T-xxx`, `M2-xxx`) são globais — a coluna "Depende de" pode apontar para task de outro arquivo (`backend/TASKS.md` ou o `TASKS.md` da raiz).
-> Total neste arquivo: **28** tasks.
+> Total neste arquivo: **32** tasks.
 
 ---
 
@@ -187,3 +187,29 @@
   por decisão do time).
   `M2-004`, `M2-017` e `M2-021` seguem bloqueadas pelas dependências de backend abertas
   (`M2-003`, `M2-014`, `M2-020`).
+
+---
+
+# Adendo — Painel Admin (2026-11-26)
+
+> Escopo novo aprovado pelo PO: rotas e telas do administrador (`/admin`), gestão de coaches,
+> atletas por coach, administradores e convite de coach.
+> Plano completo: [`docs/plans/painel-admin-coaches.md`](../docs/plans/painel-admin-coaches.md).
+> User Story: **US-043** (`backend/USER_STORIES.md`). Épico no GitHub: **#214**.
+> O cadastro público de coach (`/registro`) será removido; coach entra apenas por convite.
+
+| Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
+|---|---|---|---|---|---|---|---|---|
+| [ ] | **T-107** | E9 | US-043 | Papel `ADMIN` no front, `homeForRole`, `ProtectedRoute`/`RoleRedirect`, shell e rotas `/admin`, remoção de `/registro` e fluxo de troca obrigatória de senha. *(GitHub #220.)* | Dev | Must | 2 | T-102 |
+| [ ] | **T-108** | E9 | US-043 | Lista de coaches com busca/filtros, KPIs do painel e modal de criação com convite + copiar link. *(GitHub #221.)* | Dev | Must | 2 | T-104, T-107 |
+| [ ] | **T-109** | E9 | US-043 | Detalhe do coach, tabela de atletas (sem conteúdo clínico) e ações de suspender/reativar/arquivar com motivo. *(GitHub #222.)* | Dev | Must | 2 | T-105, T-108 |
+| [ ] | **T-110** | E9 | US-043 | Página de administradores (listar/criar/resetar senha), tela de alteração da própria senha e aceite público do convite de coach (`/convite-coach/:token`). *(GitHub #223.)* | Dev | Must | 3 | T-103, T-106, T-107 |
+
+### Resumo do adendo — Painel Admin (frontend)
+
+| Foco | Tasks | Estimativa Dev (dias) |
+|---|---|---|
+| Infra de acesso e rotas | 1 | 2 |
+| Coaches (lista + detalhe) | 2 | 4 |
+| Admins, senhas e convite | 1 | 3 |
+| TOTAL | 4 | 9 |

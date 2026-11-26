@@ -6,6 +6,13 @@
 > **Lacuna encontrada (2026-09-02)**: a planilha original não tinha nenhuma task de front para o atleta visualizar sua própria dieta/treino (só leitura) — apesar de `US-038`/RF-11 exigirem isso e o C4 do UML mostrar `Athlete -->|visualiza planos| SPA`. Adicionei `T-054` e `T-055` abaixo (fora da numeração/sprints originais) para cobrir isso. Confirme com o time se faz sentido antes de tratar como backlog oficial.
 > **Análise PO + Nutrição Esportiva (2026-11-11)**: o fluxo de dietas hoje modela apenas um orçamento de 4 macros (sem refeições, alimentos, gramaturas, suplementos ou balanço energético visível). A análise completa, as regras de negócio e o contrato JSON v1 do plano alimentar estão em [`docs/nutricao-plano-alimentar.md`](docs/nutricao-plano-alimentar.md). Backlog gerado: `T-085`–`T-090` no [`backend/TASKS.md`](backend/TASKS.md) (GitHub #56–#61) e `T-091`–`T-095` no [`frontend/TASKS.md`](frontend/TASKS.md) (GitHub #62–#66).
 
+> **Adendo Painel Admin (2026-11-26)**: escopo novo aprovado pelo PO — papel `ADMIN`, painel de
+> coaches/atletas, onboarding de coach por convite, gestão de administradores e remoção do
+> cadastro público de coach. Plano: [`docs/plans/painel-admin-coaches.md`](docs/plans/painel-admin-coaches.md).
+> Backlog: `T-102`–`T-106` em [`backend/TASKS.md`](backend/TASKS.md), `T-107`–`T-110` em
+> [`frontend/TASKS.md`](frontend/TASKS.md) e `T-111` abaixo. User Story: **US-043**.
+> Épico no GitHub: **#214**.
+
 ## Convenção de status
 
 Todas as tasks começam como `To Do` na planilha original. Recomendo usar 4 estados neste arquivo: `To Do`, `In Progress`, `Review`, `Done` — e pedir ao Claude Code para atualizar o status aqui mesmo ao concluir uma task (ver seção de prompts no final).
@@ -16,10 +23,10 @@ O backlog é dividido por ambiente. Os IDs são globais e não foram renumerados
 
 | Arquivo | Escopo | Tasks |
 |---|---|---|
-| [`backend/TASKS.md`](backend/TASKS.md) | Núcleo Java, RAG (Python), infra, segurança, testes de regra de negócio | 89 |
-| [`frontend/TASKS.md`](frontend/TASKS.md) | SPA: telas, design system, tooling | 28 |
-| este arquivo | Transversais: estratégia de QA, E2E integrado, UAT | 7 |
-| **TOTAL** | **Backlog completo (MVP + Adendo + MVP2)** | **124** |
+| [`backend/TASKS.md`](backend/TASKS.md) | Núcleo Java, RAG (Python), infra, segurança, testes de regra de negócio | 94 |
+| [`frontend/TASKS.md`](frontend/TASKS.md) | SPA: telas, design system, tooling | 32 |
+| este arquivo | Transversais: estratégia de QA, E2E integrado, UAT | 8 |
+| **TOTAL** | **Backlog completo (MVP + Adendo + MVP2 + Painel Admin)** | **134** |
 
 Critério: a task entra em `frontend/` se o entregável é código da SPA (tasks "Front: ..." e setup do front). Entra aqui se só faz sentido com front e back juntos (E2E, UAT, plano de QA). O resto fica em `backend/`, inclusive testes de QA de regra de negócio e hardening.
 
@@ -78,3 +85,20 @@ Critério: a task entra em `frontend/` se o entregável é código da SPA (tasks
 |---|---|---|---|---|
 | S11 | Integração + Hardening + UAT | 2 | 0 | 5 |
 | TOTAL |  | 2 | 0 | 5 |
+
+---
+
+# Adendo — Painel Admin (2026-11-26)
+
+> Tasks transversais do painel admin que só fazem sentido com front + back juntos.
+
+| Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
+|---|---|---|---|---|---|---|---|---|
+| [ ] | **T-111** | E9 | US-043 | QA/mocks do painel admin: mocks MSW com vários coaches e `coachId` no atleta, credencial admin, testes Vitest/Playwright e checklist de aceite da US-043. *(GitHub #224.)* | QA | Must | 2 | T-108, T-109, T-110 |
+
+### Resumo do adendo — Painel Admin (QA)
+
+| Foco | Tasks | QA (dias) |
+|---|---|---|
+| Mocks, testes e aceite | 1 | 2 |
+| TOTAL | 1 | 2 |
