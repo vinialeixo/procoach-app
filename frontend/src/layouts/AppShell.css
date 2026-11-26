@@ -105,7 +105,7 @@
 .app-shell__actions .pc-button,
 .app-shell__logout {
   width: auto;
-  height: 36px;
+  min-height: 44px;
   padding: 0 var(--space-3);
   color: var(--color-ink-on-dark);
   border-color: var(--color-border-on-dark);

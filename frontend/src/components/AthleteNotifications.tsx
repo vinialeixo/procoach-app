@@ -102,16 +102,26 @@ export function AthleteNotifications({ athleteId }: { athleteId: string | null }
         <section className="athlete-notifications__panel" id="athlete-notifications-panel" aria-label="Avisos do atleta">
           <div className="athlete-notifications__heading">
             <h2>Avisos</h2>
-            {unreadCount > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+              {unreadCount > 0 && (
+                <button
+                  className="athlete-notifications__item-action"
+                  type="button"
+                  onClick={() => markAllRead.mutate()}
+                  disabled={markAllRead.isPending}
+                >
+                  Marcar todos como lidos
+                </button>
+              )}
               <button
                 className="athlete-notifications__item-action"
                 type="button"
-                onClick={() => markAllRead.mutate()}
-                disabled={markAllRead.isPending}
+                aria-label="Fechar avisos"
+                onClick={() => setIsOpen(false)}
               >
-                Marcar todos como lidos
+                Fechar
               </button>
-            )}
+            </div>
           </div>
           {query.isPending ? <p role="status">Carregando avisos…</p>
             : query.isError ? (
