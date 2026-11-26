@@ -46,12 +46,13 @@
 .athlete-detail__status {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 
 .athlete-detail__status .pc-button {
   width: auto;
-  height: 36px;
+  min-height: 44px;
   padding: 0 var(--space-4);
 }
 

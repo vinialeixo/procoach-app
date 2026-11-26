@@ -106,7 +106,7 @@
 
 .diet-meals__summary-link {
   font-size: var(--text-sm);
-  color: var(--color-accent);
+  color: var(--color-accent-ink);
   text-decoration: none;
   font-weight: 500;
 }
