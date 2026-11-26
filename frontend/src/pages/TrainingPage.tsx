@@ -10,6 +10,7 @@ import {
   AddExercisePayload,
   ExercisePrescription,
   MuscleGroup,
+  SaveExercisePayload,
   TrainingSession,
   TrainingStatus,
   UpdateExercisePrescriptionPayload,
@@ -17,6 +18,7 @@ import {
   useAddExerciseToSession,
   useApplyCurrentExerciseVersion,
   useAthleteTrainingSessions,
+  useCreateExercise,
   useCreatePeriodization,
   useCreateTrainingPlan,
   useCreateTrainingPlanVersion,
@@ -28,6 +30,7 @@ import {
   useTrainingPlans,
   useTransitionTrainingPlan,
   useTransitionTrainingSession,
+  useUpdateExercise,
   useUpdateExercisePrescription,
 } from "@/lib/training";
 import { PlanComparisonModal } from "./training/PlanComparisonModal";
@@ -136,6 +139,8 @@ export function TrainingPage() {
   const applyCurrentVersion = useApplyCurrentExerciseVersion(periodizationId, sessionId);
   const transitionPlan = useTransitionTrainingPlan(athleteId, periodizationId);
   const transitionSession = useTransitionTrainingSession(periodizationId, sessionId);
+  const createExercise = useCreateExercise();
+  const updateExercise = useUpdateExercise();
 
   const selectedPeriodization = periodizations.find((item) => item.id === periodizationId);
   const selectedPlan = plans.find((item) => item.id === planId);
@@ -459,6 +464,14 @@ export function TrainingPage() {
             onRemovePrescription={async (prescriptionId: string) => {
               await removePrescription.mutateAsync(prescriptionId);
             }}
+            onCreateExercise={(payload: SaveExercisePayload) =>
+              createExercise.mutateAsync(payload)
+            }
+            onUpdateExercise={(id: string, payload: SaveExercisePayload) =>
+              updateExercise.mutateAsync({ id, payload })
+            }
+            saveExercisePending={createExercise.isPending || updateExercise.isPending}
+            saveExerciseError={createExercise.error ?? updateExercise.error}
           />
         )}
         </div>

@@ -40,6 +40,23 @@ export const MUSCLE_GROUPS = [
 ] as const;
 
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
+
+export const EQUIPMENT_TYPES = [
+  "BARRA_LIVRE",
+  "HALTERES",
+  "MAQUINA",
+  "CROSSOVER",
+  "POLIA",
+  "BANCO",
+  "PESO_CORPORAL",
+  "KETTLEBELL",
+  "BOLA_SUICA",
+  "ELASTICO",
+  "SMITH",
+  "OUTRO",
+] as const;
+
+export type EquipmentType = (typeof EQUIPMENT_TYPES)[number];
 export type TrainingStatus = "DRAFT" | "IN_REVIEW" | "ACTIVE" | "FINISHED";
 export type IntensityType = "PERCENT_1RM" | "RPE" | "RIR" | "ABSOLUTE_LOAD";
 
@@ -467,6 +484,59 @@ async function listAthleteSessions(
     { ...rootRequestConfig(), params: { planId } }
   );
   return data.filter((session) => !session.deleted);
+}
+
+export type SaveExercisePayload = {
+  name: string;
+  muscleGroups: MuscleGroup[];
+  equipment: EquipmentType | string;
+  execution: string;
+  commonErrors?: string[];
+  progressions?: string[];
+  regressions?: string[];
+  contraindications?: string[];
+  references?: ExerciseReference[];
+};
+
+export function useCreateExercise() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: SaveExercisePayload) => {
+      const { data } = await apiClient.post<Exercise>(
+        "/api/library/exercises",
+        payload,
+        { baseURL: apiRootBaseURL }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["library", "exercises"] });
+    },
+  });
+}
+
+export function useUpdateExercise() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: SaveExercisePayload;
+    }) => {
+      const { data } = await apiClient.put<Exercise>(
+        `/api/library/exercises/${id}`,
+        payload,
+        { baseURL: apiRootBaseURL }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["library", "exercises"] });
+      queryClient.invalidateQueries({ queryKey: ["training"] });
+    },
+  });
 }
 
 export function useExercises(
