@@ -136,7 +136,24 @@ export function AthleteListPage() {
               </option>
             ))}
           </select>
+          {hasFilters && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setSearch("");
+                setStatusFilter("");
+              }}
+            >
+              Limpar filtros
+            </Button>
+          )}
         </div>
+        {!isLoading && !isError && (
+          <p className="athlete-list__count" aria-live="polite">
+            Exibindo {filtered.length} de {athletes?.length ?? 0} atleta(s)
+          </p>
+        )}
 
         {isError ? (
           <StateMessage kind="error" description="Não foi possível carregar os atletas." onRetry={() => refetch()} />

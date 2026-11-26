@@ -9,6 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import { DataTable, Column } from "@/components/ui/DataTable";
+import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Assessment, useAssessments } from "@/lib/assessments";
 import "./AthleteAssessments.css";
@@ -335,11 +336,33 @@ export function AthleteAssessmentsPanel({
             emptyMessage="Nenhuma avaliação registrada."
           />
 
+          {selectedIds.length === 1 && (
+            <p className="assessments__chart-hint" role="status">
+              Selecione mais 1 avaliação para comparar lado a lado.{" "}
+              <button
+                type="button"
+                className="assessments__link-btn"
+                onClick={() => setSelectedIds([])}
+              >
+                Limpar seleção
+              </button>
+            </p>
+          )}
+
           {selected.length >= 2 && (
             <>
-              <h3 className="assessments__section-title">
-                Comparação ({selected.length} avaliações)
-              </h3>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
+                <h3 className="assessments__section-title">
+                  Comparação ({selected.length} avaliações)
+                </h3>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setSelectedIds([])}
+                >
+                  Limpar seleção
+                </Button>
+              </div>
               <DataTable
                 columns={compareColumns}
                 rows={compareRows}

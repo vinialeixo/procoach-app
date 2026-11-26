@@ -4,6 +4,7 @@ import { AppShell } from "@/layouts/AppShell";
 import { COACH_NAV } from "@/lib/coach-nav";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
+import { ProtocolLineageBar } from "@/components/ui/ProtocolLineageBar";
 import { SelectField } from "@/components/ui/SelectField";
 import { useAthletes } from "@/lib/athletes";
 import {
@@ -257,6 +258,17 @@ export function TrainingPage() {
             </p>
           </div>
         </header>
+
+        {athleteId && (
+          <ProtocolLineageBar
+            title={(athletesQuery.data ?? []).find((a) => a.id === athleteId)?.name ?? "Atleta"}
+            lineageTag={selectedPlan ? `Plano v${selectedPlan.version} · ${selectedPlan.status}` : "Sem plano ativo"}
+            metrics={[
+              `Periodização: ${selectedPeriodization?.name ?? "—"}`,
+              `Sessões: ${sessions.length}`,
+            ]}
+          />
+        )}
 
         {isAthleteInvalid && (
           <p className="training-page__alert" role="alert">
