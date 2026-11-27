@@ -1,3 +1,4 @@
+import { adminHandlers } from "./admin.handlers";
 import { assessmentsHandlers } from "./assessments.handlers";
 import { athletesHandlers } from "./athletes.handlers";
 import { authHandlers } from "./auth.handlers";
@@ -7,6 +8,7 @@ import { trainingHandlers } from "./training.handlers";
 
 export const handlers = [
   ...authHandlers,
+  ...adminHandlers,
   ...athletesHandlers,
   ...assessmentsHandlers,
   ...nutritionHandlers,

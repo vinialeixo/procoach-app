@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import {
+  MOCK_ADMIN_CREDENTIALS,
   MOCK_ATHLETE_CREDENTIALS,
   MOCK_COACH_CREDENTIALS,
   mockDb,
@@ -28,6 +29,23 @@ export const authHandlers = [
         { code: "INVALID_CREDENTIALS", message: "E-mail ou senha incorretos." },
         { status: 401 }
       );
+    }
+
+    if (
+      email === MOCK_ADMIN_CREDENTIALS.username ||
+      email === MOCK_ADMIN_CREDENTIALS.email
+    ) {
+      const accessToken = createMockJwt({
+        sub: MOCK_ADMIN_CREDENTIALS.id,
+        role: "ADMIN",
+        email: MOCK_ADMIN_CREDENTIALS.email,
+        name: MOCK_ADMIN_CREDENTIALS.name,
+        mustChangePassword: false,
+      });
+      return HttpResponse.json({
+        accessToken,
+        refreshToken: `mock-refresh-${MOCK_ADMIN_CREDENTIALS.id}`,
+      });
     }
 
     const athlete = mockDb.athletes.find(

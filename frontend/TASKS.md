@@ -201,7 +201,7 @@
 | Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
 |---|---|---|---|---|---|---|---|---|
 | [x] | **T-107** | E9 | US-043 | Papel `ADMIN` no front, `homeForRole`, `ProtectedRoute`/`RoleRedirect`, shell e rotas `/admin`, remoção de `/registro` e fluxo de troca obrigatória de senha. *(GitHub #220.)* | Dev | Must | 2 | T-102 |
-| [ ] | **T-108** | E9 | US-043 | Lista de coaches com busca/filtros, KPIs do painel e modal de criação com convite + copiar link. *(GitHub #221.)* | Dev | Must | 2 | T-104, T-107 |
+| [x] | **T-108** | E9 | US-043 | Lista de coaches com busca/filtros, KPIs do painel e modal de criação com convite + copiar link. *(GitHub #221.)* | Dev | Must | 2 | T-104, T-107 |
 | [ ] | **T-109** | E9 | US-043 | Detalhe do coach, tabela de atletas (sem conteúdo clínico) e ações de suspender/reativar/arquivar com motivo. *(GitHub #222.)* | Dev | Must | 2 | T-105, T-108 |
 | [ ] | **T-110** | E9 | US-043 | Página de administradores (listar/criar/resetar senha), tela de alteração da própria senha e aceite público do convite de coach (`/convite-coach/:token`). *(GitHub #223.)* | Dev | Must | 3 | T-103, T-106, T-107 |
 

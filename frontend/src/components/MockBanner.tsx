@@ -16,24 +16,34 @@ export function MockBanner() {
   }
 
   async function handleSwitchRole(role: Role) {
-    const [{ MOCK_ATHLETE_CREDENTIALS, MOCK_COACH_CREDENTIALS }, { createMockJwt }] =
-      await Promise.all([import("@/mocks/db"), import("@/mocks/jwt")]);
+    const [
+      { MOCK_ADMIN_CREDENTIALS, MOCK_ATHLETE_CREDENTIALS, MOCK_COACH_CREDENTIALS },
+      { createMockJwt },
+    ] = await Promise.all([import("@/mocks/db"), import("@/mocks/jwt")]);
 
     const token =
-      role === "ATHLETE"
+      role === "ADMIN"
         ? createMockJwt({
-            sub: MOCK_ATHLETE_CREDENTIALS.athleteId,
-            role: "ATHLETE",
-            athleteId: MOCK_ATHLETE_CREDENTIALS.athleteId,
-            email: MOCK_ATHLETE_CREDENTIALS.email,
-            name: MOCK_ATHLETE_CREDENTIALS.name,
+            sub: MOCK_ADMIN_CREDENTIALS.id,
+            role: "ADMIN",
+            email: MOCK_ADMIN_CREDENTIALS.email,
+            name: MOCK_ADMIN_CREDENTIALS.name,
+            mustChangePassword: false,
           })
-        : createMockJwt({
-            sub: MOCK_COACH_CREDENTIALS.id,
-            role: "COACH",
-            email: MOCK_COACH_CREDENTIALS.email,
-            name: MOCK_COACH_CREDENTIALS.name,
-          });
+        : role === "ATHLETE"
+          ? createMockJwt({
+              sub: MOCK_ATHLETE_CREDENTIALS.athleteId,
+              role: "ATHLETE",
+              athleteId: MOCK_ATHLETE_CREDENTIALS.athleteId,
+              email: MOCK_ATHLETE_CREDENTIALS.email,
+              name: MOCK_ATHLETE_CREDENTIALS.name,
+            })
+          : createMockJwt({
+              sub: MOCK_COACH_CREDENTIALS.id,
+              role: "COACH",
+              email: MOCK_COACH_CREDENTIALS.email,
+              name: MOCK_COACH_CREDENTIALS.name,
+            });
 
     saveSession(token, `mock-refresh-${role.toLowerCase()}`);
     queryClient.clear();
@@ -43,6 +53,13 @@ export function MockBanner() {
   return (
     <aside className="mock-banner" aria-label="Controles do modo mock">
       <span className="mock-banner__badge">MODO MOCK</span>
+      <button
+        type="button"
+        className="mock-banner__btn"
+        onClick={() => void handleSwitchRole("ADMIN")}
+      >
+        Admin
+      </button>
       <button
         type="button"
         className="mock-banner__btn"
