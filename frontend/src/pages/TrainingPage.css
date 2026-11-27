@@ -559,6 +559,82 @@
   color: var(--color-ink);
 }
 
+.training-page__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.training-page__exercise-meta-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--space-3);
+}
+
+.training-page__link-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 10px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-accent-ink);
+  cursor: pointer;
+}
+
+.training-page__muscle-fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin: 0;
+}
+
+.training-page__muscle-fieldset legend {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  padding: 0 var(--space-1);
+}
+
+.training-page__muscle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-2);
+}
+
+.training-page__checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.training-page__references-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.training-page__reference-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-2);
+  align-items: end;
+}
+
+.training-page__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
 .training-page__combobox {
   position: relative;
 }

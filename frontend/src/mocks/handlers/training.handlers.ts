@@ -1,9 +1,11 @@
 import { http, HttpResponse } from "msw";
 import type {
   AddExercisePayload,
+  Exercise,
   ExercisePrescription,
   MuscleGroup,
   Periodization,
+  SaveExercisePayload,
   TrainingPlan,
   TrainingSession,
   TrainingStatus,
@@ -57,12 +59,81 @@ export const trainingHandlers = [
     const muscleGroup = url.searchParams.get("muscleGroup") as MuscleGroup | null;
 
     const list = mockDb.exercises.filter((exercise) => {
+      if (exercise.superseded) return false;
       if (name && !exercise.name.toLowerCase().includes(name)) return false;
       if (muscleGroup && !exercise.muscleGroups.includes(muscleGroup)) return false;
       return true;
     });
 
     return HttpResponse.json(list);
+  }),
+
+  http.post("/api/library/exercises", async ({ request }) => {
+    const body = (await request.json()) as SaveExercisePayload;
+    if (!body.name?.trim() || !body.muscleGroups?.length || !body.equipment || !body.execution?.trim()) {
+      return HttpResponse.json({ message: "Campos obrigatórios ausentes." }, { status: 400 });
+    }
+    const created: Exercise = {
+      id: nextMockId("ex"),
+      name: body.name.trim(),
+      muscleGroups: body.muscleGroups,
+      equipment: body.equipment,
+      execution: body.execution.trim(),
+      commonErrors: body.commonErrors ?? [],
+      progressions: body.progressions ?? [],
+      regressions: body.regressions ?? [],
+      contraindications: body.contraindications ?? [],
+      references: body.references ?? [],
+      version: 1,
+      superseded: false,
+    };
+    mockDb.exercises.push(created);
+    return HttpResponse.json(created, { status: 201 });
+  }),
+
+  http.put("/api/library/exercises/:id", async ({ params, request }) => {
+    const current = mockDb.exercises.find((item) => item.id === params.id);
+    if (!current) {
+      return HttpResponse.json({ message: "Exercício não encontrado." }, { status: 404 });
+    }
+    if (current.superseded) {
+      return HttpResponse.json(
+        { message: "Versão já substituída: edite a versão corrente." },
+        { status: 409 }
+      );
+    }
+    const body = (await request.json()) as SaveExercisePayload;
+    if (!body.name?.trim() || !body.muscleGroups?.length || !body.equipment || !body.execution?.trim()) {
+      return HttpResponse.json({ message: "Campos obrigatórios ausentes." }, { status: 400 });
+    }
+    current.superseded = true;
+    const nextVersion: Exercise = {
+      id: nextMockId("ex"),
+      name: body.name.trim(),
+      muscleGroups: body.muscleGroups,
+      equipment: body.equipment,
+      execution: body.execution.trim(),
+      commonErrors: body.commonErrors ?? [],
+      progressions: body.progressions ?? [],
+      regressions: body.regressions ?? [],
+      contraindications: body.contraindications ?? [],
+      references: body.references ?? [],
+      version: current.version + 1,
+      superseded: false,
+    };
+    mockDb.exercises.push(nextVersion);
+
+    // Atualiza prescrições existentes apontando para a versão antiga (T-069)
+    for (const session of mockDb.sessions) {
+      for (const presc of session.exercises) {
+        if (presc.exerciseId === current.id) {
+          presc.newerVersionAvailable = true;
+          presc.currentExerciseId = nextVersion.id;
+        }
+      }
+    }
+
+    return HttpResponse.json(nextVersion);
   }),
 
   http.get("/api/library/exercises/:id", ({ params }) => {

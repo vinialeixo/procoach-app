@@ -12,9 +12,11 @@ import {
   IntensityType,
   MUSCLE_GROUPS,
   MuscleGroup,
+  SaveExercisePayload,
   TrainingSession,
   UpdateExercisePrescriptionPayload,
 } from "@/lib/training";
+import { ExerciseFormModal } from "./ExerciseFormModal";
 import {
   DAY_LABELS,
   EQUIPMENT_LABELS,
@@ -51,6 +53,10 @@ interface SessionEditorViewProps {
   onAddExercise: (payload: AddExercisePayload) => Promise<void>;
   onUpdatePrescription: (prescriptionId: string, payload: UpdateExercisePrescriptionPayload) => Promise<void>;
   onRemovePrescription: (prescriptionId: string) => Promise<void>;
+  onCreateExercise?: (payload: SaveExercisePayload) => Promise<Exercise>;
+  onUpdateExercise?: (id: string, payload: SaveExercisePayload) => Promise<Exercise>;
+  saveExercisePending?: boolean;
+  saveExerciseError?: unknown;
 }
 
 export function SessionEditorView({
@@ -78,6 +84,10 @@ export function SessionEditorView({
   onAddExercise,
   onUpdatePrescription,
   onRemovePrescription,
+  onCreateExercise,
+  onUpdateExercise,
+  saveExercisePending = false,
+  saveExerciseError = null,
 }: SessionEditorViewProps) {
   const [libraryName, setLibraryName] = useState("");
   const [libraryMuscle, setLibraryMuscle] = useState<MuscleGroup | "">("");
@@ -89,6 +99,8 @@ export function SessionEditorView({
   const [confirmFinishSession, setConfirmFinishSession] = useState(false);
   const [updatingExerciseId, setUpdatingExerciseId] = useState<string | null>(null);
   const [applySuccessFeedback, setApplySuccessFeedback] = useState<string | null>(null);
+  const [exerciseModalOpen, setExerciseModalOpen] = useState(false);
+  const [editingLibraryExercise, setEditingLibraryExercise] = useState<Exercise | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const hasMountedSearchRef = useRef(false);
@@ -401,9 +413,24 @@ export function SessionEditorView({
 
       {selectedSession.status !== "FINISHED" && (
         <div className="training-page__add-prescription" id="session-add-prescription">
-          <div>
-            <p className="training-page__eyebrow">Adicionar exercício</p>
-            <h3>Prescrição da biblioteca</h3>
+          <div className="training-page__section-header">
+            <div>
+              <p className="training-page__eyebrow">Adicionar exercício</p>
+              <h3>Prescrição da biblioteca</h3>
+            </div>
+            {onCreateExercise && (
+              <Button
+                type="button"
+                variant="ghost"
+                fullWidth={false}
+                onClick={() => {
+                  setEditingLibraryExercise(null);
+                  setExerciseModalOpen(true);
+                }}
+              >
+                Novo exercício
+              </Button>
+            )}
           </div>
           <form
             className="training-page__search"
@@ -534,6 +561,21 @@ export function SessionEditorView({
                     </span>
                     <span className="training-page__mono">v{exercise.version}</span>
                   </button>
+                  <div className="training-page__exercise-meta-actions">
+                    {onUpdateExercise && !exercise.superseded && (
+                      <button
+                        type="button"
+                        className="training-page__link-btn"
+                        aria-label={`Editar ${exercise.name}`}
+                        onClick={() => {
+                          setEditingLibraryExercise(exercise);
+                          setExerciseModalOpen(true);
+                        }}
+                      >
+                        Editar
+                      </button>
+                    )}
+                  </div>
                   <details className="training-page__exercise-details">
                     <summary>Detalhes técnicos e referências</summary>
                     <p>{exercise.execution}</p>
@@ -612,6 +654,32 @@ export function SessionEditorView({
             </form>
           )}
         </div>
+      )}
+
+      {/* Modal de criar/editar exercício da biblioteca (#193) */}
+      {(onCreateExercise || onUpdateExercise) && (
+        <ExerciseFormModal
+          open={exerciseModalOpen}
+          exercise={editingLibraryExercise}
+          pending={saveExercisePending}
+          error={saveExerciseError}
+          onClose={() => {
+            setExerciseModalOpen(false);
+            setEditingLibraryExercise(null);
+          }}
+          onSave={async (payload, existingId) => {
+            const saved = existingId && onUpdateExercise
+              ? await onUpdateExercise(existingId, payload)
+              : onCreateExercise
+                ? await onCreateExercise(payload)
+                : null;
+            if (saved) {
+              setSelectedExerciseId(saved.id);
+              setExerciseModalOpen(false);
+              setEditingLibraryExercise(null);
+            }
+          }}
+        />
       )}
 
       {/* Modal de confirmação para finalizar sessão */}

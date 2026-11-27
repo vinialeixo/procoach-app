@@ -303,6 +303,38 @@ describe("MSW mock layer", () => {
       expect.arrayContaining(["ZERO_CARBOHYDRATE", "MACRO_CALORIE_MISMATCH"])
     );
 
+    const createdExercise = await jsonFetch<{ id: string; version: number; name: string }>(
+      "/api/library/exercises",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: "Elevação lateral com halteres",
+          muscleGroups: ["OMBROS"],
+          equipment: "HALTERES",
+          execution: "Eleve os braços até a linha dos ombros.",
+          commonErrors: ["Usar impulso"],
+        }),
+      }
+    );
+    expect(createdExercise.status).toBe(201);
+    expect(createdExercise.data.version).toBe(1);
+
+    const updatedExercise = await jsonFetch<{ id: string; version: number }>(
+      `/api/library/exercises/${createdExercise.data.id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          name: "Elevação lateral controlada",
+          muscleGroups: ["OMBROS"],
+          equipment: "HALTERES",
+          execution: "Controle excêntrico de 2 segundos.",
+        }),
+      }
+    );
+    expect(updatedExercise.status).toBe(200);
+    expect(updatedExercise.data.version).toBe(2);
+    expect(updatedExercise.data.id).not.toBe(createdExercise.data.id);
+
     const foodsSearch = await jsonFetch<{
       content: Array<{ id: string; name: string }>;
       totalElements: number;
