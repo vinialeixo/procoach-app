@@ -510,7 +510,7 @@ export function useCreateExercise() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["library", "exercises"] });
+      queryClient.invalidateQueries({ queryKey: ["training", "exercises"] });
     },
   });
 }

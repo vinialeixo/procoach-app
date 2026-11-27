@@ -92,7 +92,10 @@ test("a tela T-040 consulta a biblioteca e grava uma prescrição no backend", a
   await page.getByRole("button", { name: "Buscar" }).click();
   await libraryRequest;
 
-  await page.getByRole("button", { name: new RegExp(libraryExerciseName) }).click();
+  await page
+    .locator(".training-page__exercise-select")
+    .filter({ hasText: libraryExerciseName })
+    .click();
   await page.getByLabel("Séries").fill("4");
   await page.getByLabel("Repetições").fill("10");
   await page.getByLabel("Carga (kg)").fill("60");
