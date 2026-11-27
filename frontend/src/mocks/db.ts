@@ -18,6 +18,7 @@ import type {
   DevicePlatform,
   NotificationPreferences,
 } from "@/lib/notifications";
+import type { AdminCoach } from "@/lib/admin";
 
 export type MockCoach = {
   id: string;
@@ -66,6 +67,7 @@ export type MockDeviceRecord = {
 
 export type MockDbState = {
   coach: MockCoach;
+  adminCoaches: AdminCoach[];
   athletes: MockApiAthlete[];
   invites: MockInviteRecord[];
   assessments: MockApiAssessment[];
@@ -78,6 +80,13 @@ export type MockDbState = {
   notifications: Record<string, AthleteNotification[]>;
   notificationPreferences: Record<string, NotificationPreferences>;
   devices: MockDeviceRecord[];
+};
+
+export const MOCK_ADMIN_CREDENTIALS = {
+  id: "00000000-0000-4000-8000-000000000001",
+  username: "admin",
+  email: "admin@procoach.local",
+  name: "Administrador ProCoach",
 };
 
 export const MOCK_COACH_CREDENTIALS = {
@@ -109,6 +118,49 @@ function createInitialState(): MockDbState {
 
   return {
     coach: { ...MOCK_COACH_CREDENTIALS },
+    adminCoaches: [
+      {
+        coachId: MOCK_COACH_CREDENTIALS.id,
+        name: MOCK_COACH_CREDENTIALS.name,
+        email: MOCK_COACH_CREDENTIALS.email,
+        status: "ACTIVE",
+        accessStatus: "ACTIVE",
+        athleteCount: 15,
+        activeAthleteCount: 12,
+        createdAt: "2026-01-10T12:00:00Z",
+      },
+      {
+        coachId: "11111111-1111-4111-8111-111111111112",
+        name: "Maria Fernanda de Albuquerque Vasconcelos",
+        email: "maria.albuquerque@alta-performance.com.br",
+        status: "ACTIVE",
+        accessStatus: "INVITE_PENDING",
+        athleteCount: 0,
+        activeAthleteCount: 0,
+        createdAt: "2026-11-25T09:30:00Z",
+        inviteExpiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        coachId: "11111111-1111-4111-8111-111111111113",
+        name: "Bruno Henrique Cavalcanti",
+        email: "bruno.cavalcanti@tracklab.io",
+        status: "SUSPENDED",
+        accessStatus: "DISABLED",
+        athleteCount: 6,
+        activeAthleteCount: 4,
+        createdAt: "2026-06-03T14:00:00Z",
+      },
+      {
+        coachId: "11111111-1111-4111-8111-111111111114",
+        name: "Eduardo Silveira Rocha",
+        email: "eduardo.rocha@legado-esporte.com",
+        status: "CANCELLED",
+        accessStatus: "DISABLED",
+        athleteCount: 8,
+        activeAthleteCount: 0,
+        createdAt: "2025-02-14T10:00:00Z",
+      },
+    ],
     athletes: [
       {
         id: lucasId,

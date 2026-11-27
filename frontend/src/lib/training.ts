@@ -475,11 +475,13 @@ function rootRequestConfig() {
 
 async function listExercises(
   name: string,
-  muscleGroup: MuscleGroup | ""
+  muscleGroup: MuscleGroup | "",
+  signal?: AbortSignal
 ): Promise<Exercise[]> {
   const { data } = await apiClient.get<Exercise[]>("/api/library/exercises", {
     ...rootRequestConfig(),
     params: { name: name || undefined, muscleGroup: muscleGroup || undefined },
+    signal,
   });
   return data.filter((exercise) => !exercise.superseded);
 }
@@ -579,7 +581,7 @@ export function useExercises(
 ) {
   return useQuery({
     queryKey: keys.exercises(name, muscleGroup),
-    queryFn: () => listExercises(name, muscleGroup),
+    queryFn: ({ signal }) => listExercises(name, muscleGroup, signal),
     enabled,
   });
 }

@@ -5,6 +5,7 @@ export type MockTokenPayload = {
   sub: string;
   role: Role;
   athleteId?: string;
+  mustChangePassword?: boolean;
   email: string;
   name: string;
 };

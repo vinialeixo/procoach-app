@@ -4,35 +4,34 @@ import { decodeJwtPayload } from "./jwt";
 
 /**
  * ============================================================================
- * AUTH — integração real com o núcleo Java (T-008/T-011)
+ * AUTH — integração real com o núcleo Java (T-008/T-011/T-107)
  * ============================================================================
  *
  * Contrato oficial implementado em AuthController (com.fitness.procoach.security):
  *
- *   POST /api/v1/auth/login          -> LoginResult
- *   POST /api/v1/auth/register       -> userId + tokens (cadastro de coach)
+ *   POST /api/v1/auth/login          -> LoginResult (aceita e-mail ou username)
  *   POST /api/v1/auth/refresh        -> novo par de tokens
  *
- * MFA/TOTP está desligado (backlog T-059/T-060): o backend só o exige com
- * procoach.security.mfa.enabled=true. O código do front foi removido neste
- * commit e pode ser recuperado do histórico do git ao reintroduzir.
+ * O cadastro público de coach (/auth/register) foi removido (US-043 / T-107):
+ * novos coaches entram exclusivamente por convite emitido pelo administrador.
  *
  * O api-client anexa o header `Authorization: Bearer <token>` a cada chamada.
- * O papel (COACH/ATHLETE) vem no claim `role` do JWT — o front só o usa para
- * navegação/UI; a autorização real é validada no núcleo a cada requisição.
+ * O papel (ADMIN/COACH/ATHLETE) vem no claim `role` do JWT — o front só o usa
+ * para navegação/UI; a autorização real é validada no núcleo a cada requisição.
  */
 
 // ============================================================================
 // Roles
 // ============================================================================
 
-export type Role = "COACH" | "ATHLETE";
+export type Role = "COACH" | "ATHLETE" | "ADMIN";
 
 // ============================================================================
 // Login
 // ============================================================================
 
 export type LoginCredentials = {
+  /** Aceita e-mail (coach/atleta/admin) ou username (ex.: "admin"). */
   email: string;
   password: string;
 };
@@ -54,36 +53,11 @@ async function login(credentials: LoginCredentials): Promise<LoginResult> {
 }
 
 // ============================================================================
-// Registro de Coach
-// ============================================================================
-
-export type RegisterPayload = {
-  name: string;
-  email: string;
-  password: string;
-};
-
-async function register(
-  payload: RegisterPayload
-): Promise<{ userId: string }> {
-  const { data } = await apiClient.post("/auth/register", payload);
-
-  // Auto-login do núcleo: o cadastro já devolve o par de tokens.
-  saveSession(data.accessToken, data.refreshToken);
-
-  return { userId: data.userId };
-}
-
-// ============================================================================
 // React Query Hooks
 // ============================================================================
 
 export function useLogin() {
   return useMutation({ mutationFn: login });
-}
-
-export function useRegister() {
-  return useMutation({ mutationFn: register });
 }
 
 // ============================================================================
@@ -124,23 +98,14 @@ export function logout() {
 }
 
 // ============================================================================
-// Papel do usuário
+// Papel do usuário e estado da senha
 // ============================================================================
 
 /**
- * Papel (COACH/ATHLETE) a partir do claim `role` do JWT salvo.
+ * Papel (ADMIN/COACH/ATHLETE) a partir do claim `role` do JWT salvo.
  *
- * IMPORTANTE:
- *
- * O frontend usa o role somente para:
- *
- * - escolher layout;
- * - escolher rota;
- * - esconder/mostrar elementos da interface.
- *
- * A autorização REAL é sempre validada pelo backend (RBAC / isolamento por
- * perfil, RN-01) a cada requisição — nunca confiar neste valor para
- * segurança.
+ * IMPORTANTE: o frontend usa o role somente para layout, rota e exibição de UI.
+ * A autorização REAL é sempre validada pelo backend (RBAC / RN-01).
  */
 export function getRole(): Role | null {
   const token = localStorage.getItem("procoach.token");
@@ -151,11 +116,23 @@ export function getRole(): Role | null {
 
   const role = decodeJwtPayload(token)?.role;
 
-  if (role === "COACH" || role === "ATHLETE") {
+  if (role === "COACH" || role === "ATHLETE" || role === "ADMIN") {
     return role;
   }
 
   return null;
+}
+
+/**
+ * Indica se o JWT atual exige troca obrigatória de senha antes de liberar
+ * o painel administrativo (primeiro login do admin bootstrap ou admin recém-criado).
+ */
+export function mustChangePassword(): boolean {
+  const token = localStorage.getItem("procoach.token");
+  if (!token) {
+    return false;
+  }
+  return decodeJwtPayload(token)?.mustChangePassword === true;
 }
 
 /**
@@ -178,6 +155,10 @@ export function getAthleteId(): string | null {
 // ============================================================================
 
 export function homeForRole(role: Role | null): string {
+  if (role === "ADMIN") {
+    return "/admin";
+  }
+
   if (role === "ATHLETE") {
     return "/athlete";
   }
