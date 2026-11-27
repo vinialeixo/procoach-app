@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthLayout } from "@/components/ui/AuthLayout";
 import { Field } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
@@ -11,7 +11,7 @@ import { useLogin } from "@/lib/auth";
 import "./LoginPage.css";
 
 const credentialsSchema = z.object({
-  email: z.string().min(1, "Informe seu e-mail").email("E-mail inválido"),
+  email: z.string().min(1, "Informe seu e-mail ou usuário"),
   password: z.string().min(1, "Informe sua senha"),
 });
 type CredentialsForm = z.infer<typeof credentialsSchema>;
@@ -26,6 +26,8 @@ export function LoginPage() {
   const sessionExpired =
     Boolean((location.state as { sessionExpired?: boolean } | null)?.sessionExpired) ||
     searchParams.get("reason") === "session-expired";
+
+  const inviteOnlyNotice = searchParams.get("reason") === "invite-only";
 
   const loginMutation = useLogin();
 
@@ -46,7 +48,7 @@ export function LoginPage() {
         );
         return;
       }
-      setServerError("E-mail ou senha incorretos. Tente novamente.");
+      setServerError("E-mail, usuário ou senha incorretos. Tente novamente.");
     }
   }
 
@@ -54,7 +56,7 @@ export function LoginPage() {
     <AuthLayout>
       <h1 className="login-page__title">Entrar</h1>
       <p className="login-page__subtitle">
-        Acesse sua conta ProCoach (coach ou atleta) para continuar.
+        Acesse sua conta ProCoach (coach, atleta ou administrador) para continuar.
       </p>
 
       {sessionExpired && (
@@ -65,15 +67,23 @@ export function LoginPage() {
         />
       )}
 
+      {inviteOnlyNotice && (
+        <StateMessage
+          kind="info"
+          title="Cadastro por convite"
+          description="O cadastro de novos coaches é feito apenas por convite do administrador."
+        />
+      )}
+
       <form
         className="login-page__form"
         onSubmit={credentialsForm.handleSubmit(onSubmitCredentials)}
         noValidate
       >
         <Field
-          label="E-mail"
-          type="email"
-          autoComplete="email"
+          label="E-mail ou usuário"
+          type="text"
+          autoComplete="username"
           error={credentialsForm.formState.errors.email?.message}
           {...credentialsForm.register("email")}
         />
@@ -94,10 +104,6 @@ export function LoginPage() {
         <Button type="submit" loading={loginMutation.isPending}>
           Entrar
         </Button>
-
-        <p className="login-page__register-link">
-          Ainda não tem conta? <Link to="/registro">Criar conta</Link>
-        </p>
       </form>
     </AuthLayout>
   );

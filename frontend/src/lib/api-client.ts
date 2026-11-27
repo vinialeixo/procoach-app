@@ -23,8 +23,10 @@ type RefreshTokenResponse = {
 };
 
 type SessionExpiredHandler = () => void;
+type PasswordChangeRequiredHandler = () => void;
 
 let sessionExpiredHandler: SessionExpiredHandler | null = null;
+let passwordChangeRequiredHandler: PasswordChangeRequiredHandler | null = null;
 let refreshPromise: Promise<string> | null = null;
 
 export function setSessionExpiredHandler(
@@ -33,16 +35,23 @@ export function setSessionExpiredHandler(
   sessionExpiredHandler = handler;
 }
 
+export function setPasswordChangeRequiredHandler(
+  handler: PasswordChangeRequiredHandler | null
+): void {
+  passwordChangeRequiredHandler = handler;
+}
+
 export function resetRefreshStateForTests(): void {
   refreshPromise = null;
   sessionExpiredHandler = null;
+  passwordChangeRequiredHandler = null;
 }
 
 function isAuthEndpoint(url?: string): boolean {
   if (!url) {
     return false;
   }
-  return /(?:^|\/)auth\/(?:login|register|refresh)(?:\?|$)/.test(url);
+  return /(?:^|\/)auth\/(?:login|refresh)(?:\?|$)/.test(url);
 }
 
 function defaultRedirectToLogin(): void {
@@ -107,6 +116,19 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const status = error.response?.status;
+    const errorCode = (error.response?.data as { code?: string } | undefined)?.code;
+    if (status === 403 && errorCode === "PASSWORD_CHANGE_REQUIRED") {
+      if (passwordChangeRequiredHandler) {
+        passwordChangeRequiredHandler();
+      } else if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/admin/alterar-senha"
+      ) {
+        window.location.assign("/admin/alterar-senha");
+      }
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config as RetryableRequestConfig | undefined;
 
     if (status !== 401 || !originalRequest || isAuthEndpoint(originalRequest.url)) {

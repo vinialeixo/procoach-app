@@ -88,16 +88,13 @@ describe("apiClient 401 refresh interceptor", () => {
     expect(results.map((r) => r.data.id)).toEqual(["1", "2", "3"]);
   });
 
-  it("does not attempt refresh on /auth/login, /auth/register, or /auth/refresh 401", async () => {
+  it("does not attempt refresh on /auth/login or /auth/refresh 401", async () => {
     localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, "some-refresh");
     let refreshCalls = 0;
 
     server.use(
       http.post("/api/v1/auth/login", () =>
         HttpResponse.json({ code: "INVALID_CREDENTIALS" }, { status: 401 })
-      ),
-      http.post("/api/v1/auth/register", () =>
-        HttpResponse.json({ code: "UNAUTHORIZED" }, { status: 401 })
       ),
       http.post("/api/v1/auth/refresh", () => {
         refreshCalls += 1;
@@ -107,9 +104,6 @@ describe("apiClient 401 refresh interceptor", () => {
 
     await expect(
       apiClient.post("/auth/login", { email: "a@b.com", password: "wrong" })
-    ).rejects.toThrow();
-    await expect(
-      apiClient.post("/auth/register", { name: "A", email: "a@b.com", password: "123" })
     ).rejects.toThrow();
 
     expect(refreshCalls).toBe(0);

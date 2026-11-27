@@ -40,7 +40,11 @@ export function AppShell({
               <NavLink
                 key={item.href}
                 to={item.href}
-                end={item.href === "/coach" || item.href === "/athlete"}
+                end={
+                  item.href === "/coach" ||
+                  item.href === "/athlete" ||
+                  item.href === "/admin"
+                }
                 className={({ isActive }) =>
                   isActive
                     ? "app-shell__nav-link app-shell__nav-link--active"
