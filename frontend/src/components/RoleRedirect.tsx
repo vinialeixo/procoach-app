@@ -1,10 +1,13 @@
 import { Navigate } from "react-router-dom";
-import { isAuthenticated, getRole } from "@/lib/auth";
+import { isAuthenticated, getRole, homeForRole, mustChangePassword } from "@/lib/auth";
 
 export function RoleRedirect() {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
   const role = getRole();
-  return <Navigate to={role === "ATHLETE" ? "/athlete" : "/coach"} replace />;
+  if (role === "ADMIN" && mustChangePassword()) {
+    return <Navigate to="/admin/alterar-senha" replace />;
+  }
+  return <Navigate to={homeForRole(role)} replace />;
 }

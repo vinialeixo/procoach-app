@@ -1,15 +1,16 @@
 /**
  * Decodifica o payload de um JWT SEM validar assinatura.
  *
- * Uso exclusivo: dar dicas de navegação no front (ex.: mandar o coach pra
- * /coach e o atleta pra /athlete). NUNCA usar isso para decidir permissão de
- * verdade — a autorização real (RBAC, RN-01, RF-11) é sempre validada no
- * núcleo Java a cada requisição.
+ * Uso exclusivo: dar dicas de navegação no front (ex.: mandar o admin pra
+ * /admin, o coach pra /coach e o atleta pra /athlete). NUNCA usar isso para
+ * decidir permissão de verdade — a autorização real (RBAC, RN-01, RF-11) é
+ * sempre validada no núcleo Java a cada requisição.
  */
 export type JwtPayload = {
   sub?: string;
-  role?: "COACH" | "ATHLETE";
+  role?: "COACH" | "ATHLETE" | "ADMIN";
   athleteId?: string;
+  mustChangePassword?: boolean;
   exp?: number;
   [key: string]: unknown;
 };

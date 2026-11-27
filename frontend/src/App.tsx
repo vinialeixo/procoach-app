@@ -1,16 +1,39 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route, useNavigate } from "react-router-dom";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleRedirect } from "@/components/RoleRedirect";
 import { GlobalForbiddenBanner } from "@/components/GlobalForbiddenBanner";
-import { setSessionExpiredHandler } from "@/lib/api-client";
+import {
+  setPasswordChangeRequiredHandler,
+  setSessionExpiredHandler,
+} from "@/lib/api-client";
 
 const LoginPage = lazy(() =>
   import("@/pages/LoginPage").then((m) => ({ default: m.LoginPage }))
 );
-const RegisterPage = lazy(() =>
-  import("@/pages/RegisterPage").then((m) => ({ default: m.RegisterPage }))
+const AdminHomePage = lazy(() =>
+  import("@/pages/AdminHomePage").then((m) => ({ default: m.AdminHomePage }))
+);
+const AdminCoachListPage = lazy(() =>
+  import("@/pages/AdminCoachListPage").then((m) => ({
+    default: m.AdminCoachListPage,
+  }))
+);
+const AdminCoachDetailPage = lazy(() =>
+  import("@/pages/AdminCoachDetailPage").then((m) => ({
+    default: m.AdminCoachDetailPage,
+  }))
+);
+const AdminAccountsPage = lazy(() =>
+  import("@/pages/AdminAccountsPage").then((m) => ({
+    default: m.AdminAccountsPage,
+  }))
+);
+const ChangePasswordPage = lazy(() =>
+  import("@/pages/ChangePasswordPage").then((m) => ({
+    default: m.ChangePasswordPage,
+  }))
 );
 const AcceptInvitePage = lazy(() =>
   import("@/pages/AcceptInvitePage").then((m) => ({ default: m.AcceptInvitePage }))
@@ -106,8 +129,12 @@ function AuthNavigationBridge() {
         state: { sessionExpired: true },
       });
     });
+    setPasswordChangeRequiredHandler(() => {
+      navigate("/admin/alterar-senha", { replace: true });
+    });
     return () => {
       setSessionExpiredHandler(null);
+      setPasswordChangeRequiredHandler(null);
     };
   }, [navigate]);
 
@@ -122,9 +149,18 @@ export function App() {
       <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/registro" element={<RegisterPage />} />
+        <Route path="/registro" element={<Navigate to="/login?reason=invite-only" replace />} />
         {/* Convite do atleta (primeira credencial) — público: o token é a credencial */}
         <Route path="/convite/:token" element={<AcceptInvitePage />} />
+
+        {/* Área do administrador — BR-ADM-01 (isolada de /coach e /athlete) */}
+        <Route element={<ProtectedRoute allow={["ADMIN"]} />}>
+          <Route path="/admin" element={<AdminHomePage />} />
+          <Route path="/admin/coaches" element={<AdminCoachListPage />} />
+          <Route path="/admin/coaches/:coachId" element={<AdminCoachDetailPage />} />
+          <Route path="/admin/admins" element={<AdminAccountsPage />} />
+          <Route path="/admin/alterar-senha" element={<ChangePasswordPage />} />
+        </Route>
 
         {/* Área do coach — RF-01..RF-42 em geral, RN-01 (ownership) */}
         <Route element={<ProtectedRoute allow={["COACH"]} />}>
