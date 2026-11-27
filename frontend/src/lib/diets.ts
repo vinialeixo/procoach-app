@@ -525,6 +525,86 @@ export function useRemoveMeal(athleteId: string, dietId: string) {
   });
 }
 
+// --- Catálogo de alimentos TACO / CUSTOM (T-086 / Issue #191) --------------
+
+export type FoodCatalogItem = {
+  id: string;
+  tacoId: string | null;
+  name: string;
+  category: string;
+  macrosPer100g: Macronutrients;
+  ediblePortionPercent: number;
+  householdMeasure: string | null;
+  householdMeasureGrams: number | null;
+  source: FoodSource;
+  stateDefault: FoodState;
+  coachId: string | null;
+  coachApproved: boolean;
+};
+
+export type FoodPage = {
+  content: FoodCatalogItem[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+};
+
+export type FoodSearchParams = {
+  query?: string;
+  category?: string;
+  page?: number;
+  size?: number;
+};
+
+export async function searchFoods(
+  params: FoodSearchParams,
+  signal?: AbortSignal
+): Promise<FoodPage> {
+  const { data } = await apiClient.get<FoodPage>("/foods", {
+    params: {
+      ...(params.query?.trim() ? { query: params.query.trim() } : {}),
+      ...(params.category?.trim() ? { category: params.category.trim() } : {}),
+      page: params.page ?? 0,
+      size: params.size ?? 20,
+    },
+    signal,
+  });
+  return data;
+}
+
+export function useFoodSearch(
+  params: FoodSearchParams & { enabled?: boolean }
+) {
+  const query = params.query?.trim() ?? "";
+  const category = params.category?.trim() ?? "";
+  const page = params.page ?? 0;
+  const size = params.size ?? 20;
+  const enabled = params.enabled ?? query.length > 0;
+
+  return useQuery({
+    queryKey: ["foods", { query, category, page, size }],
+    queryFn: ({ signal }) => searchFoods({ query, category, page, size }, signal),
+    enabled,
+  });
+}
+
+export function scaleFoodMacros(
+  macrosPer100g: Macronutrients,
+  quantityG: number
+): Macronutrients {
+  if (!Number.isFinite(quantityG) || quantityG <= 0) {
+    return { calories: 0, protein: 0, carbohydrates: 0, fat: 0 };
+  }
+  const factor = quantityG / 100;
+  return {
+    calories: Number((macrosPer100g.calories * factor).toFixed(1)),
+    protein: Number((macrosPer100g.protein * factor).toFixed(1)),
+    carbohydrates: Number((macrosPer100g.carbohydrates * factor).toFixed(1)),
+    fat: Number((macrosPer100g.fat * factor).toFixed(1)),
+  };
+}
+
 // --- Helpers puros (T-085 / T-092 / T-095) -----------------------------------
 
 export type MacroKey = "protein" | "carbohydrates" | "fat";

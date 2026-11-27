@@ -334,5 +334,13 @@ describe("MSW mock layer", () => {
     expect(updatedExercise.status).toBe(200);
     expect(updatedExercise.data.version).toBe(2);
     expect(updatedExercise.data.id).not.toBe(createdExercise.data.id);
+
+    const foodsSearch = await jsonFetch<{
+      content: Array<{ id: string; name: string }>;
+      totalElements: number;
+    }>("/api/v1/foods?query=frango");
+    expect(foodsSearch.status).toBe(200);
+    expect(foodsSearch.data.totalElements).toBeGreaterThanOrEqual(1);
+    expect(foodsSearch.data.content[0].name).toContain("frango");
   });
 });

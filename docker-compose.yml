@@ -1,0 +1,86 @@
+# Stack completa do ProCoach para homologação/piloto (Issue #150)
+# Uso:
+#   cp .env.example .env
+#   docker compose up -d --build
+#
+# Serviços:
+#   - frontend: http://localhost:${FRONTEND_PORT:-5173} (Nginx + proxy /api -> backend)
+#   - backend:  http://localhost:8080 (Spring Boot + Flyway + Actuator)
+#   - mailpit:  http://localhost:8025 (Web UI para inspecionar e-mails de convite/aviso)
+#   - postgres: localhost:5432 (PostgreSQL 16 + pgvector)
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: procoach-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-procoach}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-procoach}
+      POSTGRES_DB: ${POSTGRES_DB:-procoach}
+    ports:
+      - "5432:5432"
+    volumes:
+      - procoach-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-procoach} -d ${POSTGRES_DB:-procoach}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: procoach-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: procoach-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      PROCOACH_JWT_SECRET: ${PROCOACH_JWT_SECRET:-procoach-dev-jwt-secret-change-me-32bytes!}
+      PROCOACH_MFA_ENABLED: ${PROCOACH_MFA_ENABLED:-false}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-procoach}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-procoach}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-procoach}
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: 1025
+      PROCOACH_EMAIL_ENABLED: ${PROCOACH_EMAIL_ENABLED:-true}
+      PROCOACH_EMAIL_FROM: ${PROCOACH_EMAIL_FROM:-no-reply@procoach.local}
+      PROCOACH_PUSH_PROVIDER: ${PROCOACH_PUSH_PROVIDER:-none}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_USE_MOCKS: "false"
+    container_name: procoach-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_ORIGIN: http://backend:8080
+    ports:
+      - "${FRONTEND_PORT:-5173}:8080"
+
+volumes:
+  procoach-pgdata:

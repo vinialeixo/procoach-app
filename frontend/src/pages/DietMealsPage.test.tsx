@@ -240,10 +240,10 @@ describe("DietMealsPage (T-093)", () => {
     expect(within(almoco).getByText(/3 colheres de servir · cozido sem óleo/)).toBeInTheDocument();
     expect(within(almoco).getByText(/1 scoop · diluído em água/)).toBeInTheDocument();
 
-    // Adicionar item no Desjejum (meal-1)
+    // Adicionar item no Desjejum (meal-1) via entrada manual
     const desjejum = mealCards[0];
     expect(
-      within(desjejum).getByText(/busca automática no catálogo TACO será integrada após backend T-086/i)
+      within(desjejum).getByLabelText("Buscar no catálogo TACO")
     ).toBeInTheDocument();
 
     await user.type(within(desjejum).getByLabelText("Alimento"), "Hipercalórico");
@@ -288,6 +288,96 @@ describe("DietMealsPage (T-093)", () => {
     await user.click(screen.getByRole("button", { name: "Confirmar remoção" }));
     await waitFor(() => {
       expect(apiClient.delete).toHaveBeenCalledWith("/diets/diet-1/meals/meal-1");
+    });
+  });
+
+  it("busca alimento no catálogo TACO, preenche macros proporcionais e envia foodId (#191)", async () => {
+    const user = userEvent.setup();
+    const diet = makeDiet({
+      meals: [
+        {
+          id: "meal-1",
+          name: "Almoço",
+          order: 1,
+          time: "12:00",
+          notes: null,
+          target: null,
+          items: [],
+          totals: { calories: 0, protein: 0, carbohydrates: 0, fat: 0 },
+        },
+      ],
+    });
+
+    vi.mocked(apiClient.get).mockImplementation((url: string) => {
+      if (url === "/athletes/ath-1") return Promise.resolve({ data: mockAthlete });
+      if (url === "/diets/diet-1") return Promise.resolve({ data: diet });
+      if (url === "/foods") {
+        return Promise.resolve({
+          data: {
+            content: [
+              {
+                id: "food-frango",
+                tacoId: "taco:frango",
+                name: "Peito de frango, sem pele, cru",
+                category: "Carnes e derivados",
+                macrosPer100g: { calories: 119, protein: 21.5, carbohydrates: 0, fat: 3 },
+                ediblePortionPercent: 100,
+                householdMeasure: "1 filé médio",
+                householdMeasureGrams: 100,
+                source: "TACO",
+                stateDefault: "RAW",
+                coachId: null,
+                coachApproved: false,
+              },
+            ],
+            page: 0,
+            size: 20,
+            totalElements: 1,
+            totalPages: 1,
+          },
+        });
+      }
+      return Promise.resolve({ data: null });
+    });
+    vi.mocked(apiClient.post).mockResolvedValue({ data: diet });
+
+    renderPage();
+
+    const mealCard = (await screen.findAllByRole("article"))[0];
+    await user.type(within(mealCard).getByLabelText("Buscar no catálogo TACO"), "frango");
+
+    const option = await within(mealCard).findByRole("button", {
+      name: /Peito de frango, sem pele, cru/,
+    });
+    await user.click(option);
+
+    // Altera quantidade para 200 g e verifica recálculo automático dos macros (2x)
+    const qtyInput = within(mealCard).getByLabelText("Quantidade (g)");
+    await user.clear(qtyInput);
+    await user.type(qtyInput, "200");
+
+    await waitFor(() => {
+      expect(within(mealCard).getByLabelText("Calorias (kcal)")).toHaveValue(238);
+      expect(within(mealCard).getByLabelText("Proteínas (g)")).toHaveValue(43);
+    });
+
+    await user.click(within(mealCard).getByRole("button", { name: "Adicionar item" }));
+
+    await waitFor(() => {
+      expect(apiClient.post).toHaveBeenCalledWith("/diets/diet-1/meals/meal-1/items", {
+        foodId: "food-frango",
+        name: "Peito de frango, sem pele, cru",
+        source: "TACO",
+        kind: "FOOD",
+        state: "RAW",
+        quantityG: 200,
+        householdMeasure: "1 filé médio",
+        preparation: null,
+        calories: 238,
+        protein: 43,
+        carbohydrates: 0,
+        fat: 6,
+      });
     });
   });
 

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { getAthleteId } from "@/lib/auth";
 import { AthleteShell } from "@/layouts/AthleteShell";
+import { StateMessage } from "@/components/ui/StateMessage";
 import {
   TrainingPlan,
   TrainingSession,
   currentPlanVersion,
+  formatIntensityLabel,
   previousPlanVersions,
   useAthleteTrainingSessions,
   useTrainingPlans,
@@ -33,7 +35,7 @@ function sessionOrder(a: TrainingSession, b: TrainingSession) {
 
 export function AthleteTrainingPage() {
   const athleteId = getAthleteId();
-  const [selectedDay, setSelectedDay] = useState<number | "all">("all");
+  const [selectedDayOverride, setSelectedDayOverride] = useState<number | "all" | null>(null);
   const plansQuery = useTrainingPlans(athleteId ?? "");
   const plan = currentPlanVersion(plansQuery.data ?? []);
   const history = previousPlanVersions(plansQuery.data ?? [], plan);
@@ -48,6 +50,9 @@ export function AthleteTrainingPage() {
   );
   const jsDay = new Date().getDay();
   const todayDayOfWeek = jsDay === 0 ? 7 : jsDay;
+  const selectedDay =
+    selectedDayOverride ?? (availableDays.includes(todayDayOfWeek) ? todayDayOfWeek : "all");
+  const setSelectedDay = setSelectedDayOverride;
   const visibleSessions =
     selectedDay === "all"
       ? sortedSessions
@@ -57,10 +62,25 @@ export function AthleteTrainingPage() {
     <AthleteShell>
       <section className="athlete-content">
         <h1>Meu treino</h1>
-        {!athleteId ? <p role="alert">Não foi possível identificar sua conta. Entre novamente.</p>
-          : plansQuery.isPending || (plan && sessionsQuery.isPending) ? <p role="status">Carregando seu treino…</p>
-          : error ? <RequestError status={status} />
-          : <>
+        {!athleteId ? (
+          <StateMessage kind="error" description="Não foi possível identificar sua conta. Entre novamente." />
+        ) : plansQuery.isPending || (plan && sessionsQuery.isPending) ? (
+          <StateMessage kind="info" description="Carregando seu treino…" />
+        ) : error ? (
+          <>
+            <RequestError status={status} />
+            {status !== 401 && status !== 403 && (
+              <StateMessage
+                kind="error"
+                description="Tente atualizar novamente."
+                onRetry={() => {
+                  void plansQuery.refetch();
+                  if (plan) void sessionsQuery.refetch();
+                }}
+              />
+            )}
+          </>
+        ) : <>
               {!plan || !sessionsQuery.data?.length ? <p>Ainda não há um treino ativo disponível.</p>
                 : <>
                     <article className="athlete-content__card">
@@ -72,6 +92,7 @@ export function AthleteTrainingPage() {
                       <div className="athlete-content__day-filter" role="group" aria-label="Filtrar por dia da semana">
                         <button
                           type="button"
+                          aria-pressed={selectedDay === "all"}
                           className={`athlete-content__day-btn ${selectedDay === "all" ? "athlete-content__day-btn--active" : ""}`}
                           onClick={() => setSelectedDay("all")}
                         >
@@ -81,6 +102,7 @@ export function AthleteTrainingPage() {
                           <button
                             key={day}
                             type="button"
+                            aria-pressed={selectedDay === day}
                             className={`athlete-content__day-btn ${selectedDay === day ? "athlete-content__day-btn--active" : ""}`}
                             onClick={() => setSelectedDay(day)}
                           >
@@ -101,15 +123,26 @@ export function AthleteTrainingPage() {
                           <h2>{session.name}</h2>
                           {session.description && <p>{session.description}</p>}
                           {session.exercises.length ? <ol className="athlete-content__exercise-list">
-                            {[...session.exercises].sort((a, b) => a.orderIndex - b.orderIndex).map((exercise) => (
-                              <li key={exercise.id}>
-                                <strong>{exercise.exerciseName}</strong>
-                                <span>{exercise.sets} séries × {exercise.repetitions} repetições</span>
-                                {exercise.load > 0 && <span>Carga: {exercise.load} kg</span>}
-                                {exercise.restSeconds > 0 && <span>Descanso: {exercise.restSeconds} s</span>}
-                                {exercise.notes && <span>{exercise.notes}</span>}
-                              </li>
-                            ))}
+                            {[...session.exercises].sort((a, b) => a.orderIndex - b.orderIndex).map((exercise) => {
+                              const intensityLabel = formatIntensityLabel(
+                                exercise.intensityType,
+                                exercise.intensityValue
+                              );
+                              return (
+                                <li key={exercise.id}>
+                                  <strong>{exercise.exerciseName}</strong>
+                                  <span>{exercise.sets} séries × {exercise.repetitions} repetições</span>
+                                  {exercise.load > 0 && <span>Carga: {exercise.load} kg</span>}
+                                  {intensityLabel && (
+                                    <span className="athlete-content__intensity">
+                                      Intensidade: {intensityLabel}
+                                    </span>
+                                  )}
+                                  {exercise.restSeconds > 0 && <span>Descanso: {exercise.restSeconds} s</span>}
+                                  {exercise.notes && <span>{exercise.notes}</span>}
+                                </li>
+                              );
+                            })}
                           </ol> : <p>Sem exercícios prescritos nesta sessão.</p>}
                         </article>
                       ))}
@@ -176,7 +209,7 @@ function AthletePlanHistoryItem({
           sessions.map((session) => (
             <article className="athlete-content__history-session" key={session.id}>
               <p className="athlete-content__eyebrow">
-                Semana {session.weekNumber} · dia {session.dayOfWeek}
+                Semana {session.weekNumber} · {DAY_LABELS[session.dayOfWeek] ?? `Dia ${session.dayOfWeek}`}
               </p>
               <strong>{session.name}</strong>
               {session.description && <p>{session.description}</p>}
@@ -184,13 +217,27 @@ function AthletePlanHistoryItem({
                 <ul className="athlete-content__history-exercises">
                   {[...session.exercises]
                     .sort((a, b) => a.orderIndex - b.orderIndex)
-                    .map((exercise) => (
-                      <li key={exercise.id}>
-                        {exercise.exerciseName} · {exercise.sets}×
-                        {exercise.repetitions}
-                        {exercise.load > 0 ? ` · ${exercise.load} kg` : ""}
-                      </li>
-                    ))}
+                    .map((exercise) => {
+                      const intensityLabel = formatIntensityLabel(
+                        exercise.intensityType,
+                        exercise.intensityValue
+                      );
+                      return (
+                        <li key={exercise.id}>
+                          {exercise.exerciseName} · {exercise.sets}×
+                          {exercise.repetitions}
+                          {exercise.load > 0 ? ` · ${exercise.load} kg` : ""}
+                          {intensityLabel ? (
+                            <>
+                              {" · "}
+                              <span className="athlete-content__intensity">
+                                {intensityLabel}
+                              </span>
+                            </>
+                          ) : null}
+                        </li>
+                      );
+                    })}
                 </ul>
               )}
             </article>

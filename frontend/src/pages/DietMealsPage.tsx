@@ -20,6 +20,7 @@ import {
   AddMealPayload,
   FOOD_KIND_LABEL,
   FOOD_SOURCE_LABEL,
+  FoodCatalogItem,
   FoodKind,
   FoodSource,
   FoodState,
@@ -30,9 +31,11 @@ import {
   computeDerivedMacros,
   computeDietWarnings,
   mergeDietWarnings,
+  scaleFoodMacros,
   useAddMeal,
   useAddMealItem,
   useDiet,
+  useFoodSearch,
   useRemoveMeal,
   useRemoveMealItem,
 } from "@/lib/diets";
@@ -265,6 +268,8 @@ function AddMealItemForm({ mealId, isSubmitting, onAddItem }: AddMealItemFormPro
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     setError,
     formState: { errors },
   } = useForm<AddItemInput, unknown, AddItemValues>({
@@ -279,9 +284,89 @@ function AddMealItemForm({ mealId, isSubmitting, onAddItem }: AddMealItemFormPro
     },
   });
 
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [loadedItems, setLoadedItems] = useState<FoodCatalogItem[]>([]);
+  const [selectedFood, setSelectedFood] = useState<FoodCatalogItem | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery(searchInput.trim());
+      setPage(0);
+      setLoadedItems([]);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  const foodQuery = useFoodSearch({
+    query: debouncedQuery,
+    page,
+    size: 20,
+    enabled: debouncedQuery.length > 0 && !selectedFood,
+  });
+
+  useEffect(() => {
+    const content = foodQuery.data?.content;
+    if (!content) return;
+    if (page === 0) {
+      setLoadedItems(content);
+    } else {
+      setLoadedItems((prev) => {
+        const seen = new Set(prev.map((item) => item.id));
+        return [...prev, ...content.filter((item) => !seen.has(item.id))];
+      });
+    }
+  }, [foodQuery.data, page]);
+
+  const watchedQuantity = watch("quantityG");
+  useEffect(() => {
+    if (!selectedFood) return;
+    const qty = Number(watchedQuantity);
+    if (!Number.isFinite(qty) || qty <= 0) return;
+    const scaled = scaleFoodMacros(selectedFood.macrosPer100g, qty);
+    setValue("calories", scaled.calories, { shouldValidate: true });
+    setValue("protein", scaled.protein, { shouldValidate: true });
+    setValue("carbohydrates", scaled.carbohydrates, { shouldValidate: true });
+    setValue("fat", scaled.fat, { shouldValidate: true });
+  }, [selectedFood, watchedQuantity, setValue]);
+
+  function handleSelectFood(food: FoodCatalogItem) {
+    setSelectedFood(food);
+    setSearchInput(food.name);
+    setLoadedItems([]);
+
+    const defaultQty = food.householdMeasureGrams && food.householdMeasureGrams > 0
+      ? food.householdMeasureGrams
+      : 100;
+    const scaled = scaleFoodMacros(food.macrosPer100g, defaultQty);
+    const inferredKind: FoodKind = /suplement/i.test(food.category) || /\bwhey\b/i.test(food.name)
+      ? "SUPPLEMENT_CALORIC"
+      : "FOOD";
+
+    setValue("name", food.name, { shouldValidate: true });
+    setValue("source", food.source, { shouldValidate: true });
+    setValue("kind", inferredKind, { shouldValidate: true });
+    setValue("state", food.stateDefault, { shouldValidate: true });
+    setValue("quantityG", defaultQty, { shouldValidate: true });
+    setValue("householdMeasure", food.householdMeasure ?? "", { shouldValidate: true });
+    setValue("calories", scaled.calories, { shouldValidate: true });
+    setValue("protein", scaled.protein, { shouldValidate: true });
+    setValue("carbohydrates", scaled.carbohydrates, { shouldValidate: true });
+    setValue("fat", scaled.fat, { shouldValidate: true });
+  }
+
+  function handleClearSelectedFood() {
+    setSelectedFood(null);
+    setSearchInput("");
+    setDebouncedQuery("");
+    setLoadedItems([]);
+  }
+
   async function onSubmit(values: AddItemValues) {
     try {
       await onAddItem(mealId, {
+        ...(selectedFood ? { foodId: selectedFood.id } : {}),
         name: values.name,
         source: values.source as FoodSource,
         kind: values.kind as FoodKind,
@@ -295,6 +380,10 @@ function AddMealItemForm({ mealId, isSubmitting, onAddItem }: AddMealItemFormPro
         fat: values.fat,
       });
 
+      setSelectedFood(null);
+      setSearchInput("");
+      setDebouncedQuery("");
+      setLoadedItems([]);
       reset({
         name: "",
         source: values.source,
@@ -308,12 +397,99 @@ function AddMealItemForm({ mealId, isSubmitting, onAddItem }: AddMealItemFormPro
     }
   }
 
+  const foodSearchErrorStatus =
+    foodQuery.error && typeof foodQuery.error === "object" && "response" in foodQuery.error
+      ? (foodQuery.error as { response?: { status?: number } }).response?.status
+      : undefined;
+
+  const hasMoreResults =
+    foodQuery.data != null && foodQuery.data.page + 1 < foodQuery.data.totalPages;
+
   return (
     <form className="diet-meals__inline-form" onSubmit={handleSubmit(onSubmit)} noValidate>
       <h4>Adicionar alimento ou suplemento</h4>
-      <p className="diet-meals__hint">
-        Entrada manual — busca automática no catálogo TACO será integrada após backend T-086.
-      </p>
+
+      <div className="diet-meals__catalog-box">
+        <Field
+          id={`meal-${mealId}-food-search`}
+          label="Buscar no catálogo TACO"
+          placeholder="Digite para buscar (ex.: Frango, Arroz, Aveia)…"
+          value={searchInput}
+          onChange={(event) => {
+            if (selectedFood) setSelectedFood(null);
+            setSearchInput(event.target.value);
+          }}
+        />
+
+        {selectedFood ? (
+          <div className="diet-meals__selected-food" role="status">
+            <span>
+              Catálogo: <strong>{selectedFood.name}</strong> ({FOOD_SOURCE_LABEL[selectedFood.source]} ·{" "}
+              {formatNumber(selectedFood.macrosPer100g.calories, " kcal")}/100 g)
+            </span>
+            <button
+              type="button"
+              className="diet-meals__clear-food"
+              onClick={handleClearSelectedFood}
+            >
+              Limpar seleção
+            </button>
+          </div>
+        ) : debouncedQuery.length > 0 ? (
+          <div className="diet-meals__catalog-results" aria-live="polite">
+            {foodQuery.isFetching && loadedItems.length === 0 ? (
+              <p className="diet-meals__hint">Buscando alimentos no catálogo…</p>
+            ) : foodQuery.isError ? (
+              <p className="athlete-form__error" role="alert">
+                {foodSearchErrorStatus === 401
+                  ? "Sessão expirada ao consultar o catálogo."
+                  : foodSearchErrorStatus === 403
+                    ? "Sem permissão para consultar o catálogo."
+                    : "Não foi possível buscar no catálogo TACO. Use o preenchimento manual abaixo."}
+              </p>
+            ) : loadedItems.length === 0 ? (
+              <p className="diet-meals__hint">
+                Nenhum alimento encontrado para "{debouncedQuery}". Preencha manualmente abaixo.
+              </p>
+            ) : (
+              <>
+                <ul className="diet-meals__catalog-list">
+                  {loadedItems.map((food) => (
+                    <li key={food.id}>
+                      <button
+                        type="button"
+                        className="diet-meals__catalog-option"
+                        onClick={() => handleSelectFood(food)}
+                      >
+                        <span className="diet-meals__catalog-name">{food.name}</span>
+                        <span className="diet-meals__catalog-meta">
+                          {food.category} · {FOOD_SOURCE_LABEL[food.source]} ·{" "}
+                          {formatNumber(food.macrosPer100g.calories, " kcal")} / 100 g
+                          {food.householdMeasure ? ` · ${food.householdMeasure}` : ""}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {hasMoreResults && (
+                  <button
+                    type="button"
+                    className="diet-meals__clear-food"
+                    disabled={foodQuery.isFetching}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    {foodQuery.isFetching ? "Carregando…" : "Carregar mais resultados"}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        ) : (
+          <p className="diet-meals__hint">
+            Busque no catálogo TACO acima ou preencha os campos manualmente abaixo.
+          </p>
+        )}
+      </div>
 
       <div className="diet-meals__form-grid">
         <Field
@@ -794,8 +970,35 @@ export function DietMealsPage() {
                     )}
                   </>
                 )}
+                {diet.macros.calories > 0 && (
+                  <div className="diet-meals__progress-wrap">
+                    <div className="diet-meals__progress-bar" aria-hidden="true">
+                      <div
+                        className="diet-meals__progress-fill"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.round((diet.totals.calories / diet.macros.calories) * 100)
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="diet-meals__delta">
+                      Saldo restante: {formatNumber(diet.macros.calories - diet.totals.calories, " kcal")} · P{" "}
+                      {formatNumber(diet.macros.protein - diet.totals.protein, "g")} · C{" "}
+                      {formatNumber(diet.macros.carbohydrates - diet.totals.carbohydrates, "g")} · G{" "}
+                      {formatNumber(diet.macros.fat - diet.totals.fat, "g")}
+                    </p>
+                  </div>
+                )}
               </div>
             </section>
+
+            {(removeMeal.isError || removeMealItem.isError) && (
+              <p className="athlete-form__error" role="alert">
+                Não foi possível remover o item ou refeição. Tente novamente.
+              </p>
+            )}
 
             <DietWarningsPanel
               warnings={mergedWarnings}

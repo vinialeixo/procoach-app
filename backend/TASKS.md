@@ -3,7 +3,7 @@
 > Tasks do núcleo Java e do serviço Python de RAG (`backend/`), incluindo infra, segurança, testes de regra de negócio e hardening.
 > Backlog completo, convenções de status e contexto: [`TASKS.md` na raiz](../TASKS.md).
 > Os IDs (`T-xxx`, `M2-xxx`) são globais — a coluna "Depende de" pode apontar para task de outro arquivo (`frontend/TASKS.md` ou o `TASKS.md` da raiz).
-> Total neste arquivo: **89** tasks.
+> Total neste arquivo: **94** tasks.
 
 ---
 
@@ -278,3 +278,29 @@
 | S10 | Check-ins + análise por IA | 4 | 7 | 2 |
 | S11 | Integração + Hardening + UAT | 1 | 3 | 0 |
 | TOTAL |  | 21 | 48 | 7 |
+
+---
+
+# Adendo — Painel Admin (2026-11-26)
+
+> Escopo novo aprovado pelo PO: papel `ADMIN`, painel de coaches/atletas e gestão de administradores.
+> Plano completo: [`docs/plans/painel-admin-coaches.md`](../docs/plans/painel-admin-coaches.md).
+> User Story: **US-043** (`backend/USER_STORIES.md`). Épico no GitHub: **#214**.
+> Decisões: coach **convite-only**, visão de atletas sem conteúdo clínico, cancelamento bloqueado com atletas ativos, admin default `admin`/`procoach` com troca obrigatória de senha e auditoria apenas de escrita.
+
+| Status | Task ID | Épico | User Story | Task | Tipo | Prioridade | Estimativa (d) | Depende de |
+|---|---|---|---|---|---|---|---|---|
+| [ ] | **T-102** | E9 | US-043 | Papel `ADMIN` + `MANAGE_COACHES`, bootstrap `admin`/`procoach`, login por usuário/e-mail, troca obrigatória de senha e remoção do cadastro público (convite-only). *(GitHub #215.)* | Dev | Must | 3 | — |
+| [ ] | **T-103** | E9 | US-043 | Convite de coach: agregado `CoachInvite`, migration `V810`, e-mail, preview/aceite público e vínculo da credencial. *(GitHub #216.)* | Dev | Must | 2 | T-102 |
+| [ ] | **T-104** | E9 | US-043 | Módulo `admin` + API de leitura: `/admin/summary`, lista/detalhe de coaches e atletas por coach (sem conteúdo clínico). *(GitHub #217.)* | Dev | Must | 2 | T-102 |
+| [ ] | **T-105** | E9 | US-043 | Admin cria coach por convite, reenvia/revoga convite e suspende/reativa/arquiva com motivo, auditoria e bloqueio com atletas ativos. *(GitHub #218.)* | Dev | Must | 2 | T-103, T-104 |
+| [ ] | **T-106** | E9 | US-043 | Gestão de admins: listar/criar, trocar a própria senha e resetar senha de outro admin, com invalidação de refresh e auditoria. *(GitHub #219.)* | Dev | Must | 2 | T-102 |
+
+### Resumo do adendo — Painel Admin
+
+| Foco | Tasks | Estimativa Dev (dias) | QA (dias) |
+|---|---|---|---|
+| Segurança, convite e API administrativa | 5 | 11 | 0 |
+| Frontend do painel | 4 (em `frontend/TASKS.md`) | 9 | 0 |
+| QA, mocks e E2E | 1 (em `TASKS.md` da raiz) | 0 | 2 |
+| TOTAL | 10 | 20 | 2 |

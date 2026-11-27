@@ -172,7 +172,6 @@
   padding: var(--space-5);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-primary);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   text-decoration: none;
@@ -227,8 +226,8 @@
 }
 
 .coach-home__inbox-tag--warn {
-  background: #f7eae4;
-  color: #8d371b;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-ink);
 }
 
 .coach-home__inbox-tag--neutral {

@@ -94,6 +94,7 @@ export function SessionEditorView({
   const [selectedExerciseId, setSelectedExerciseId] = useState("");
   const [editingPrescription, setEditingPrescription] = useState<ExercisePrescription | null>(null);
   const [removingPrescription, setRemovingPrescription] = useState<ExercisePrescription | null>(null);
+  const [confirmFinishSession, setConfirmFinishSession] = useState(false);
   const [updatingExerciseId, setUpdatingExerciseId] = useState<string | null>(null);
   const [applySuccessFeedback, setApplySuccessFeedback] = useState<string | null>(null);
   const [exerciseModalOpen, setExerciseModalOpen] = useState(false);
@@ -187,7 +188,14 @@ export function SessionEditorView({
             <Button
               variant="ghost"
               loading={transitionSessionPending}
-              onClick={() => onTransitionSession(STATUS_NEXT[selectedSession.status]!)}
+              onClick={() => {
+                const nextStatus = STATUS_NEXT[selectedSession.status]!;
+                if (nextStatus === "FINISHED") {
+                  setConfirmFinishSession(true);
+                } else {
+                  onTransitionSession(nextStatus);
+                }
+              }}
             >
               {STATUS_ACTION[STATUS_NEXT[selectedSession.status]!]}
             </Button>
@@ -369,6 +377,21 @@ export function SessionEditorView({
               placeholder="Todos os grupos"
             />
             <Button type="submit">Buscar</Button>
+            {(libraryName || libraryMuscle) && (
+              <Button
+                type="button"
+                variant="ghost"
+                fullWidth={false}
+                onClick={() => {
+                  setLibraryName("");
+                  setLibraryMuscle("");
+                  setSelectedExerciseId("");
+                  onSearchExercises("", "");
+                }}
+              >
+                Limpar filtros
+              </Button>
+            )}
           </form>
 
           {exercisesError && (
@@ -524,6 +547,41 @@ export function SessionEditorView({
           }}
         />
       )}
+
+      {/* Modal de confirmação para finalizar sessão */}
+      <Modal
+        open={confirmFinishSession}
+        title="Finalizar sessão"
+        onClose={() => setConfirmFinishSession(false)}
+      >
+        <div className="training-page__modal-body">
+          <p>
+            Finalizar <strong>{selectedSession.name}</strong>? Sessões finalizadas ficam
+            somente para consulta e não permitem novas alterações.
+          </p>
+          <div className="training-page__modal-actions">
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth={false}
+              onClick={() => setConfirmFinishSession(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              fullWidth={false}
+              loading={transitionSessionPending}
+              onClick={() => {
+                setConfirmFinishSession(false);
+                onTransitionSession("FINISHED");
+              }}
+            >
+              Confirmar finalização
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Modal de edição de prescrição */}
       <Modal

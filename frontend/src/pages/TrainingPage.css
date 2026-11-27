@@ -188,7 +188,7 @@
 }
 
 .training-page__compare-session--changed {
-  border-left-color: var(--color-accent);
+  border-color: var(--color-accent-ink);
 }
 
 .training-page__compare-session-heading {
@@ -224,8 +224,8 @@
 }
 
 .training-page__compare-badge--changed {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--color-accent-ink);
+  color: var(--color-accent-ink);
 }
 
 .training-page__compare-badge--small {
@@ -298,7 +298,7 @@
 
 .training-page__schedule-item--selected {
   border-color: var(--color-primary);
-  box-shadow: inset 3px 0 var(--color-primary);
+  background: var(--color-primary-soft);
 }
 
 .training-page__schedule-item .training-page__session {
@@ -327,12 +327,12 @@
 
 .training-page__session--selected {
   border-color: var(--color-primary);
-  box-shadow: inset 3px 0 var(--color-primary);
+  background: var(--color-primary-soft);
 }
 
 .training-page__week {
   min-width: 58px;
-  color: var(--color-accent);
+  color: var(--color-accent-ink);
 }
 
 .training-page__session-name {

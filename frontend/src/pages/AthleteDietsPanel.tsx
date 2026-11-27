@@ -541,11 +541,33 @@ export function AthleteDietsPanel({ athleteId }: { athleteId: string }) {
             emptyMessage="Nenhuma versão registrada."
           />
 
+          {selectedIds.length === 1 && (
+            <p className="diets__meta" role="status">
+              Selecione mais 1 versão para comparar lado a lado.{" "}
+              <button
+                type="button"
+                className="diets__link-btn"
+                onClick={() => setSelectedIds([])}
+              >
+                Limpar seleção
+              </button>
+            </p>
+          )}
+
           {selected.length >= 2 && (
             <>
-              <h3 className="diets__section-title">
-                Comparação ({selected.length} versões)
-              </h3>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
+                <h3 className="diets__section-title">
+                  Comparação ({selected.length} versões)
+                </h3>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setSelectedIds([])}
+                >
+                  Limpar seleção
+                </Button>
+              </div>
               <DataTable
                 columns={compareColumns}
                 rows={compareRows}

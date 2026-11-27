@@ -74,6 +74,8 @@ export function PlanOverviewView({
 }: PlanOverviewViewProps) {
   const [pendingTransition, setPendingTransition] = useState<TrainingStatus | null>(null);
 
+  const [showNewSessionForm, setShowNewSessionForm] = useState(sessions.length === 0);
+
   return (
     <>
       {selectedPeriodization && plans.length === 0 && !plansLoading && !plansError && (
@@ -213,21 +215,34 @@ export function PlanOverviewView({
             <p className="training-page__muted">Ainda não há sessões nesta versão do plano.</p>
           )}
 
-          <form className="training-page__form training-page__form--inline" onSubmit={onCreateSession}>
-            <h3>Adicionar sessão ao cronograma</h3>
-            <div className="training-page__form-grid training-page__form-grid--session">
-              <Field name="name" label="Nome da sessão" required placeholder="Ex.: Treino A — superiores" />
-              <Field name="description" label="Descrição" placeholder="Foco da sessão" />
-              <Field name="weekNumber" label="Semana" type="number" min="1" step="1" required />
-              <SelectField name="dayOfWeek" label="Dia" options={DAY_OPTIONS} placeholder="Selecione o dia" required />
-            </div>
-            {Boolean(createSessionError) && (
-              <p className="training-page__alert" role="alert">
-                {errorMessage(createSessionError, "Não foi possível criar a sessão.")}
-              </p>
-            )}
-            <Button type="submit" loading={createSessionPending}>Adicionar sessão</Button>
-          </form>
+          <div className="training-page__plan-actions">
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth={false}
+              onClick={() => setShowNewSessionForm((prev) => !prev)}
+            >
+              {showNewSessionForm ? "Ocultar formulário de sessão" : "+ Nova sessão"}
+            </Button>
+          </div>
+
+          {showNewSessionForm && (
+            <form className="training-page__form training-page__form--inline" onSubmit={onCreateSession}>
+              <h3>Adicionar sessão ao cronograma</h3>
+              <div className="training-page__form-grid training-page__form-grid--session">
+                <Field name="name" label="Nome da sessão" required placeholder="Ex.: Treino A — superiores" />
+                <Field name="description" label="Descrição" placeholder="Foco da sessão" />
+                <Field name="weekNumber" label="Semana" type="number" min="1" step="1" required />
+                <SelectField name="dayOfWeek" label="Dia" options={DAY_OPTIONS} placeholder="Selecione o dia" required />
+              </div>
+              {Boolean(createSessionError) && (
+                <p className="training-page__alert" role="alert">
+                  {errorMessage(createSessionError, "Não foi possível criar a sessão.")}
+                </p>
+              )}
+              <Button type="submit" loading={createSessionPending}>Adicionar sessão</Button>
+            </form>
+          )}
         </section>
       )}
 

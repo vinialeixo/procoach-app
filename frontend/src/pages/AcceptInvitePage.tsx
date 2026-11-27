@@ -59,7 +59,9 @@ export function AcceptInvitePage() {
   if (preview.isLoading) {
     return (
       <AuthLayout>
-        <p className="login-page__subtitle">Verificando convite…</p>
+        <p className="login-page__subtitle" role="status">
+          Verificando convite…
+        </p>
       </AuthLayout>
     );
   }
@@ -94,6 +96,7 @@ export function AcceptInvitePage() {
           label="Senha"
           type="password"
           autoComplete="new-password"
+          hint="Use de 8 a 72 caracteres."
           error={form.formState.errors.password?.message}
           {...form.register("password")}
         />
