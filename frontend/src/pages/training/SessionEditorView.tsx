@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
@@ -82,6 +82,8 @@ export function SessionEditorView({
   const [libraryName, setLibraryName] = useState("");
   const [libraryMuscle, setLibraryMuscle] = useState<MuscleGroup | "">("");
   const [selectedExerciseId, setSelectedExerciseId] = useState("");
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [editingPrescription, setEditingPrescription] = useState<ExercisePrescription | null>(null);
   const [removingPrescription, setRemovingPrescription] = useState<ExercisePrescription | null>(null);
   const [confirmFinishSession, setConfirmFinishSession] = useState(false);
@@ -89,6 +91,28 @@ export function SessionEditorView({
   const [applySuccessFeedback, setApplySuccessFeedback] = useState<string | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const hasMountedSearchRef = useRef(false);
+  const onSearchExercisesRef = useRef(onSearchExercises);
+  const skipNextSearchRef = useRef(false);
+
+  useEffect(() => {
+    onSearchExercisesRef.current = onSearchExercises;
+  }, [onSearchExercises]);
+
+  useEffect(() => {
+    if (!hasMountedSearchRef.current) {
+      hasMountedSearchRef.current = true;
+      return;
+    }
+    if (skipNextSearchRef.current) {
+      skipNextSearchRef.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      onSearchExercisesRef.current(libraryName.trim(), libraryMuscle);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [libraryName, libraryMuscle]);
 
   useEffect(() => {
     if (autoFocusAddExercise) {
@@ -112,6 +136,61 @@ export function SessionEditorView({
   }
 
   const selectedExercise = exercises.find((exercise) => exercise.id === selectedExerciseId);
+  const showSuggestions = suggestionsOpen && libraryName.trim().length > 0;
+
+  function selectSuggestion(exercise: Exercise) {
+    if (exercise.name !== libraryName) {
+      skipNextSearchRef.current = true;
+    }
+    setSelectedExerciseId(exercise.id);
+    setLibraryName(exercise.name);
+    setSuggestionsOpen(false);
+    setActiveSuggestionIndex(-1);
+  }
+
+  function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (!showSuggestions) {
+      if (event.key === "ArrowDown" && libraryName.trim().length > 0 && exercises.length > 0) {
+        event.preventDefault();
+        setSuggestionsOpen(true);
+        setActiveSuggestionIndex(0);
+      }
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (exercises.length > 0) {
+        setActiveSuggestionIndex((prev) => (prev + 1) % exercises.length);
+      }
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (exercises.length > 0) {
+        setActiveSuggestionIndex((prev) => (prev <= 0 ? exercises.length - 1 : prev - 1));
+      }
+    } else if (event.key === "Enter" && activeSuggestionIndex >= 0 && exercises[activeSuggestionIndex]) {
+      event.preventDefault();
+      selectSuggestion(exercises[activeSuggestionIndex]);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setSuggestionsOpen(false);
+      setActiveSuggestionIndex(-1);
+    }
+  }
+
+  function highlightMatch(text: string, query: string): ReactNode {
+    const trimmed = query.trim();
+    if (!trimmed) return text;
+    const idx = text.toLowerCase().indexOf(trimmed.toLowerCase());
+    if (idx < 0) return text;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <mark className="training-page__highlight">{text.slice(idx, idx + trimmed.length)}</mark>
+        {text.slice(idx + trimmed.length)}
+      </>
+    );
+  }
 
   async function handleAddExercise(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -332,16 +411,71 @@ export function SessionEditorView({
               event.preventDefault();
               onSearchExercises(libraryName.trim(), libraryMuscle);
               setSelectedExerciseId("");
+              setSuggestionsOpen(false);
             }}
           >
-            <Field
-              ref={searchInputRef}
-              id="library-search-input"
-              label="Buscar exercício"
-              value={libraryName}
-              onChange={(event) => setLibraryName(event.target.value)}
-              placeholder="Nome do exercício"
-            />
+            <div className="training-page__combobox">
+              <Field
+                ref={searchInputRef}
+                id="library-search-input"
+                label="Buscar exercício"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={showSuggestions}
+                aria-controls="library-suggestions-listbox"
+                aria-activedescendant={
+                  showSuggestions && activeSuggestionIndex >= 0 && exercises[activeSuggestionIndex]
+                    ? `library-suggestion-${exercises[activeSuggestionIndex].id}`
+                    : undefined
+                }
+                value={libraryName}
+                onChange={(event) => {
+                  setLibraryName(event.target.value);
+                  setSuggestionsOpen(true);
+                  setActiveSuggestionIndex(-1);
+                }}
+                onFocus={() => {
+                  if (libraryName.trim().length > 0) setSuggestionsOpen(true);
+                }}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Nome do exercício"
+              />
+              {showSuggestions && (
+                <div className="training-page__suggestions" id="library-suggestions-listbox" role="listbox" aria-label="Sugestões de exercícios">
+                  {exercisesLoading ? (
+                    <p className="training-page__muted">Buscando sugestões…</p>
+                  ) : exercisesError ? (
+                    <p className="training-page__alert" role="alert">
+                      Não foi possível carregar sugestões.
+                    </p>
+                  ) : exercises.length === 0 ? (
+                    <p className="training-page__muted">Nenhum exercício encontrado.</p>
+                  ) : (
+                    exercises.map((exercise, index) => (
+                      <button
+                        key={exercise.id}
+                        id={`library-suggestion-${exercise.id}`}
+                        type="button"
+                        role="option"
+                        aria-selected={index === activeSuggestionIndex}
+                        className={`training-page__suggestion-item ${
+                          index === activeSuggestionIndex ? "training-page__suggestion-item--active" : ""
+                        }`}
+                        onClick={() => selectSuggestion(exercise)}
+                      >
+                        <span className="training-page__suggestion-name">
+                          {highlightMatch(exercise.name, libraryName)}
+                        </span>
+                        <span className="training-page__suggestion-meta">
+                          {exercise.muscleGroups.map((group) => MUSCLE_LABELS[group]).join(", ")} ·{" "}
+                          {EQUIPMENT_LABELS[exercise.equipment] ?? exercise.equipment} · v{exercise.version}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
             <SelectField
               label="Grupo muscular"
               value={libraryMuscle}

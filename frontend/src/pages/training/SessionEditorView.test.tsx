@@ -186,4 +186,128 @@ describe("SessionEditorView (Issue #42)", () => {
     const searchInput = screen.getByLabelText("Buscar exercício");
     expect(searchInput).toHaveFocus();
   });
+
+  it("exibe autocomplete acessível ao digitar e permite selecionar via teclado (#195)", async () => {
+    const user = userEvent.setup();
+    const onSearchExercises = vi.fn();
+
+    render(
+      <SessionEditorView
+        selectedSession={mockSessionWithOutdatedExercise}
+        exercises={mockLibraryExercises}
+        exercisesLoading={false}
+        exercisesError={false}
+        transitionSessionPending={false}
+        transitionSessionError={null}
+        reorderExercisesPending={false}
+        reorderExercisesError={null}
+        applyCurrentVersionPending={false}
+        applyCurrentVersionError={null}
+        addExercisePending={false}
+        addExerciseError={null}
+        updatePrescriptionPending={false}
+        updatePrescriptionError={null}
+        removePrescriptionPending={false}
+        removePrescriptionError={null}
+        onSearchExercises={onSearchExercises}
+        onTransitionSession={vi.fn()}
+        onReorderExercises={vi.fn()}
+        onApplyCurrentVersion={vi.fn()}
+        onAddExercise={vi.fn()}
+        onUpdatePrescription={vi.fn()}
+        onRemovePrescription={vi.fn()}
+      />
+    );
+
+    const combobox = screen.getByRole("combobox", { name: "Buscar exercício" });
+    await user.type(combobox, "Supino");
+
+    // Debounce de 300ms dispara a busca automaticamente sem clicar em Buscar
+    await waitFor(
+      () => {
+        expect(onSearchExercises).toHaveBeenCalledWith("Supino", "");
+      },
+      { timeout: 1000 }
+    );
+
+    const listbox = screen.getByRole("listbox", { name: "Sugestões de exercícios" });
+    expect(listbox).toBeInTheDocument();
+
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(combobox).toHaveValue("Supino Reto com Barra (Atualizado)");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    // Selecionar sugestão não dispara nova busca nem desmonta o formulário de prescrição
+    const callsAfterSelect = onSearchExercises.mock.calls.length;
+    const setsInput = screen.getByLabelText("Séries");
+    await user.type(setsInput, "4");
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(onSearchExercises).toHaveBeenCalledTimes(callsAfterSelect);
+    expect(setsInput).toHaveValue(4);
+  });
+
+  it("não entra em loop de busca quando onSearchExercises muda de referência (#201)", async () => {
+    const firstSearch = vi.fn();
+    const secondSearch = vi.fn();
+
+    const { rerender } = render(
+      <SessionEditorView
+        selectedSession={mockSessionWithOutdatedExercise}
+        exercises={mockLibraryExercises}
+        exercisesLoading={false}
+        exercisesError={false}
+        transitionSessionPending={false}
+        transitionSessionError={null}
+        reorderExercisesPending={false}
+        reorderExercisesError={null}
+        applyCurrentVersionPending={false}
+        applyCurrentVersionError={null}
+        addExercisePending={false}
+        addExerciseError={null}
+        updatePrescriptionPending={false}
+        updatePrescriptionError={null}
+        removePrescriptionPending={false}
+        removePrescriptionError={null}
+        onSearchExercises={firstSearch}
+        onTransitionSession={vi.fn()}
+        onReorderExercises={vi.fn()}
+        onApplyCurrentVersion={vi.fn()}
+        onAddExercise={vi.fn()}
+        onUpdatePrescription={vi.fn()}
+        onRemovePrescription={vi.fn()}
+      />
+    );
+
+    rerender(
+      <SessionEditorView
+        selectedSession={mockSessionWithOutdatedExercise}
+        exercises={mockLibraryExercises}
+        exercisesLoading={false}
+        exercisesError={false}
+        transitionSessionPending={false}
+        transitionSessionError={null}
+        reorderExercisesPending={false}
+        reorderExercisesError={null}
+        applyCurrentVersionPending={false}
+        applyCurrentVersionError={null}
+        addExercisePending={false}
+        addExerciseError={null}
+        updatePrescriptionPending={false}
+        updatePrescriptionError={null}
+        removePrescriptionPending={false}
+        removePrescriptionError={null}
+        onSearchExercises={secondSearch}
+        onTransitionSession={vi.fn()}
+        onReorderExercises={vi.fn()}
+        onApplyCurrentVersion={vi.fn()}
+        onAddExercise={vi.fn()}
+        onUpdatePrescription={vi.fn()}
+        onRemovePrescription={vi.fn()}
+      />
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(firstSearch).not.toHaveBeenCalled();
+    expect(secondSearch).not.toHaveBeenCalled();
+  });
 });
