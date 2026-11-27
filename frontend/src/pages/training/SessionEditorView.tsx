@@ -91,17 +91,27 @@ export function SessionEditorView({
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const hasMountedSearchRef = useRef(false);
+  const onSearchExercisesRef = useRef(onSearchExercises);
+  const skipNextSearchRef = useRef(false);
+
+  useEffect(() => {
+    onSearchExercisesRef.current = onSearchExercises;
+  }, [onSearchExercises]);
 
   useEffect(() => {
     if (!hasMountedSearchRef.current) {
       hasMountedSearchRef.current = true;
       return;
     }
+    if (skipNextSearchRef.current) {
+      skipNextSearchRef.current = false;
+      return;
+    }
     const timer = window.setTimeout(() => {
-      onSearchExercises(libraryName.trim(), libraryMuscle);
+      onSearchExercisesRef.current(libraryName.trim(), libraryMuscle);
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [libraryName, libraryMuscle, onSearchExercises]);
+  }, [libraryName, libraryMuscle]);
 
   useEffect(() => {
     if (autoFocusAddExercise) {
@@ -128,6 +138,9 @@ export function SessionEditorView({
   const showSuggestions = suggestionsOpen && libraryName.trim().length > 0;
 
   function selectSuggestion(exercise: Exercise) {
+    if (exercise.name !== libraryName) {
+      skipNextSearchRef.current = true;
+    }
     setSelectedExerciseId(exercise.id);
     setLibraryName(exercise.name);
     setSuggestionsOpen(false);

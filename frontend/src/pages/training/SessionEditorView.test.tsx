@@ -236,5 +236,78 @@ describe("SessionEditorView (Issue #42)", () => {
     await user.keyboard("{ArrowDown}{Enter}");
     expect(combobox).toHaveValue("Supino Reto com Barra (Atualizado)");
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    // Selecionar sugestão não dispara nova busca nem desmonta o formulário de prescrição
+    const callsAfterSelect = onSearchExercises.mock.calls.length;
+    const setsInput = screen.getByLabelText("Séries");
+    await user.type(setsInput, "4");
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(onSearchExercises).toHaveBeenCalledTimes(callsAfterSelect);
+    expect(setsInput).toHaveValue(4);
+  });
+
+  it("não entra em loop de busca quando onSearchExercises muda de referência (#201)", async () => {
+    const firstSearch = vi.fn();
+    const secondSearch = vi.fn();
+
+    const { rerender } = render(
+      <SessionEditorView
+        selectedSession={mockSessionWithOutdatedExercise}
+        exercises={mockLibraryExercises}
+        exercisesLoading={false}
+        exercisesError={false}
+        transitionSessionPending={false}
+        transitionSessionError={null}
+        reorderExercisesPending={false}
+        reorderExercisesError={null}
+        applyCurrentVersionPending={false}
+        applyCurrentVersionError={null}
+        addExercisePending={false}
+        addExerciseError={null}
+        updatePrescriptionPending={false}
+        updatePrescriptionError={null}
+        removePrescriptionPending={false}
+        removePrescriptionError={null}
+        onSearchExercises={firstSearch}
+        onTransitionSession={vi.fn()}
+        onReorderExercises={vi.fn()}
+        onApplyCurrentVersion={vi.fn()}
+        onAddExercise={vi.fn()}
+        onUpdatePrescription={vi.fn()}
+        onRemovePrescription={vi.fn()}
+      />
+    );
+
+    rerender(
+      <SessionEditorView
+        selectedSession={mockSessionWithOutdatedExercise}
+        exercises={mockLibraryExercises}
+        exercisesLoading={false}
+        exercisesError={false}
+        transitionSessionPending={false}
+        transitionSessionError={null}
+        reorderExercisesPending={false}
+        reorderExercisesError={null}
+        applyCurrentVersionPending={false}
+        applyCurrentVersionError={null}
+        addExercisePending={false}
+        addExerciseError={null}
+        updatePrescriptionPending={false}
+        updatePrescriptionError={null}
+        removePrescriptionPending={false}
+        removePrescriptionError={null}
+        onSearchExercises={secondSearch}
+        onTransitionSession={vi.fn()}
+        onReorderExercises={vi.fn()}
+        onApplyCurrentVersion={vi.fn()}
+        onAddExercise={vi.fn()}
+        onUpdatePrescription={vi.fn()}
+        onRemovePrescription={vi.fn()}
+      />
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(firstSearch).not.toHaveBeenCalled();
+    expect(secondSearch).not.toHaveBeenCalled();
   });
 });
